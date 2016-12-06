@@ -23,7 +23,7 @@ import (
 
 const (
 	// BinmanVersion is the current public version of binman
-	BinmanVersion = "1.1.2"
+	BinmanVersion = "0.0.1"
 )
 
 var versionCmd = &cobra.Command{
