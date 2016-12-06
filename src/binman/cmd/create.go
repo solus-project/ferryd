@@ -19,6 +19,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"manager"
+	"os"
 )
 
 var createCmd = &cobra.Command{
@@ -42,5 +44,11 @@ func createRepo(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("You must supply the name of a repository")
 	}
+	man, err := manager.New()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to instaniate the manager: %v\n", err)
+		return nil
+	}
+	defer man.Cleanup()
 	return nil
 }

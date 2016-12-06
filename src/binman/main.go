@@ -18,8 +18,6 @@ package main
 
 import (
 	"binman/cmd"
-	// Force manager into the build
-	_ "manager"
 	"os"
 )
 
