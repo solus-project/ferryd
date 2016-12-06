@@ -19,20 +19,37 @@ package manager
 
 import (
 	// Force boltdb into the build
-	_ "github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 )
 
 // A Manager is used for all binman operations and stores the global
 // state, database, etc.
 type Manager struct {
+	db *bolt.DB
 }
 
 // New will return a new Manager instance
-func New() *Manager {
-	return &Manager{}
+func New() (*Manager, error) {
+	// TODO: Support read-only operation, and don't hardcode the feckin'
+	// path.
+	options := &bolt.Options{
+		Timeout: 0,
+	}
+	db, err := bolt.Open("binman.db", 0600, options)
+	if err != nil {
+		return nil, err
+	}
+	return &Manager{
+		db: db,
+	}, nil
 }
 
-// Cleanup would clean up the manager instance but is largely a no-op
-// right now.
+// Cleanup will close any resources that this Manager instance owns, such
+// as the main database.
 func (m *Manager) Cleanup() {
+	if m.db == nil {
+		return
+	}
+	m.db.Close()
+	m.db = nil
 }
