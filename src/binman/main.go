@@ -18,7 +18,6 @@ package main
 
 import (
 	"binman/cmd"
-	"fmt"
 	"os"
 )
 
