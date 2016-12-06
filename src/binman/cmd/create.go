@@ -46,7 +46,7 @@ func createRepo(cmd *cobra.Command, args []string) error {
 	}
 	man, err := manager.New()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to instaniate the manager: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to instantiate the manager: %v\n", err)
 		return nil
 	}
 	defer man.Cleanup()
