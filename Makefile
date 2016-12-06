@@ -11,7 +11,9 @@ include Makefile.gobuild
 
 _PKGS = \
 	binman \
-	binman/cmd
+	binman/cmd \
+	manager
+
 
 # We want to add compliance for all built binaries
 _CHECK_COMPLIANCE = $(addsuffix .compliant,$(_PKGS))

@@ -14,17 +14,25 @@
 // limitations under the License.
 //
 
-package main
+// Package manager provides the main guts of binman itself.
+package manager
 
 import (
-	"binman/cmd"
-	// Force manager into the build
-	_ "manager"
-	"os"
+	// Force boltdb into the build
+	_ "github.com/boltdb/bolt"
 )
 
-func main() {
-	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+// A Manager is used for all binman operations and stores the global
+// state, database, etc.
+type Manager struct {
+}
+
+// New will return a new Manager instance
+func New() *Manager {
+	return &Manager{}
+}
+
+// Cleanup would clean up the manager instance but is largely a no-op
+// right now.
+func (m *Manager) Cleanup() {
 }
