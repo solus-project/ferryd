@@ -28,10 +28,24 @@ type Manager struct {
 	db *bolt.DB
 }
 
+// EnsureBuckets will create all of our required buckets in the database
+func (m *Manager) EnsureBuckets() error {
+	buckets := []string{
+		"repos",
+	}
+	return m.db.Batch(func(tx *bolt.Tx) error {
+		for _, b := range buckets {
+			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // New will return a new Manager instance
 func New() (*Manager, error) {
-	// TODO: Support read-only operation, and don't hardcode the feckin'
-	// path.
+	// TODO: Support read-only operation, and don't hardcode the feckin' path.
 	options := &bolt.Options{
 		Timeout: 0,
 	}
@@ -39,9 +53,15 @@ func New() (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Manager{
+	m := &Manager{
 		db: db,
-	}, nil
+	}
+	// Make sure everything is in place
+	if err := m.EnsureBuckets(); err != nil {
+		m.Cleanup()
+		return nil, err
+	}
+	return m, nil
 }
 
 // Cleanup will close any resources that this Manager instance owns, such
