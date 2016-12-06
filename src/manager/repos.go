@@ -22,6 +22,11 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+var (
+	// BucketNameRepos is the fixed name of the repositories bucket
+	BucketNameRepos = []byte("repos")
+)
+
 // A Repository is the base unit of storage in binman
 type Repository struct {
 	Name string
@@ -38,6 +43,6 @@ func (m *Manager) CreateRepo(name string) error {
 		return err
 	}
 	return m.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte("repos")).Put([]byte(name), buf.Bytes())
+		return tx.Bucket(BucketNameRepos).Put([]byte(name), buf.Bytes())
 	})
 }

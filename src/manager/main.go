@@ -30,8 +30,8 @@ type Manager struct {
 
 // EnsureBuckets will create all of our required buckets in the database
 func (m *Manager) EnsureBuckets() error {
-	buckets := []string{
-		"repos",
+	buckets := [][]byte{
+		BucketNameRepos,
 	}
 	return m.db.Batch(func(tx *bolt.Tx) error {
 		for _, b := range buckets {
