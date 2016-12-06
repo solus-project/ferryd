@@ -18,6 +18,8 @@ package main
 
 import (
 	"binman/cmd"
+	// Force boltdb into the build
+	_ "github.com/boltdb/bolt"
 	"os"
 )
 
