@@ -60,3 +60,19 @@ func (m *Manager) CreateRepo(name string) error {
 		return tx.Bucket(BucketNameRepos).Put(nom, buf.Bytes())
 	})
 }
+
+// ListRepos will return a list of repository names known to binman.
+func (m *Manager) ListRepos() ([]string, error) {
+	var repos []string
+	err := m.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketNameRepos)
+		return b.ForEach(func(k, v []byte) error {
+			repos = append(repos, string(k))
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
+}
