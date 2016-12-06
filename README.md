@@ -1,7 +1,7 @@
 binman
 --------
 
- [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Report](https://goreportcard.com/badge/github.com/solus-project/binman)](https://goreportcard.com/report/github.com/solus-project/binman) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 `binman` is the binary repository manager for Solus. This is a reimplementation of the current `binman` Python code, in keeping with Solus' goals of using `Go` for this kind of tooling.
 
