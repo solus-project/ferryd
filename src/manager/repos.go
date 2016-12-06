@@ -19,12 +19,17 @@ package manager
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/boltdb/bolt"
 )
 
 var (
 	// BucketNameRepos is the fixed name of the repositories bucket
 	BucketNameRepos = []byte("repos")
+
+	// ErrRepoExists is returned when a repository alread exists, and the
+	// user tries to create a new repo.
+	ErrRepoExists = errors.New("The specified repository already exists")
 )
 
 // A Repository is the base unit of storage in binman
@@ -42,7 +47,16 @@ func (m *Manager) CreateRepo(name string) error {
 	if err := enc.Encode(repo); err != nil {
 		return err
 	}
+
+	// Encoded name
+	nom := []byte(name)
+
 	return m.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketNameRepos).Put([]byte(name), buf.Bytes())
+		b := tx.Bucket(BucketNameRepos)
+		// Check it doesn't already exist in the bucket
+		if b.Get(nom) != nil {
+			return ErrRepoExists
+		}
+		return tx.Bucket(BucketNameRepos).Put(nom, buf.Bytes())
 	})
 }
