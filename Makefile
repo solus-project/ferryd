@@ -10,7 +10,8 @@ BINARIES = \
 include Makefile.gobuild
 
 _PKGS = \
-	binman
+	binman \
+	binman/cmd
 
 # We want to add compliance for all built binaries
 _CHECK_COMPLIANCE = $(addsuffix .compliant,$(_PKGS))
@@ -32,6 +33,6 @@ ensure_modules:
 
 # See: https://github.com/meitar/git-archive-all.sh/blob/master/git-archive-all.sh
 release: ensure_modules
-	git-archive-all.sh --format tar.gz --prefix solbuild-$(VERSION)/ --verbose -t HEAD solbuild-$(VERSION).tar.gz
+	git-archive-all.sh --format tar.gz --prefix binman-$(VERSION)/ --verbose -t HEAD binman-$(VERSION).tar.gz
 
 all: $(BINS)

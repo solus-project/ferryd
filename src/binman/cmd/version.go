@@ -14,16 +14,30 @@
 // limitations under the License.
 //
 
-package main
+package cmd
 
 import (
-	"binman/cmd"
 	"fmt"
-	"os"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+const (
+	// BinmanVersion is the current public version of binman
+	BinmanVersion = "1.1.2"
+)
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "show version",
+	Long:  "Print the binman version and exit",
+	Run:   printVersion,
+}
+
+func init() {
+	RootCmd.AddCommand(versionCmd)
+}
+
+func printVersion(cmd *cobra.Command, args []string) {
+	fmt.Printf("binman version %v\n\nCopyright © 2016 Ikey Doherty\n", BinmanVersion)
+	fmt.Printf("Licensed under the Apache License, Version 2.0\n")
 }
