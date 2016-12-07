@@ -86,7 +86,7 @@ func (m *Manager) RemoveRepo(name string) error {
 	err := m.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNameRepos)
 		nom := []byte(name)
-		if b.Get(nom) == nil {
+		if len(b.Get(nom)) == 0 {
 			return ErrUnknownResource
 		}
 		return tx.Bucket(BucketNameRepos).Delete(nom)
@@ -101,7 +101,7 @@ func (m *Manager) GetRepo(name string) (*Repository, error) {
 
 	err := m.db.View(func(tx *bolt.Tx) error {
 		blob := tx.Bucket(BucketNameRepos).Get(nom)
-		if blob == nil {
+		if len(blob) == 0 {
 			return ErrUnknownResource
 		}
 		buf := bytes.NewBuffer(blob)

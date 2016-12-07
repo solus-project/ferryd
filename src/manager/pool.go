@@ -73,7 +73,7 @@ func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
 	entry := &PoolEntry{}
 	err := p.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNamePool).Get([]byte(key))
-		if b == nil {
+		if len(b) == 0 {
 			return ErrUnknownResource
 		}
 		buf := bytes.NewBuffer(b)
