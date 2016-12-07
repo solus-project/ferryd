@@ -7,6 +7,10 @@ VERSION = 0.0.1
 BINARIES = \
 	binman
 
+GO_TESTS = \
+	libeopkg.test
+
+
 include Makefile.gobuild
 
 _PKGS = \

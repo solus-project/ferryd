@@ -14,22 +14,20 @@
 // limitations under the License.
 //
 
-// Package libeopkg provides Go-native access to `.eopkg` files, allowing
-// binman to read and manipulate them without having a host-side eopkg
-// tool.
-//
-// It should also be noted that `eopkg` is implemented in Python, so calling
-// out to the host-side tool just isn't acceptable for the performance we
-// require.
-// In time, `sol` will replace eopkg and it is very likely that we'll base
-// the new `libsol` component on the C library using cgo.
 package libeopkg
 
-import (
-	"errors"
-)
+// Package represents a binary .eopkg file
+type Package struct {
+	Path string // Path to this .eopkg file
+}
 
-var (
-	// ErrNotYetImplemented is a placeholder during development
-	ErrNotYetImplemented = errors.New("Not yet implemented")
-)
+// Open will attempt to open the given .eopkg file.
+// This must be a valid .eopkg file and this stage will assert that it is
+// indeed a real archive.
+func Open(path string) (*Package, error) {
+	return nil, ErrNotYetImplemented
+}
+
+// Close a previously opened .eopkg file
+func (p *Package) Close() {
+}
