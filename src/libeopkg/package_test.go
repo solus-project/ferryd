@@ -17,6 +17,8 @@
 package libeopkg
 
 import (
+	"fmt"
+	"os"
 	"testing"
 )
 
@@ -36,6 +38,7 @@ func TestPackageOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error opening valid .eopkg file: %v", err)
 	}
+	defer pkg.Close()
 
 	meta := pkg.FindFile("metadata.xml")
 	if meta == nil {
@@ -51,5 +54,17 @@ func TestPackageOpen(t *testing.T) {
 	if files.Name != "files.xml" {
 		t.Fatalf("Incorrect files.xml file returned: %v", files.Name)
 	}
+}
+
+func TestPackageMeta(t *testing.T) {
+	pkg, err := Open(eopkgTestFile)
+	if err != nil {
+		t.Fatalf("Error opening valid .eopkg file: %v", err)
+	}
 	defer pkg.Close()
+	if err = pkg.ReadMetadata(); err != nil {
+		t.Fatalf("Error reading metadata: %v", err)
+	}
+	fmt.Fprintf(os.Stderr, "%v\n", pkg.Meta)
+	t.Fatal("Not completed!")
 }
