@@ -20,11 +20,23 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/boltdb/bolt"
+	"path/filepath"
+)
+
+var (
+	// RepoDirectory is the base directory for all repositories.
+	RepoDirectory = "repo"
 )
 
 // A Repository is the base unit of storage in binman
 type Repository struct {
 	Name string
+}
+
+// GetDirectory will return the directory component for where this
+// repository lives on disk.
+func (r *Repository) GetDirectory() string {
+	return filepath.Join(RepoDirectory, r.Name)
 }
 
 // CreateRepo will attempt to create a new repository

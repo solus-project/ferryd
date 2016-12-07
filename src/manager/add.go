@@ -18,11 +18,24 @@ package manager
 
 import (
 	"libeopkg"
+	"os"
+	"path/filepath"
 )
+
+// addPackageToRepo will take care of internalising this package into the
+// given repository, and exposing the file on the repo filesystem.
+func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package) error {
+	repoDir := filepath.Join(m.rootDir, repo.GetDirectory())
+	if err := os.MkdirAll(repoDir, 00755); err != nil {
+		return err
+	}
+	// TODO: Hardlink the target
+	return nil
+}
 
 // AddPackage will try to add a single package to the given repo.
 func (m *Manager) AddPackage(reponame string, pkgPath string) error {
-	_, err := m.GetRepo(reponame)
+	repo, err := m.GetRepo(reponame)
 	if err != nil {
 		return err
 	}
@@ -35,8 +48,15 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 	if err := pkg.ReadMetadata(); err != nil {
 		return err
 	}
-	// TODO: Also store into the repository =P
-	return m.pool.RefPackage(pkg)
+	// First things first, try to ref the package
+	if err := m.pool.RefPackage(pkg); err != nil {
+		return err
+	}
+	if err := m.addPackageToRepo(repo, pkg); err != nil {
+		// defer m.pool.UnrefPackage(pkg)
+		return err
+	}
+	return nil
 }
 
 // AddPackages will add all of the given packages to the specified resource
