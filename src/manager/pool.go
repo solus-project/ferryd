@@ -96,6 +96,12 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 	return os.Rename(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
 }
 
+// removePackage will remove the file from the pool
+func (p *Pool) removePackage(storagePath string) error {
+	// TODO: Remove containing directories!
+	return os.Remove(storagePath)
+}
+
 // RefPackage will potentially include a new .eopkg into the pool directory.
 // If it already exists, then the refcount is increased
 func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
@@ -152,4 +158,51 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 		return "", err
 	}
 	return poolPath, nil
+}
+
+// UnrefPackage will drop the refcount on a package if it exists, and if the
+// refcount hits 0 it will be unpooled.
+func (p *Pool) UnrefPackage(name string) error {
+	nom := []byte(name)
+	buffer := &bytes.Buffer{}
+
+	err := p.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketNamePool)
+		// Can't unref that which does not exist
+		blob := b.Get(nom)
+		var entry PoolEntry
+		if len(blob) == 0 {
+			return ErrUnknownResource
+		}
+		buffer.Write(blob)
+
+		// Decode the existing gob entry
+		dec := gob.NewDecoder(buffer)
+		if err := dec.Decode(&entry); err != nil {
+			return err
+		}
+
+		// Drop refcount
+		entry.RefCount--
+
+		// Drop from filesystem now before unref'ing, in case it fails
+		if entry.RefCount == 0 {
+			fmt.Printf("Debug: Dropping asset from pool: %s\n", entry.Path)
+			if err := p.removePackage(entry.Path); err != nil {
+				return err
+			}
+			return b.Delete(nom)
+		}
+		fmt.Printf("Debug: Asset with ref count %d: %s\n", entry.RefCount, entry.Path)
+
+		// Store the entry back in
+		buffer.Reset()
+		enc := gob.NewEncoder(buffer)
+		if err := enc.Encode(&entry); err != nil {
+			return err
+		}
+
+		return b.Put(nom, buffer.Bytes())
+	})
+	return err
 }
