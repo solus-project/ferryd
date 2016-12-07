@@ -17,6 +17,7 @@
 package manager
 
 import (
+	"encoding/json"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"path/filepath"
@@ -36,8 +37,9 @@ const (
 type PoolEntry struct {
 	Name     string            // Basename of the package, including suffix
 	Path     string            // Absolute path to the package file
-	RefCount int               // Number of times duplicated
 	Metadata libeopkg.Metadata // Package information for this file
+
+	refCount int // Number of times duplicated
 }
 
 //
@@ -61,4 +63,21 @@ func NewPool(root string, db *bolt.DB) *Pool {
 		db:      db,
 		poolDir: filepath.Join(root, PoolDirectory),
 	}
+}
+
+// GetEntry will attempt to find the given entry in the pool bucket.
+func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
+	entry := &PoolEntry{}
+	err := p.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketNamePool).Get([]byte(key))
+		if b == nil {
+			return ErrUnknownResource
+		}
+		// Decode the entry
+		return json.Unmarshal(b, entry)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
 }

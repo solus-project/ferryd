@@ -33,6 +33,7 @@ type Manager struct {
 func (m *Manager) EnsureBuckets() error {
 	buckets := [][]byte{
 		BucketNameRepos,
+		BucketNamePool,
 	}
 	return m.db.Batch(func(tx *bolt.Tx) error {
 		for _, b := range buckets {

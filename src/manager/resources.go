@@ -24,6 +24,9 @@ var (
 	// BucketNameRepos is the fixed name of the repositories bucket
 	BucketNameRepos = []byte("repos")
 
+	// BucketNamePool refers to our boltdb bucket in the Pool implementation
+	BucketNamePool = []byte("pool")
+
 	// ErrResourceExists is returned when the user attempts to create a
 	// new resource, and a resource with the given name already exists.
 	ErrResourceExists = errors.New("The specified resource already exists")
