@@ -65,14 +65,14 @@ func infoPackage(cmd *cobra.Command, args []string) error {
 		deps = append(deps, dep.Name)
 	}
 	output := [][]string{
-		[]string{"Package file", args[0]},
-		[]string{"Name", fmt.Sprintf("%s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)},
-		[]string{"Summary", metaPkg.Summary},
-		[]string{"Description", metaPkg.Description},
-		[]string{"Licenses", strings.Join(metaPkg.License, " ")},
-		[]string{"Component", metaPkg.PartOf},
-		[]string{"Distribution", fmt.Sprintf("%s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)},
-		[]string{"Dependencies", strings.Join(deps, " ")},
+		{"Package file", args[0]},
+		{"Name", fmt.Sprintf("%s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)},
+		{"Summary", metaPkg.Summary},
+		{"Description", metaPkg.Description},
+		{"Licenses", strings.Join(metaPkg.License, " ")},
+		{"Component", metaPkg.PartOf},
+		{"Distribution", fmt.Sprintf("%s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)},
+		{"Dependencies", strings.Join(deps, " ")},
 	}
 	table.SetBorder(false)
 	table.SetColumnSeparator(":")
