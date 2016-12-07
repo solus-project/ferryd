@@ -65,7 +65,8 @@ func TestPackageMeta(t *testing.T) {
 	if err = pkg.ReadMetadata(); err != nil {
 		t.Fatalf("Error reading metadata: %v", err)
 	}
-	fmt.Fprintf(os.Stderr, "%v\n", pkg.Meta)
-	fmt.Fprintf(os.Stderr, "%v\n", pkg.Meta.Package)
+	metaPkg := pkg.Meta.Package
+	fmt.Fprintf(os.Stderr, "Package: %s (%s-%d)\n", metaPkg.Name, metaPkg.History[0].Version, metaPkg.History[0].Release)
+	fmt.Fprintf(os.Stderr, "Summary: %s\n", metaPkg.Summary)
 	t.Fatal("Not completed!")
 }
