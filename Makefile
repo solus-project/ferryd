@@ -8,7 +8,7 @@ BINARIES = \
 	binman
 
 GO_TESTS = \
-	libeopkg/package.test
+	libeopkg.test
 
 
 include Makefile.gobuild
@@ -17,7 +17,6 @@ _PKGS = \
 	binman \
 	binman/cmd \
 	libeopkg \
-	libeopkg/package \
 	manager
 
 
