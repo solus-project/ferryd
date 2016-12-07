@@ -27,6 +27,10 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 		return err
 	}
 	defer pkg.Close()
+	// Load only the metadata at this point
+	if err := pkg.ReadMetadata(); err != nil {
+		return err
+	}
 	// TODO: Also store into the repository =P
 	return m.pool.RefPackage(pkg)
 }

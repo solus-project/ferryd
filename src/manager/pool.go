@@ -41,7 +41,7 @@ type PoolEntry struct {
 	Path     string            // Absolute path to the package file
 	Metadata libeopkg.Metadata // Package information for this file
 
-	refCount int // Number of times duplicated
+	RefCount int // Number of times duplicated
 }
 
 //
@@ -90,7 +90,7 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 	if err := os.MkdirAll(storagePath, 00755); err != nil {
 		return err
 	}
-	return CopyFile(pkg.Path, storagePath)
+	return CopyFile(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
 }
 
 // RefPackage will potentially include a new .eopkg into the pool directory.
@@ -101,40 +101,38 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 
 	err := p.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNamePool)
-		var entry *PoolEntry
+		var entry PoolEntry
 		var err error
 		// What we're putting back in
 		var storeBytes []byte
 
 		// Already have an entry? decode it
 		if entBytes := b.Get(key); entBytes != nil {
-			if err = json.Unmarshal(entBytes, entry); err != nil {
+			if err = json.Unmarshal(entBytes, &entry); err != nil {
 				return err
 			}
-		} else {
-			entry = &PoolEntry{}
 		}
 
 		entry.Name = baseName
 		entry.Metadata = *pkg.Meta
 		// Bump refcount immediately
-		entry.refCount++
+		entry.RefCount++
 		storagePath := filepath.Join(p.poolDir, FormPackageBasePath(pkg.Meta))
 
 		// We may now have to collect the package into the pool
-		if entry.refCount == 1 {
+		if entry.RefCount == 1 {
 			fmt.Printf("Debug: Pooling fresh asset: %s\n", pkg.Path)
 			if err = p.storePackage(storagePath, pkg); err != nil {
 				return err
 			}
 		}
-		fmt.Printf("Debug: Asset with ref count %d: %s\n", entry.refCount, pkg.Path)
+		fmt.Printf("Debug: Asset with ref count %d: %s\n", entry.RefCount, pkg.Path)
 
 		// Relative path
-		entry.Path = storagePath
+		entry.Path = filepath.Join(storagePath, baseName)
 
 		// Put the record back in place
-		if storeBytes, err = json.Marshal(entry); err == nil {
+		if storeBytes, err = json.Marshal(&entry); err == nil {
 			return b.Put(key, storeBytes)
 		}
 		return err
