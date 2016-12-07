@@ -18,11 +18,11 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"libeopkg"
 	"os"
 	"strings"
-	"text/tabwriter"
 )
 
 var infoCmd = &cobra.Command{
@@ -50,28 +50,35 @@ func infoPackage(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "Failed to open for reading: %v\n", err)
 		return nil
 	}
+	defer pkg.Close()
+
 	if err := pkg.ReadMetadata(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read package: %v\n", err)
 		return nil
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 1, 8, 2, '\t', 0)
-
 	metaPkg := pkg.Meta.Package
 	upd := metaPkg.History[0]
-	fmt.Fprintf(writer, "Package file\t: %s\n", args[0])
-	fmt.Fprintf(writer, "Name\t: %s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)
-	fmt.Fprintf(writer, "Summary\t: %s\n", metaPkg.Summary)
-	fmt.Fprintf(writer, "Description\t: %s", metaPkg.Description)
-	fmt.Fprintf(writer, "Licenses\t: %s\n", strings.Join(metaPkg.License, " "))
-	fmt.Fprintf(writer, "Component\t: %s\n", metaPkg.PartOf)
-	fmt.Fprintf(writer, "Distribution\t: %s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)
+	table := tablewriter.NewWriter(os.Stdout)
 	var deps []string
 	for _, dep := range metaPkg.RuntimeDependencies {
 		deps = append(deps, dep.Name)
 	}
-	fmt.Fprintf(writer, "Dependencies\t: %s\n", strings.Join(deps, " "))
-	writer.Flush()
-	defer pkg.Close()
+	output := [][]string{
+		[]string{"Package file", args[0]},
+		[]string{"Name", fmt.Sprintf("%s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)},
+		[]string{"Summary", metaPkg.Summary},
+		[]string{"Description", metaPkg.Description},
+		[]string{"Licenses", strings.Join(metaPkg.License, " ")},
+		[]string{"Component", metaPkg.PartOf},
+		[]string{"Distribution", fmt.Sprintf("%s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)},
+		[]string{"Dependencies", strings.Join(deps, " ")},
+	}
+	table.SetBorder(false)
+	table.SetColumnSeparator(":")
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.AppendBulk(output)
+	table.Render()
+
 	return nil
 }
