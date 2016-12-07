@@ -84,11 +84,17 @@ func (p *Package) FindFile(path string) *zip.File {
 // ReadMetadata will read the `metadata.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadMetadata() error {
+	if p.FindFile("metadata.xml") == nil {
+		return ErrEopkgCorrupted
+	}
 	return ErrNotYetImplemented
 }
 
 // ReadFiles will read the `files.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadFiles() error {
+	if p.FindFile("files.xml") == nil {
+		return ErrEopkgCorrupted
+	}
 	return ErrNotYetImplemented
 }
