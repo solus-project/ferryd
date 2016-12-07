@@ -18,7 +18,7 @@ package manager
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/gob"
 	"github.com/boltdb/bolt"
 	"path/filepath"
 )
@@ -42,7 +42,7 @@ func (r *Repository) GetDirectory() string {
 // CreateRepo will attempt to create a new repository
 func (m *Manager) CreateRepo(name string) error {
 	buf := &bytes.Buffer{}
-	enc := json.NewEncoder(buf)
+	enc := gob.NewEncoder(buf)
 	repo := &Repository{
 		Name: name,
 	}
@@ -104,7 +104,9 @@ func (m *Manager) GetRepo(name string) (*Repository, error) {
 		if blob == nil {
 			return ErrUnknownResource
 		}
-		return json.Unmarshal(blob, repo)
+		buf := bytes.NewBuffer(blob)
+		dec := gob.NewDecoder(buf)
+		return dec.Decode(repo)
 	})
 	if err != nil {
 		return nil, err

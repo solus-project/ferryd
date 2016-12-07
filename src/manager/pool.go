@@ -17,7 +17,8 @@
 package manager
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"libeopkg"
@@ -75,8 +76,10 @@ func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
 		if b == nil {
 			return ErrUnknownResource
 		}
+		buf := bytes.NewBuffer(b)
+		dec := gob.NewDecoder(buf)
 		// Decode the entry
-		return json.Unmarshal(b, entry)
+		return dec.Decode(entry)
 	})
 	if err != nil {
 		return nil, err
@@ -100,16 +103,19 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 	key := []byte(baseName)
 	var poolPath string
 
+	// Potentially used twice
+	buffer := &bytes.Buffer{}
+
 	err := p.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNamePool)
 		var entry PoolEntry
 		var err error
-		// What we're putting back in
-		var storeBytes []byte
 
 		// Already have an entry? decode it
 		if entBytes := b.Get(key); entBytes != nil {
-			if err = json.Unmarshal(entBytes, &entry); err != nil {
+			buffer.Write(entBytes)
+			dec := gob.NewDecoder(buffer)
+			if err := dec.Decode(&entry); err != nil {
 				return err
 			}
 		}
@@ -134,8 +140,11 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 		poolPath = entry.Path
 
 		// Put the record back in place
-		if storeBytes, err = json.Marshal(&entry); err == nil {
-			return b.Put(key, storeBytes)
+		buffer.Reset()
+		enc := gob.NewEncoder(buffer)
+
+		if err = enc.Encode(&entry); err == nil {
+			return b.Put(key, buffer.Bytes())
 		}
 		return err
 	})
