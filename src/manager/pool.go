@@ -19,6 +19,13 @@ package manager
 import (
 	"github.com/boltdb/bolt"
 	"libeopkg"
+	"path/filepath"
+)
+
+const (
+	// PoolDirectory is joined with our root path to form the full path
+	// to our pool asset tree.
+	PoolDirectory = "pool"
 )
 
 //
@@ -43,13 +50,15 @@ type PoolEntry struct {
 //
 type Pool struct {
 	// private
-	db *bolt.DB
+	db      *bolt.DB
+	poolDir string
 }
 
 // NewPool will return a new pool system. This is used primarily by Manager
 // to assist in controlling the repositories.
-func NewPool(db *bolt.DB) *Pool {
+func NewPool(root string, db *bolt.DB) *Pool {
 	return &Pool{
-		db: db,
+		db:      db,
+		poolDir: filepath.Join(root, PoolDirectory),
 	}
 }

@@ -25,7 +25,8 @@ import (
 // A Manager is used for all binman operations and stores the global
 // state, database, etc.
 type Manager struct {
-	db *bolt.DB
+	db   *bolt.DB
+	pool *Pool
 }
 
 // EnsureBuckets will create all of our required buckets in the database
@@ -53,6 +54,8 @@ func New() (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Get this at startup!
+	rootDir := "."
 	m := &Manager{
 		db: db,
 	}
@@ -61,6 +64,7 @@ func New() (*Manager, error) {
 		m.Cleanup()
 		return nil, err
 	}
+	m.pool = NewPool(rootDir, m.db)
 	return m, nil
 }
 
