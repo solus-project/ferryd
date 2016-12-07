@@ -24,15 +24,3 @@
 // In time, `sol` will replace eopkg and it is very likely that we'll base
 // the new `libsol` component on the C library using cgo.
 package libeopkg
-
-import (
-	"errors"
-)
-
-var (
-	// ErrNotYetImplemented is a placeholder during development
-	ErrNotYetImplemented = errors.New("Not yet implemented")
-
-	// ErrEopkgCorrupted is provided when a file does not conform to eopkg spec
-	ErrEopkgCorrupted = errors.New(".eopkg file is corrupted or invalid")
-)

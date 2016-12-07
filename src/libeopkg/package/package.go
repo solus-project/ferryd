@@ -18,6 +18,15 @@ package libeopkg
 
 import (
 	"archive/zip"
+	"errors"
+)
+
+var (
+	// ErrNotYetImplemented is a placeholder during development
+	ErrNotYetImplemented = errors.New("Not yet implemented")
+
+	// ErrEopkgCorrupted is provided when a file does not conform to eopkg spec
+	ErrEopkgCorrupted = errors.New(".eopkg file is corrupted or invalid")
 )
 
 //
