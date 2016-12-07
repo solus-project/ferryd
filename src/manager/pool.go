@@ -95,9 +95,10 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 
 // RefPackage will potentially include a new .eopkg into the pool directory.
 // If it already exists, then the refcount is increased
-func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
+func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 	baseName := filepath.Base(pkg.Path)
 	key := []byte(baseName)
+	var poolPath string
 
 	err := p.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNamePool)
@@ -130,6 +131,7 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 
 		// Relative path
 		entry.Path = filepath.Join(storagePath, baseName)
+		poolPath = entry.Path
 
 		// Put the record back in place
 		if storeBytes, err = json.Marshal(&entry); err == nil {
@@ -137,5 +139,8 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 		}
 		return err
 	})
-	return err
+	if err != nil {
+		return "", err
+	}
+	return poolPath, nil
 }

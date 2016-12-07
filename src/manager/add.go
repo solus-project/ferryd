@@ -24,13 +24,15 @@ import (
 
 // addPackageToRepo will take care of internalising this package into the
 // given repository, and exposing the file on the repo filesystem.
-func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package) error {
+func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package, poolPath string) error {
 	repoDir := filepath.Join(m.rootDir, repo.GetDirectory())
-	if err := os.MkdirAll(repoDir, 00755); err != nil {
+	tgtDir := filepath.Join(repoDir, FormPackageBasePath(pkg.Meta))
+	if err := os.MkdirAll(tgtDir, 00755); err != nil {
 		return err
 	}
-	// TODO: Hardlink the target
-	return nil
+	// TODO: Insert into the database!
+	// now hard link it
+	return os.Link(poolPath, filepath.Join(tgtDir, filepath.Base(pkg.Path)))
 }
 
 // AddPackage will try to add a single package to the given repo.
@@ -39,6 +41,8 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 	if err != nil {
 		return err
 	}
+	var poolPath string
+
 	pkg, err := libeopkg.Open(pkgPath)
 	if err != nil {
 		return err
@@ -49,10 +53,10 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 		return err
 	}
 	// First things first, try to ref the package
-	if err := m.pool.RefPackage(pkg); err != nil {
+	if poolPath, err = m.pool.RefPackage(pkg); err != nil {
 		return err
 	}
-	if err := m.addPackageToRepo(repo, pkg); err != nil {
+	if err = m.addPackageToRepo(repo, pkg, poolPath); err != nil {
 		// defer m.pool.UnrefPackage(pkg)
 		return err
 	}
