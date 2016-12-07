@@ -45,9 +45,9 @@ type Dependency struct {
 	Release     int `xml:"release,attr,omitempty"`     // == release
 
 	// Version based dependencies
-	VersionFrom string `xml:"releaseFrom,attr,omitempty"` // >= version
-	VersionTo   string `xml:"releaseTo,attr,omitempty"`   // <= version
-	Version     string `xml:"release,attr,omitempty"`     // == version
+	VersionFrom string `xml:"versionFrom,attr,omitempty"` // >= version
+	VersionTo   string `xml:"versionTo,attr,omitempty"`   // <= version
+	Version     string `xml:"version,attr,omitempty"`     // == version
 }
 
 // An Update forms part of a package's history, describing the version, release,
@@ -73,7 +73,7 @@ type MetaPackage struct {
 	RuntimeDependencies []Dependency // Packages this package depends on at runtime
 	PartOf              string       // Which component the package belongs to
 	License             []string     // The package license(s)
-	History             []Update     // A series of updates to the package
+	History             []Update     `xml:"History>Update"` // A series of updates to the package
 
 	// Binary details
 	BuildHost          string // Which build server produced the package
@@ -94,6 +94,6 @@ type MetaPackage struct {
 // Every Package contains Metadata, and during eopkg indexing, a reduced
 // version of the Metadata is emitted.
 type Metadata struct {
-	Source      Source  // Source of this package
-	MetaPackage Package `xml:"Package"` // Meta on the package itself
+	Source  Source      // Source of this package
+	Package MetaPackage `xml:"Package"` // Meta on the package itself
 }
