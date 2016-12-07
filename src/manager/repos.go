@@ -76,3 +76,13 @@ func (m *Manager) ListRepos() ([]string, error) {
 	}
 	return repos, nil
 }
+
+// RemoveRepo will remove a repository from binman. In future this will also
+// have to request the pool check for all unreferenced files and delete them
+// too.
+func (m *Manager) RemoveRepo(name string) error {
+	err := m.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(BucketNameRepos).Delete([]byte(name))
+	})
+	return err
+}
