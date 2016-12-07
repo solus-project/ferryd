@@ -22,6 +22,10 @@ import (
 
 // AddPackage will try to add a single package to the given repo.
 func (m *Manager) AddPackage(reponame string, pkgPath string) error {
+	_, err := m.GetRepo(reponame)
+	if err != nil {
+		return err
+	}
 	pkg, err := libeopkg.Open(pkgPath)
 	if err != nil {
 		return err
