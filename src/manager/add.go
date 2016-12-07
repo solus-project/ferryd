@@ -17,10 +17,29 @@
 package manager
 
 import (
-	"errors"
+	"libeopkg"
 )
+
+// AddPackage will try to add a single package to the given repo.
+func (m *Manager) AddPackage(reponame string, pkgPath string) error {
+	pkg, err := libeopkg.Open(pkgPath)
+	if err != nil {
+		return err
+	}
+	defer pkg.Close()
+	// TODO: Also store into the repository =P
+	return m.pool.RefPackage(pkg)
+}
 
 // AddPackages will add all of the given packages to the specified resource
 func (m *Manager) AddPackages(repoName string, pkgs []string) error {
-	return errors.New("Not yet implemented")
+	// TODO: Check the repo exists!
+
+	// Iterate and open all of the packages
+	for _, pkgPath := range pkgs {
+		if err := m.AddPackage(repoName, pkgPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
