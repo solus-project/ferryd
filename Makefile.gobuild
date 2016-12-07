@@ -17,6 +17,7 @@ spellcheck:
 	@ ( \
 		pushd "$(PROJECT_ROOT)/$(subst .compliant,,$@)" >/dev/null || exit 1; \
 		go fmt || exit 1; \
+		gofmt -s -w *.go || exit 1; \
 		GOPATH=$(CUR_DIR)/ golint || exit 1; \
 		GOPATH=$(CUR_DIR)/ go vet || exit 1; \
 	);
