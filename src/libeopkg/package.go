@@ -16,18 +16,33 @@
 
 package libeopkg
 
+import (
+	"archive/zip"
+)
+
 // Package represents a binary .eopkg file
 type Package struct {
 	Path string // Path to this .eopkg file
+
+	zipFile *zip.ReadCloser // .eopkg is a zip archvie
 }
 
 // Open will attempt to open the given .eopkg file.
 // This must be a valid .eopkg file and this stage will assert that it is
 // indeed a real archive.
 func Open(path string) (*Package, error) {
-	return nil, ErrNotYetImplemented
+	ret := &Package{
+		Path: path,
+	}
+	zipFile, err := zip.OpenReader(path)
+	if err != nil {
+		return nil, err
+	}
+	ret.zipFile = zipFile
+	return ret, nil
 }
 
 // Close a previously opened .eopkg file
-func (p *Package) Close() {
+func (p *Package) Close() error {
+	return p.zipFile.Close()
 }

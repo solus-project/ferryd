@@ -26,6 +26,9 @@ const (
 
 // TestPackageOpen will validate simple open of package files
 func TestPackageOpen(t *testing.T) {
+	if _, err := Open("NoSuchFile.txt"); err == nil {
+		t.Fatalf("Mysteriously opened a file that doesn't exist!")
+	}
 	pkg, err := Open(eopkgTestFile)
 	if err != nil {
 		t.Fatalf("Error opening valid .eopkg file: %v", err)
