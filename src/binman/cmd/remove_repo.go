@@ -58,5 +58,6 @@ func removeRepo(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "Unable to remove repository: %v\n", err)
 		return nil
 	}
+	fmt.Printf("Repository '%s' successfully removed.\n", args[0])
 	return nil
 }

@@ -56,5 +56,6 @@ func createRepo(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "Unable to create repository: %v\n", err)
 		return nil
 	}
+	fmt.Printf("Repository '%s' successfully created.\n", args[0])
 	return nil
 }
