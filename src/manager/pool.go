@@ -18,9 +18,9 @@ package manager
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/boltdb/bolt"
 	"libeopkg"
+	"os"
 	"path/filepath"
 )
 
@@ -85,8 +85,11 @@ func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
 
 // storePackage will attempt to put the eopkg archive itself into the local
 // cache.
-func (p *Pool) storePackage(pkg *libeopkg.Package) error {
-	return errors.New("Not yet implemented, sorry!")
+func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
+	if err := os.MkdirAll(storagePath, 00755); err != nil {
+		return err
+	}
+	return CopyFile(pkg.Path, storagePath)
 }
 
 // RefPackage will potentially include a new .eopkg into the pool directory.
@@ -115,14 +118,16 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 		entry.Metadata = *pkg.Meta
 		// Bump refcount immediately
 		entry.refCount++
+		storagePath := filepath.Join(p.poolDir, FormPackageBasePath(pkg.Meta))
 
 		// We may now have to collect the package into the pool
 		if entry.refCount == 1 {
-			if err = p.storePackage(pkg); err != nil {
+			if err = p.storePackage(storagePath, pkg); err != nil {
 				return err
 			}
 		}
-		entry.Path = filepath.Join(p.poolDir, baseName)
+		// Relative path
+		entry.Path = storagePath
 
 		// Put the record back in place
 		if storeBytes, err = json.Marshal(entry); err == nil {
