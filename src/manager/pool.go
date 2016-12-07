@@ -18,6 +18,7 @@ package manager
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"os"
@@ -122,10 +123,13 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 
 		// We may now have to collect the package into the pool
 		if entry.refCount == 1 {
+			fmt.Printf("Debug: Pooling fresh asset: %s\n", pkg.Path)
 			if err = p.storePackage(storagePath, pkg); err != nil {
 				return err
 			}
 		}
+		fmt.Printf("Debug: Asset with ref count %d: %s\n", entry.refCount, pkg.Path)
+
 		// Relative path
 		entry.Path = storagePath
 
