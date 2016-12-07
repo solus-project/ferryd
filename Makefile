@@ -12,6 +12,7 @@ include Makefile.gobuild
 _PKGS = \
 	binman \
 	binman/cmd \
+	libeopkg \
 	manager
 
 
