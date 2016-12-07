@@ -81,3 +81,21 @@ func (m *Manager) RemoveRepo(name string) error {
 	})
 	return err
 }
+
+// GetRepo will attempt to grab the named repo, if it exists.
+func (m *Manager) GetRepo(name string) (*Repository, error) {
+	repo := &Repository{}
+	nom := []byte(name)
+
+	err := m.db.View(func(tx *bolt.Tx) error {
+		blob := tx.Bucket(BucketNameRepos).Get(nom)
+		if blob == nil {
+			return ErrUnknownResource
+		}
+		return json.Unmarshal(blob, repo)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
+}
