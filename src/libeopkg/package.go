@@ -18,6 +18,7 @@ package libeopkg
 
 import (
 	"archive/zip"
+	"encoding/xml"
 )
 
 //
@@ -38,7 +39,8 @@ import (
 // is presently written in Python.
 //
 type Package struct {
-	Path string // Path to this .eopkg file
+	Path string    // Path to this .eopkg file
+	Meta *Metadata // Metadata for this package
 
 	zipFile *zip.ReadCloser // .eopkg is a zip archvie
 }
@@ -84,10 +86,22 @@ func (p *Package) FindFile(path string) *zip.File {
 // ReadMetadata will read the `metadata.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadMetadata() error {
-	if p.FindFile("metadata.xml") == nil {
+	metaFile := p.FindFile("metadata.xml")
+	if metaFile == nil {
 		return ErrEopkgCorrupted
 	}
-	return ErrNotYetImplemented
+	fi, err := metaFile.Open()
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	metadata := &Metadata{}
+	dec := xml.NewDecoder(fi)
+	if err = dec.Decode(metadata); err != nil {
+		return err
+	}
+	p.Meta = metadata
+	return nil
 }
 
 // ReadFiles will read the `files.xml` file within the archive and
