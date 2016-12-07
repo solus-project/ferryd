@@ -20,7 +20,23 @@ import (
 	"archive/zip"
 )
 
-// Package represents a binary .eopkg file
+//
+// A Package is used for accessing a `.eopkg` archive, the current format used
+// within Solus for software packages.
+//
+// An .eopkg archive is actually a ZIP archive. Internally it has the following
+// structure:
+//
+//      metadata.xml    -> Package information
+//      files.xml       -> Record of the files and hash/uid/gid/etc
+//      comar/          -> Postinstall scripts
+//      install.tar.xz  -> Filesystem contents
+//
+// Due to this toplevel simplicity, we can use golang's native `archive/zip`
+// library to achieve eopkg access, and parse the contents accordingly.
+// This is much faster than having to call out to the host side tool, which
+// is presently written in Python.
+//
 type Package struct {
 	Path string // Path to this .eopkg file
 
