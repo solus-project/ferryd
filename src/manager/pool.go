@@ -18,6 +18,7 @@ package manager
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"path/filepath"
@@ -82,6 +83,12 @@ func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
 	return entry, nil
 }
 
+// storePackage will attempt to put the eopkg archive itself into the local
+// cache.
+func (p *Pool) storePackage(pkg *libeopkg.Package) error {
+	return errors.New("Not yet implemented, sorry!")
+}
+
 // RefPackage will potentially include a new .eopkg into the pool directory.
 // If it already exists, then the refcount is increased
 func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
@@ -109,8 +116,13 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
 		// Bump refcount immediately
 		entry.refCount++
 
-		// TODO: Store the actual file if refcount now == 1, and set the
-		// Path to the new pool path
+		// We may now have to collect the package into the pool
+		if entry.refCount == 1 {
+			if err = p.storePackage(pkg); err != nil {
+				return err
+			}
+		}
+		entry.Path = filepath.Join(p.poolDir, baseName)
 
 		// Put the record back in place
 		if storeBytes, err = json.Marshal(entry); err == nil {
