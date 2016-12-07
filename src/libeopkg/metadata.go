@@ -70,18 +70,18 @@ type MetaPackage struct {
 	Name                string       // Name of this binary package
 	Summary             string       // Brief description, one line, of the package functionality
 	Description         string       // A full fleshed description of the package
-	RuntimeDependencies []Dependency // Packages this package depends on at runtime
+	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
 	PartOf              string       // Which component the package belongs to
 	License             []string     // The package license(s)
 	History             []Update     `xml:"History>Update"` // A series of updates to the package
 
 	// Binary details
-	BuildHost          string // Which build server produced the package
-	Distributon        string // Identifier for the distribution, i.e. "Solus"
-	DistributonRelease string // Name/ID if this distro release, i.e. "1"
-	Architecture       string // i.e. x86_64
-	InstalledSize      int64  // How much disk space this package takes up
-	PackageFormat      string // Locked to 1.2 for eopkg
+	BuildHost           string // Which build server produced the package
+	Distribution        string // Identifier for the distribution, i.e. "Solus"
+	DistributionRelease string // Name/ID if this distro release, i.e. "1"
+	Architecture        string // i.e. x86_64
+	InstalledSize       int64  // How much disk space this package takes up
+	PackageFormat       string // Locked to 1.2 for eopkg
 
 	// TODO: Investigate why this is present in the metadata.xml!
 	Source Source // Duplicate source to satisfy indexing
