@@ -90,7 +90,7 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 	if err := os.MkdirAll(storagePath, 00755); err != nil {
 		return err
 	}
-	return CopyFile(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
+	return os.Rename(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
 }
 
 // RefPackage will potentially include a new .eopkg into the pool directory.
