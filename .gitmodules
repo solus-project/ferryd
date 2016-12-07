@@ -10,3 +10,6 @@
 [submodule "src/vendor/github.com/olekukonko/tablewriter"]
 	path = src/vendor/github.com/olekukonko/tablewriter
 	url = https://github.com/olekukonko/tablewriter.git
+[submodule "src/vendor/github.com/mattn/go-runewidth"]
+	path = src/vendor/github.com/mattn/go-runewidth
+	url = https://github.com/mattn/go-runewidth.git
