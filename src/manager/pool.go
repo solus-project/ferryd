@@ -81,3 +81,42 @@ func (p *Pool) GetEntry(key string) (*PoolEntry, error) {
 	}
 	return entry, nil
 }
+
+// RefPackage will potentially include a new .eopkg into the pool directory.
+// If it already exists, then the refcount is increased
+func (p *Pool) RefPackage(pkg *libeopkg.Package) error {
+	baseName := filepath.Base(pkg.Path)
+	key := []byte(baseName)
+
+	err := p.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(BucketNamePool)
+		var entry *PoolEntry
+		var err error
+		// What we're putting back in
+		var storeBytes []byte
+
+		// Already have an entry? decode it
+		if entBytes := b.Get(key); entBytes != nil {
+			if err = json.Unmarshal(entBytes, entry); err != nil {
+				return err
+			}
+		} else {
+			entry = &PoolEntry{}
+		}
+
+		entry.Name = baseName
+		entry.Metadata = *pkg.Meta
+		// Bump refcount immediately
+		entry.refCount++
+
+		// TODO: Store the actual file if refcount now == 1, and set the
+		// Path to the new pool path
+
+		// Put the record back in place
+		if storeBytes, err = json.Marshal(entry); err == nil {
+			return b.Put(key, storeBytes)
+		}
+		return err
+	})
+	return err
+}
