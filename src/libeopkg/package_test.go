@@ -36,5 +36,20 @@ func TestPackageOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error opening valid .eopkg file: %v", err)
 	}
+
+	meta := pkg.FindFile("metadata.xml")
+	if meta == nil {
+		t.Fatal("Good archive is missing metadata.xml")
+	}
+	if meta.Name != "metadata.xml" {
+		t.Fatalf("Incorrect metadata.xml file returned: %v", meta.Name)
+	}
+	files := pkg.FindFile("files.xml")
+	if files == nil {
+		t.Fatal("Good archive is missing files.xml")
+	}
+	if files.Name != "files.xml" {
+		t.Fatalf("Incorrect files.xml file returned: %v", files.Name)
+	}
 	defer pkg.Close()
 }

@@ -62,3 +62,33 @@ func Open(path string) (*Package, error) {
 func (p *Package) Close() error {
 	return p.zipFile.Close()
 }
+
+// FindFile will search for the given name in the .zip's
+// file headers.
+// We do not need to worry about the issue with the Name
+// member being the basename, as the filenames are always
+// unique.
+//
+// In the event of the file requested not being found,
+// we return nil. The caller should then bail and indicate
+// that the eopkg is corrupted.
+func (p *Package) FindFile(path string) *zip.File {
+	for _, f := range p.zipFile.File {
+		if path == f.Name {
+			return f
+		}
+	}
+	return nil
+}
+
+// ReadMetadata will read the `metadata.xml` file within the archive and
+// deserialize it into something accessible within the .eopkg container.
+func (p *Package) ReadMetadata() error {
+	return ErrNotYetImplemented
+}
+
+// ReadFiles will read the `files.xml` file within the archive and
+// deserialize it into something accessible within the .eopkg container.
+func (p *Package) ReadFiles() error {
+	return ErrNotYetImplemented
+}
