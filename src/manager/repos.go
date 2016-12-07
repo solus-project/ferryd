@@ -30,6 +30,9 @@ var (
 	// ErrRepoExists is returned when a repository alread exists, and the
 	// user tries to create a new repo.
 	ErrRepoExists = errors.New("The specified repository already exists")
+
+	// ErrUnknownRepo is returned when we cannot find the specified repository.
+	ErrUnknownRepo = errors.New("The specified repository does not exist")
 )
 
 // A Repository is the base unit of storage in binman
@@ -82,7 +85,12 @@ func (m *Manager) ListRepos() ([]string, error) {
 // too.
 func (m *Manager) RemoveRepo(name string) error {
 	err := m.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketNameRepos).Delete([]byte(name))
+		b := tx.Bucket(BucketNameRepos)
+		nom := []byte(name)
+		if b.Get(nom) == nil {
+			return ErrUnknownRepo
+		}
+		return tx.Bucket(BucketNameRepos).Delete(nom)
 	})
 	return err
 }
