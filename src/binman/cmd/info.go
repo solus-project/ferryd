@@ -22,6 +22,7 @@ import (
 	"libeopkg"
 	"os"
 	"strings"
+	"text/tabwriter"
 )
 
 var infoCmd = &cobra.Command{
@@ -54,20 +55,23 @@ func infoPackage(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	writer := tabwriter.NewWriter(os.Stdout, 1, 8, 2, '\t', 0)
+
 	metaPkg := pkg.Meta.Package
 	upd := metaPkg.History[0]
-	fmt.Printf("Package file   : %s\n", args[0])
-	fmt.Printf("Name           : %s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)
-	fmt.Printf("Summary        : %s\n", metaPkg.Summary)
-	fmt.Printf("Description    : %s", metaPkg.Description)
-	fmt.Printf("Licenses       : %s\n", strings.Join(metaPkg.License, " "))
-	fmt.Printf("Component      : %s\n", metaPkg.PartOf)
-	fmt.Printf("Distribution   : %s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)
+	fmt.Fprintf(writer, "Package file\t: %s\n", args[0])
+	fmt.Fprintf(writer, "Name\t: %s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)
+	fmt.Fprintf(writer, "Summary\t: %s\n", metaPkg.Summary)
+	fmt.Fprintf(writer, "Description\t: %s", metaPkg.Description)
+	fmt.Fprintf(writer, "Licenses\t: %s\n", strings.Join(metaPkg.License, " "))
+	fmt.Fprintf(writer, "Component\t: %s\n", metaPkg.PartOf)
+	fmt.Fprintf(writer, "Distribution\t: %s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)
 	var deps []string
 	for _, dep := range metaPkg.RuntimeDependencies {
 		deps = append(deps, dep.Name)
 	}
-	fmt.Printf("Dependencies   : %s\n", strings.Join(deps, " "))
+	fmt.Fprintf(writer, "Dependencies\t: %s\n", strings.Join(deps, " "))
+	writer.Flush()
 	defer pkg.Close()
 	return nil
 }
