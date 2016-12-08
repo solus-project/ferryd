@@ -106,7 +106,12 @@ func (m *Manager) RemoveRepo(name string) error {
 		if len(b.Get(nom)) == 0 {
 			return ErrUnknownResource
 		}
-		return tx.Bucket(BucketNameRepos).Delete(nom)
+		r := Repository{Name: name}
+		// Delete package bucket
+		if err := b.DeleteBucket(r.BucketPathPackages()); err != nil {
+			return err
+		}
+		return b.Delete(nom)
 	})
 	return err
 }
