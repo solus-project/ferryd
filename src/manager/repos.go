@@ -19,6 +19,7 @@ package manager
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"path/filepath"
 )
@@ -39,6 +40,14 @@ func (r *Repository) GetDirectory() string {
 	return filepath.Join(RepoDirectory, r.Name)
 }
 
+// BucketPathPackages will return the unique repository packages bucket name
+//
+// A Repository has it's own named bucket within the Repo bucket,
+// which corresponds to the name of this repository.
+func (r *Repository) BucketPathPackages() []byte {
+	return []byte(fmt.Sprintf("%s.%s", BucketPrefixPackages, r.Name))
+}
+
 // CreateRepo will attempt to create a new repository
 func (m *Manager) CreateRepo(name string) error {
 	buf := &bytes.Buffer{}
@@ -56,10 +65,14 @@ func (m *Manager) CreateRepo(name string) error {
 	return m.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNameRepos)
 		// Check it doesn't already exist in the bucket
-		if b.Get(nom) != nil {
+		if len(b.Get(nom)) != 0 {
 			return ErrResourceExists
 		}
-		return tx.Bucket(BucketNameRepos).Put(nom, buf.Bytes())
+		path := repo.BucketPathPackages()
+		if _, err := b.CreateBucketIfNotExists(path); err != nil {
+			return err
+		}
+		return b.Put(nom, buf.Bytes())
 	})
 }
 
@@ -69,6 +82,10 @@ func (m *Manager) ListRepos() ([]string, error) {
 	err := m.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketNameRepos)
 		return b.ForEach(func(k, v []byte) error {
+			// Skip a namespaced bucket
+			if b.Bucket(k) != nil {
+				return nil
+			}
 			repos = append(repos, string(k))
 			return nil
 		})
