@@ -18,8 +18,9 @@
 package manager
 
 import (
-	// Force boltdb into the build
 	"github.com/boltdb/bolt"
+	"os"
+	"path/filepath"
 )
 
 // A Manager is used for all binman operations and stores the global
@@ -52,16 +53,24 @@ func New() (*Manager, error) {
 	options := &bolt.Options{
 		Timeout: 0,
 	}
-	db, err := bolt.Open("binman.db", 0600, options)
+
+	// TODO: Get this at startup!
+	rootDir := "./binman"
+
+	// Create our tree..
+	if err := os.MkdirAll(rootDir, 00755); err != nil {
+		return nil, err
+	}
+
+	dbFile := filepath.Join(rootDir, "binman.db")
+	db, err := bolt.Open(dbFile, 0600, options)
 	if err != nil {
 		return nil, err
 	}
 	m := &Manager{
-		db: db,
+		db:      db,
+		rootDir: rootDir,
 	}
-	// TODO: Get this at startup!
-	m.rootDir = "."
-
 	// Make sure everything is in place
 	if err := m.EnsureBuckets(); err != nil {
 		m.Cleanup()
