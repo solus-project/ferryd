@@ -17,11 +17,52 @@
 package manager
 
 import (
+	"bytes"
+	"encoding/gob"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"os"
 	"path/filepath"
+	"sort"
 )
+
+// addSourcePackage will add the package ID to the source mapping contained inside
+// the soruce bucket.
+// This function must always be called from a transaction
+func (m *Manager) addSourcePackage(repo *Repository, tx *bolt.Tx, pkgID string, meta *libeopkg.Metadata) error {
+	bucket := tx.Bucket(BucketNameRepos).Bucket(repo.BucketPathSources())
+	var sourceMapping []string
+
+	buf := &bytes.Buffer{}
+
+	source := []byte(meta.Source.Name)
+
+	// Deserialise the current slice of IDs
+	bits := bucket.Get(source)
+	if len(bits) != 0 {
+		dec := gob.NewDecoder(buf)
+		if err := dec.Decode(&sourceMapping); err != nil {
+			return err
+		}
+	}
+
+	// Ensure the package isn't already here.
+	for _, id := range sourceMapping {
+		if id == pkgID {
+			return ErrResourceExists
+		}
+	}
+	sourceMapping = append(sourceMapping, pkgID)
+	// Preserve an order to prevent popping holes in the DB
+	sort.Strings(sourceMapping)
+
+	buf.Reset()
+	enc := gob.NewEncoder(buf)
+	if err := enc.Encode(&sourceMapping); err != nil {
+		return err
+	}
+	return bucket.Put(source, buf.Bytes())
+}
 
 // addPackageToRepo will take care of internalising this package into the
 // given repository, and exposing the file on the repo filesystem.
@@ -44,6 +85,10 @@ func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package, pool
 		// Ensure the package isn't already stored!
 		if len(bucket.Get(pkgID)) != 0 {
 			return ErrResourceExists
+		}
+		// Stick the source mapping in
+		if err := m.addSourcePackage(repo, tx, string(pkgID), pkg.Meta); err != nil {
+			return err
 		}
 		return bucket.Put(pkgID, []byte(pkg.Meta.Source.Name))
 	})
