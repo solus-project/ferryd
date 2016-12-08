@@ -81,13 +81,13 @@ func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package, pool
 	err := m.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketNameRepos).Bucket(repo.BucketPathPackages())
 		// Perhaps store this in the pkg object.. ?
-		pkgID := []byte(filepath.Base(pkg.Path))
+		pkgID := []byte(pkg.ID)
 		// Ensure the package isn't already stored!
 		if len(bucket.Get(pkgID)) != 0 {
 			return ErrResourceExists
 		}
 		// Stick the source mapping in
-		if err := m.addSourcePackage(repo, tx, string(pkgID), pkg.Meta); err != nil {
+		if err := m.addSourcePackage(repo, tx, string(pkg.ID), pkg.Meta); err != nil {
 			return err
 		}
 		return bucket.Put(pkgID, []byte(pkg.Meta.Source.Name))
@@ -121,7 +121,6 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 	if err != nil {
 		return err
 	}
-	baseName := filepath.Base(pkgPath)
 	var poolPath string
 
 	pkg, err := libeopkg.Open(pkgPath)
@@ -138,7 +137,7 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 		return err
 	}
 	if err = m.addPackageToRepo(repo, pkg, poolPath); err != nil {
-		defer m.pool.UnrefPackage(baseName)
+		defer m.pool.UnrefPackage(pkg.ID)
 		return err
 	}
 	return nil

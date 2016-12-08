@@ -93,7 +93,7 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 	if err := os.MkdirAll(storagePath, 00755); err != nil {
 		return err
 	}
-	return os.Rename(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
+	return os.Rename(pkg.Path, filepath.Join(storagePath, pkg.ID))
 }
 
 // removePackage will remove the file from the pool, and any empty parent
@@ -108,8 +108,7 @@ func (p *Pool) removePackage(storagePath string) error {
 // RefPackage will potentially include a new .eopkg into the pool directory.
 // If it already exists, then the refcount is increased
 func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
-	baseName := filepath.Base(pkg.Path)
-	key := []byte(baseName)
+	key := []byte(pkg.ID)
 	var poolPath string
 
 	// Potentially used twice
@@ -129,7 +128,7 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 			}
 		}
 
-		entry.Name = baseName
+		entry.Name = pkg.ID
 		entry.Metadata = *pkg.Meta
 		// Bump refcount immediately
 		entry.RefCount++
@@ -145,7 +144,7 @@ func (p *Pool) RefPackage(pkg *libeopkg.Package) (string, error) {
 		fmt.Printf("Debug: Asset with ref count %d: %s\n", entry.RefCount, pkg.Path)
 
 		// Relative path
-		entry.Path = filepath.Join(storagePath, baseName)
+		entry.Path = filepath.Join(storagePath, pkg.ID)
 		poolPath = entry.Path
 
 		// Put the record back in place

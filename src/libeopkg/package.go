@@ -19,6 +19,7 @@ package libeopkg
 import (
 	"archive/zip"
 	"encoding/xml"
+	"path/filepath"
 )
 
 //
@@ -40,6 +41,7 @@ import (
 //
 type Package struct {
 	Path string    // Path to this .eopkg file
+	ID   string    // Basename of the package, unique.
 	Meta *Metadata // Metadata for this package
 
 	zipFile *zip.ReadCloser // .eopkg is a zip archvie
@@ -51,6 +53,7 @@ type Package struct {
 func Open(path string) (*Package, error) {
 	ret := &Package{
 		Path: path,
+		ID:   filepath.Base(path),
 	}
 	zipFile, err := zip.OpenReader(path)
 	if err != nil {
