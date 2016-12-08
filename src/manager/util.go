@@ -17,12 +17,20 @@
 package manager
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"libeopkg"
 	"os"
 	"path/filepath"
 	"strings"
+)
+
+var (
+	// DiskSizeLabels provides a textual unit for the size of a Thing
+	DiskSizeLabels = []string{
+		"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
+	}
 )
 
 // CopyFile will copy the file and permissions to the new target
@@ -123,4 +131,34 @@ func IsValidName(nom string) bool {
 		}
 	}
 	return true
+}
+
+// FormatDiskSizeUnit returns a size & unit appropriate for the input size
+func FormatDiskSizeUnit(size int64) (float64, string) {
+	fSize := float64(size)
+	var i int
+	var unit string
+
+	for i, unit = range DiskSizeLabels {
+		if fSize < 1024 || i == len(DiskSizeLabels)-1 {
+			return fSize, unit
+		}
+		fSize /= 1024
+	}
+
+	return fSize, unit
+}
+
+// FormatDiskSize returns a textual size string for a given input size.
+func FormatDiskSize(size int64) string {
+	sz, unit := FormatDiskSizeUnit(size)
+	return fmt.Sprintf("%.2f %s", sz, unit)
+}
+
+// GetFileSize is a quick utility function to get the size of any file.
+func GetFileSize(path string) int64 {
+	if st, err := os.Stat(path); st != nil && err == nil {
+		return st.Size()
+	}
+	return -1
 }
