@@ -18,6 +18,7 @@ package manager
 
 import (
 	"io"
+	"io/ioutil"
 	"libeopkg"
 	"os"
 	"path/filepath"
@@ -81,4 +82,33 @@ func FormPackageBasePath(meta *libeopkg.Metadata) string {
 		return filepath.Join(source[:4], source)
 	}
 	return filepath.Join(source[0:1], source)
+}
+
+// RemovePackageParents will try to remove the leading components of
+// a package file, only if they are empty.
+//
+// Per FormPackageBasePath, every package is at a minimum depth of 2,
+// and we clean those 2 dirs up if we can.
+func RemovePackageParents(path string) error {
+	sourceDir := filepath.Dir(path)      // i.e. libr/libreoffice
+	letterDir := filepath.Dir(sourceDir) // i.e. libr/
+
+	removalPaths := []string{
+		sourceDir,
+		letterDir,
+	}
+
+	for _, p := range removalPaths {
+		contents, err := ioutil.ReadDir(p)
+		if err != nil {
+			return err
+		}
+		if len(contents) != 0 {
+			continue
+		}
+		if err = os.Remove(p); err != nil {
+			return err
+		}
+	}
+	return nil
 }

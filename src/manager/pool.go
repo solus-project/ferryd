@@ -96,10 +96,13 @@ func (p *Pool) storePackage(storagePath string, pkg *libeopkg.Package) error {
 	return os.Rename(pkg.Path, filepath.Join(storagePath, filepath.Base(pkg.Path)))
 }
 
-// removePackage will remove the file from the pool
+// removePackage will remove the file from the pool, and any empty parent
+// directories, within the max depth of 2.
 func (p *Pool) removePackage(storagePath string) error {
-	// TODO: Remove containing directories!
-	return os.Remove(storagePath)
+	if err := os.Remove(storagePath); err != nil {
+		return err
+	}
+	return RemovePackageParents(storagePath)
 }
 
 // RefPackage will potentially include a new .eopkg into the pool directory.
