@@ -35,12 +35,21 @@ func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package, pool
 	return os.Link(poolPath, filepath.Join(tgtDir, filepath.Base(pkg.Path)))
 }
 
+//
 // AddPackage will try to add a single package to the given repo.
+//
+// Initially the new package will be referenced, which will then move that
+// package into pool/ area if currently unknown. If for any reason there
+// is an area pushing the package into the repository, it will automatically
+// be deref'd.
+// This ensures there are no "stragglers" left on the filesystem, as botched
+// uploads will immediately evaporate into thin air.
 func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 	repo, err := m.GetRepo(reponame)
 	if err != nil {
 		return err
 	}
+	baseName := filepath.Base(pkgPath)
 	var poolPath string
 
 	pkg, err := libeopkg.Open(pkgPath)
@@ -57,7 +66,7 @@ func (m *Manager) AddPackage(reponame string, pkgPath string) error {
 		return err
 	}
 	if err = m.addPackageToRepo(repo, pkg, poolPath); err != nil {
-		// defer m.pool.UnrefPackage(pkg)
+		defer m.pool.UnrefPackage(baseName)
 		return err
 	}
 	return nil
