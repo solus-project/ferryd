@@ -30,6 +30,9 @@ var (
 	// BucketPrefixPackages is the prefix for all package buckets in a repo
 	BucketPrefixPackages = "packages"
 
+	// BucketPrefixSources is the prefix for all source buckets in a repo
+	BucketPrefixSources = "sources"
+
 	// ErrResourceExists is returned when the user attempts to create a
 	// new resource, and a resource with the given name already exists.
 	ErrResourceExists = errors.New("The specified resource already exists")

@@ -48,6 +48,14 @@ func (r *Repository) BucketPathPackages() []byte {
 	return []byte(fmt.Sprintf("%s.%s", BucketPrefixPackages, r.Name))
 }
 
+// BucketPathSources will return the unique repository sources buckjet name
+//
+// A Repository has a sources nested bucket which maps a source to a slice
+// of package IDs.
+func (r *Repository) BucketPathSources() []byte {
+	return []byte(fmt.Sprintf("%s.%s", BucketPrefixSources, r.Name))
+}
+
 // CreateRepo will attempt to create a new repository
 //
 // TODO: Perform name validation to ban the use of "/" and "."
@@ -73,8 +81,14 @@ func (m *Manager) CreateRepo(name string) error {
 		if len(b.Get(nom)) != 0 {
 			return ErrResourceExists
 		}
-		path := repo.BucketPathPackages()
-		if _, err := b.CreateBucket(path); err != nil {
+		// Create packages bucket
+		ppath := repo.BucketPathPackages()
+		if _, err := b.CreateBucket(ppath); err != nil {
+			return err
+		}
+		// Create sources bucket
+		spath := repo.BucketPathSources()
+		if _, err := b.CreateBucket(spath); err != nil {
 			return err
 		}
 		return b.Put(nom, buf.Bytes())
@@ -114,6 +128,10 @@ func (m *Manager) RemoveRepo(name string) error {
 		r := Repository{Name: name}
 		// Delete package bucket
 		if err := b.DeleteBucket(r.BucketPathPackages()); err != nil {
+			return err
+		}
+		// Delete source bucket
+		if err := b.DeleteBucket(r.BucketPathSources()); err != nil {
 			return err
 		}
 		return b.Delete(nom)
