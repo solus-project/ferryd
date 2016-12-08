@@ -21,6 +21,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"libeopkg"
+	"manager"
 	"os"
 	"strings"
 )
@@ -64,15 +65,19 @@ func infoPackage(cmd *cobra.Command, args []string) error {
 	for _, dep := range metaPkg.RuntimeDependencies {
 		deps = append(deps, dep.Name)
 	}
+
+	iSize := manager.FormatDiskSize(metaPkg.InstalledSize)
+	archLine := fmt.Sprintf("%s, Installed Size: %s", metaPkg.Architecture, iSize)
 	output := [][]string{
 		{"Package file", args[0]},
-		{"Name", fmt.Sprintf("%s, version: %s, release: %d\n", metaPkg.Name, upd.Version, upd.Release)},
+		{"Name", fmt.Sprintf("%s, version: %s, release: %d", metaPkg.Name, upd.Version, upd.Release)},
 		{"Summary", metaPkg.Summary},
 		{"Description", metaPkg.Description},
 		{"Licenses", strings.Join(metaPkg.License, " ")},
 		{"Component", metaPkg.PartOf},
-		{"Distribution", fmt.Sprintf("%s, Dist. Release: %s\n", metaPkg.Distribution, metaPkg.DistributionRelease)},
 		{"Dependencies", strings.Join(deps, " ")},
+		{"Distribution", fmt.Sprintf("%s, Dist. Release: %s", metaPkg.Distribution, metaPkg.DistributionRelease)},
+		{"Architecture", archLine},
 	}
 	table.SetBorder(false)
 	table.SetColumnSeparator(":")
