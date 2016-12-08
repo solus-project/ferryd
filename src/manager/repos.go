@@ -49,7 +49,12 @@ func (r *Repository) BucketPathPackages() []byte {
 }
 
 // CreateRepo will attempt to create a new repository
+//
+// TODO: Perform name validation to ban the use of "/" and "."
 func (m *Manager) CreateRepo(name string) error {
+	if !IsValidName(name) {
+		return ErrInvalidResourceName
+	}
 	buf := &bytes.Buffer{}
 	enc := gob.NewEncoder(buf)
 	repo := &Repository{

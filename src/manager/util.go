@@ -112,3 +112,15 @@ func RemovePackageParents(path string) error {
 	}
 	return nil
 }
+
+// IsValidName makes sure no path characters are used in a name,
+// and that it contains no period characters (reserved for use in
+// namespacing sub buckets)
+func IsValidName(nom string) bool {
+	for _, c := range nom {
+		if c == '.' || c == '/' || c == '\\' || c == ';' {
+			return false
+		}
+	}
+	return true
+}

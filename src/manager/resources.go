@@ -37,4 +37,7 @@ var (
 	// ErrUnknownResource is returned when the user attempts to delete a named
 	// resource, but it was never stored to begin with.
 	ErrUnknownResource = errors.New("The specified resource does not exist")
+
+	// ErrInvalidResourceName is returned when the given path is not valid to us.
+	ErrInvalidResourceName = errors.New("Invalid resource path. Paths cannot contain slashes, periods, or semicolons")
 )
