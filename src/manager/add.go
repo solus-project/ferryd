@@ -17,6 +17,7 @@
 package manager
 
 import (
+	"github.com/boltdb/bolt"
 	"libeopkg"
 	"os"
 	"path/filepath"
@@ -25,14 +26,40 @@ import (
 // addPackageToRepo will take care of internalising this package into the
 // given repository, and exposing the file on the repo filesystem.
 func (m *Manager) addPackageToRepo(repo *Repository, pkg *libeopkg.Package, poolPath string) error {
+	// From -> to vars
 	repoDir := filepath.Join(m.rootDir, repo.GetDirectory())
 	tgtDir := filepath.Join(repoDir, FormPackageBasePath(pkg.Meta))
+	tgtPath := filepath.Join(tgtDir, filepath.Base(pkg.Path))
+
+	// Create leading directory structure
 	if err := os.MkdirAll(tgtDir, 00755); err != nil {
 		return err
 	}
-	// TODO: Insert into the database!
-	// now hard link it
-	return os.Link(poolPath, filepath.Join(tgtDir, filepath.Base(pkg.Path)))
+
+	// Now store it into the db
+	err := m.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketNameRepos).Bucket(repo.BucketPathPackages())
+		// Perhaps store this in the pkg object.. ?
+		pkgID := []byte(filepath.Base(pkg.Path))
+		// Ensure the package isn't already stored!
+		if len(bucket.Get(pkgID)) != 0 {
+			return ErrResourceExists
+		}
+		return bucket.Put(pkgID, []byte(pkg.Meta.Source.Name))
+	})
+
+	// if DB failed, nuke package parents
+	if err != nil {
+		defer RemovePackageParents(tgtPath)
+		return err
+	}
+
+	// Attempt to link the path into place, nuke parents if this fails
+	if err := os.Link(poolPath, tgtPath); err != nil {
+		defer RemovePackageParents(tgtPath)
+		return err
+	}
+	return nil
 }
 
 //
