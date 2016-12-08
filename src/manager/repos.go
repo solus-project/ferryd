@@ -69,7 +69,7 @@ func (m *Manager) CreateRepo(name string) error {
 			return ErrResourceExists
 		}
 		path := repo.BucketPathPackages()
-		if _, err := b.CreateBucketIfNotExists(path); err != nil {
+		if _, err := b.CreateBucket(path); err != nil {
 			return err
 		}
 		return b.Put(nom, buf.Bytes())
