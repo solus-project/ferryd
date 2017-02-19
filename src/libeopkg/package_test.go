@@ -68,5 +68,4 @@ func TestPackageMeta(t *testing.T) {
 	metaPkg := pkg.Meta.Package
 	fmt.Fprintf(os.Stderr, "Package: %s (%s-%d)\n", metaPkg.Name, metaPkg.History[0].Version, metaPkg.History[0].Release)
 	fmt.Fprintf(os.Stderr, "Summary: %s\n", metaPkg.Summary)
-	t.Fatal("Not completed!")
 }
