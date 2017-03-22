@@ -28,6 +28,6 @@ To reduce the cost of indexing a repository (many thousands of packages) a simpl
 License
 -------
 
-Copyright © 2016 Solus Project
+Copyright © 2016-2017 Solus Project
 
 `binman` is available under the terms of the Apache-2.0 license
