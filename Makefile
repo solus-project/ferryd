@@ -16,8 +16,7 @@ include Makefile.gobuild
 _PKGS = \
 	binman \
 	binman/cmd \
-	libeopkg \
-	manager
+	libeopkg
 
 
 # We want to add compliance for all built binaries
