@@ -5,7 +5,7 @@ VERSION = 0.0.1
 
 # The resulting binaries map to the subproject names
 BINARIES = \
-	binman
+	ferryd
 
 GO_TESTS = \
 	libeopkg.test
@@ -14,8 +14,8 @@ GO_TESTS = \
 include Makefile.gobuild
 
 _PKGS = \
-	binman \
-	binman/cmd \
+	ferryd \
+	ferryd/cmd \
 	libeopkg
 
 
@@ -39,6 +39,6 @@ ensure_modules:
 
 # See: https://github.com/meitar/git-archive-all.sh/blob/master/git-archive-all.sh
 release: ensure_modules
-	git-archive-all.sh --format tar.gz --prefix binman-$(VERSION)/ --verbose -t HEAD binman-$(VERSION).tar.gz
+	git-archive-all.sh --format tar.gz --prefix ferryd-$(VERSION)/ --verbose -t HEAD ferryd-$(VERSION).tar.gz
 
 all: $(BINS)

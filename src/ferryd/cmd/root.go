@@ -14,15 +14,14 @@
 // limitations under the License.
 //
 
-package main
+package cmd
 
 import (
-	"binman/cmd"
-	"os"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+// RootCmd is the main entry point into ferryd
+var RootCmd = &cobra.Command{
+	Use:   "ferryd",
+	Short: "ferryd is the Solus package repository tool",
 }

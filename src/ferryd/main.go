@@ -14,14 +14,15 @@
 // limitations under the License.
 //
 
-package cmd
+package main
 
 import (
-	"github.com/spf13/cobra"
+	"ferryd/cmd"
+	"os"
 )
 
-// RootCmd is the main entry point into binman
-var RootCmd = &cobra.Command{
-	Use:   "binman",
-	Short: "binman is the Solus package repository tool",
+func main() {
+	if err := cmd.RootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

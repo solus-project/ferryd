@@ -15,7 +15,7 @@
 //
 
 // Package libeopkg provides Go-native access to `.eopkg` files, allowing
-// binman to read and manipulate them without having a host-side eopkg
+// ferryd to read and manipulate them without having a host-side eopkg
 // tool.
 //
 // It should also be noted that `eopkg` is implemented in Python, so calling
