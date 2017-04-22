@@ -14,6 +14,18 @@ In effect, the database will look similar to the following::
     # configured destination. This must always be set
     /default_target: unstable
 
+    # Define end-points as publication channels outside the main tree
+    /endpoint:
+        # Path to use within /endpoints/
+        /id: unstable
+
+        # Where this endpoint is pointing, i.e. repo or sub-repo architecture
+        /target: unstable/x86_64
+
+    /endpoint:
+        /id: stable
+        /target: stable/x86_64
+
     /repo:
         /id: unstable
         /package:
@@ -92,6 +104,58 @@ Thus a lookup for a single package must traverse multiple buckets::
     repo := "stable"
     head := /repo:$repo/package:$name/published
     package := /pool:$published
+
+Filesystem Layout
+=================
+
+The basic layout will look to incorporate all relevant unique portions::
+
+    ./endpoints
+        unstable -> ../repo/unstable/x86_64
+        stable -> ../repo/stable/x86_64
+    ./repo/
+        unstable/
+            x86_64/
+                eopkg-index.xml
+                eopkg-index.xml.sha1sum
+                eopkg-index.xml.sha256sum
+                eopkg-index.xml.xz
+                eopkg-index.xml.xz.sha1sum
+                eopkg-index.xml.xz.sha256sum
+                n/
+                    nano/
+                        nano-2.7.5-67-1-x86_64.eopkg
+                        nano-2.7.5-68-1-x86_64.eopkg
+                        nano-2.8.1-69-1-x86_64.eopkg
+                        nano-67-69-1-x86_64.delta.eopkg
+        stable/
+            x86_64/
+                eopkg-index.xml
+                eopkg-index.xml.sha1sum
+                eopkg-index.xml.sha256sum
+                eopkg-index.xml.xz
+                eopkg-index.xml.xz.sha1sum
+                eopkg-index.xml.xz.sha256sum
+                n/
+                    nano/
+                        nano-2.7.5-67-1-x86_64.eopkg
+    ./pool/
+        n/
+            nano/
+                nano-2.7.5-67-1-x86_64.eopkg
+                nano-2.7.5-68-1-x86_64.eopkg
+                nano-2.8.1-69-1-x86_64.eopkg
+                nano-67-69-1-x86_64.delta.eopkg
+
+It is important to note that Solus has traditionally limited design decisions to a single architecture.
+However, in the last 2 years we opted to be forward looking and ensure that should the need arise, that
+we would have infrastructure and tooling sensibly created so that it could handle multiple architectures.
+As such, despite Solus being at present an `x86_64` only distribution, we ensure to encode the architecture
+into all ``.eopkg`` files, and ``ypkg`` encodes them into the machine generated ``pspec_$ARCH.xml`` files.
+
+With this in mind, ``ferryd`` will be designed with the view of supporting multiple architectures, even
+though we only have one right now. This means we'll need to be able to customise the end points through
+CLI tooling, in order to preserve the **current** URL schemas for updates.
 
 Updating an individual Package
 ==============================
