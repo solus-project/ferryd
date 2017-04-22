@@ -244,3 +244,6 @@ the ``*.tram`` (transit manifest) files on each run. To ensure the maximum effic
 in processing new uploads, the build server should ensure to send the transit manifest
 **after** all ``*.eopkg`` files, which will result in less delays and missing files during
 checks, allowing immediate availability of the new package set.
+
+**NOTE TO SELF**: We'll also need to strongly consider GPG signing for the Transit Manfiest
+to verify uploader identity.
