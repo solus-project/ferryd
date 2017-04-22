@@ -58,7 +58,7 @@ In effect, the database will look similar to the following::
         /nano-2.8.1-69-1-x86_64.eopkg:
 
             # Every reference must contain a schema version to allow migrations
-            schema_version: 0.1
+            schema_version: 1.0
             name: nano
             # How many instances of this file are used within the repo
             refcount: 1
