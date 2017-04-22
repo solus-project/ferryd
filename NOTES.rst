@@ -91,7 +91,7 @@ Thus a lookup for a single package must traverse multiple buckets::
     name := "nano"
     repo := "stable"
     head := /repo:$repo/package:$name/published
-    package := /repo:$repo/pool:$published
+    package := /pool:$published
 
 Updating an individual Package
 ==============================
