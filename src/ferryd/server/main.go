@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 )
 
 const (
@@ -44,6 +45,19 @@ func New() *Server {
 	}
 }
 
+// killHandler will ensure we cleanly tear down on a ctrl+c/sigint
+func (s *Server) killHandler() {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	go func() {
+		<-ch
+		fmt.Fprintf(os.Stderr, " -> shutting down due to ctrl+c\n")
+		s.Close()
+		// Stop any mainLoop defers here
+		os.Exit(1)
+	}()
+}
+
 // Serve will continuously serve on the unix socket until dead
 func (s *Server) Serve() error {
 	l, e := net.Listen("unix", UnixSocketPath)
@@ -52,6 +66,7 @@ func (s *Server) Serve() error {
 	}
 	s.socket = l
 	s.running = true
+	s.killHandler()
 	defer func() {
 		s.running = false
 	}()
@@ -69,7 +84,6 @@ func (s *Server) Close() {
 		return
 	}
 	s.running = false
-	fmt.Println(" -> shutting down")
 	s.srv.Shutdown(nil)
 	s.socket.Close()
 	os.Remove(UnixSocketPath)
