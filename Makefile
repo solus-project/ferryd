@@ -18,6 +18,7 @@ _PKGS = \
 	ferry \
 	ferry/cmd \
 	ferryd \
+	ferryd/server \
 	libeopkg
 
 

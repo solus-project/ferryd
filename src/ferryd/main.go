@@ -17,16 +17,19 @@
 package main
 
 import (
+	"ferryd/server"
 	"fmt"
 	"os"
 )
 
-const (
-	// UnixSocketPath is the unique socket path on the system for the ferry daemon
-	UnixSocketPath = "/run/ferryd.sock"
-)
+func mainLoop() {
+	server := server.New()
+	defer server.Close()
+	if e := server.Serve(); e != nil {
+		fmt.Fprintf(os.Stderr, "Error in sockets: %v\n", e)
+	}
+}
 
 func main() {
-	fmt.Println("Not yet implemented")
-	os.Exit(1)
+	mainLoop()
 }
