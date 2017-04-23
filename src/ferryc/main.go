@@ -22,11 +22,6 @@ import (
 	"time"
 )
 
-const (
-	// UnixSocketPath is the unique socket path on the system for the ferry daemon
-	UnixSocketPath = "./ferryd.sock"
-)
-
 // A FerryClient is used to communicate with the system ferryd
 type FerryClient struct {
 	client *http.Client
@@ -39,7 +34,7 @@ func NewClient(address string) *FerryClient {
 		client: &http.Client{
 			Transport: &http.Transport{
 				Dial: func(protocol, address string) (net.Conn, error) {
-					return net.Dial("unix", UnixSocketPath)
+					return net.Dial("unix", address)
 				},
 			},
 			Timeout: 20 * time.Second,
