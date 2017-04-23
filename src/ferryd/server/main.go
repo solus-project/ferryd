@@ -63,6 +63,16 @@ func (s *Server) Serve() error {
 	if e != nil {
 		return e
 	}
+	uid := os.Geteuid()
+	gid := os.Getegid()
+	// Avoid umask issues
+	if e = os.Chown(UnixSocketPath, uid, gid); e != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Cannot assert ownership of socket: %v\n", e)
+	}
+	// Fatal if we cannot chmod the socket to be ours only
+	if e = os.Chmod(UnixSocketPath, 0600); e != nil {
+		return e
+	}
 	s.running = true
 	s.killHandler()
 	defer func() {
