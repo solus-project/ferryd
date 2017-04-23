@@ -20,8 +20,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RootCmd is the main entry point into ferryd
+// RootCmd is the main entry point into ferry
 var RootCmd = &cobra.Command{
-	Use:   "ferryd",
-	Short: "ferryd is the Solus package repository tool",
+	Use:   "ferry",
+	Short: "ferry is the Solus package repository tool",
 }

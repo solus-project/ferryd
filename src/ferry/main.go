@@ -17,7 +17,7 @@
 package main
 
 import (
-	"ferryd/cmd"
+	"ferry/cmd"
 	"os"
 )
 

@@ -5,7 +5,7 @@ VERSION = 0.0.1
 
 # The resulting binaries map to the subproject names
 BINARIES = \
-	ferryd
+	ferry
 
 GO_TESTS = \
 	libeopkg.test
@@ -14,8 +14,8 @@ GO_TESTS = \
 include Makefile.gobuild
 
 _PKGS = \
-	ferryd \
-	ferryd/cmd \
+	ferry \
+	ferry/cmd \
 	libeopkg
 
 
