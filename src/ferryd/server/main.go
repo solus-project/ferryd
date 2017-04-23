@@ -17,6 +17,7 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -30,12 +31,17 @@ const (
 // Server sits on a unix socket accepting connections from authenticated
 // client, i.e. root or those in the "ferry" group
 type Server struct {
-	socket net.Listener
+	socket  net.Listener
+	srv     *http.Server
+	running bool
 }
 
 // New will return a newly initialised Server which is currently unbound
 func New() *Server {
-	return &Server{}
+	return &Server{
+		srv:     &http.Server{},
+		running: false,
+	}
 }
 
 // Serve will continuously serve on the unix socket until dead
@@ -45,11 +51,26 @@ func (s *Server) Serve() error {
 		return e
 	}
 	s.socket = l
-	return http.Serve(l, nil)
+	s.running = true
+	defer func() {
+		s.running = false
+	}()
+	e = s.srv.Serve(l)
+	// Don't treat Shutdown/Close as an error, it's intended by us.
+	if e != http.ErrServerClosed {
+		return e
+	}
+	return nil
 }
 
 // Close will shut down and cleanup the socket
 func (s *Server) Close() {
+	if !s.running {
+		return
+	}
+	s.running = false
+	fmt.Println(" -> shutting down")
+	s.srv.Shutdown(nil)
 	s.socket.Close()
 	os.Remove(UnixSocketPath)
 }
