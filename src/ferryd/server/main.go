@@ -32,7 +32,6 @@ const (
 // Server sits on a unix socket accepting connections from authenticated
 // client, i.e. root or those in the "ferry" group
 type Server struct {
-	socket  net.Listener
 	srv     *http.Server
 	running bool
 }
@@ -64,7 +63,6 @@ func (s *Server) Serve() error {
 	if e != nil {
 		return e
 	}
-	s.socket = l
 	s.running = true
 	s.killHandler()
 	defer func() {
@@ -85,6 +83,5 @@ func (s *Server) Close() {
 	}
 	s.running = false
 	s.srv.Shutdown(nil)
-	s.socket.Close()
 	os.Remove(UnixSocketPath)
 }
