@@ -36,6 +36,9 @@ func NewClient(address string) *FerryClient {
 				Dial: func(protocol, address string) (net.Conn, error) {
 					return net.Dial("unix", address)
 				},
+				DisableKeepAlives:     false,
+				IdleConnTimeout:       30 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
 			},
 			Timeout: 20 * time.Second,
 		},
