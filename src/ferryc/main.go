@@ -44,3 +44,10 @@ func NewClient(address string) *FerryClient {
 		},
 	}
 }
+
+// Close will kill any idle connections still in "keep-alive" and ensure we're
+// not leaking file descriptors.
+func (f *FerryClient) Close() {
+	trans := f.client.Transport.(*http.Transport)
+	trans.CloseIdleConnections()
+}
