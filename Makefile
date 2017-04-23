@@ -17,6 +17,7 @@ include Makefile.gobuild
 _PKGS = \
 	ferry \
 	ferry/cmd \
+	ferryc \
 	ferryd \
 	ferryd/server \
 	libeopkg

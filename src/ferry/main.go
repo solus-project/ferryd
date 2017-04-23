@@ -18,6 +18,7 @@ package main
 
 import (
 	"ferry/cmd"
+	_ "ferryc"
 	"os"
 )
 
