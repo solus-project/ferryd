@@ -14,27 +14,10 @@
 // limitations under the License.
 //
 
-package server
+package ferry
 
-import (
-	"bytes"
-	"encoding/json"
-	"ferry"
-	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"net/http"
-)
-
-// GetVersion will return the current version of the ferryd
-func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// For now return nothing and default to 200 OK
-	fmt.Printf("Got a version request: %v\n", r.URL.Path)
-
-	vq := ferry.VersionRequest{Version: ferry.Version}
-	buf := &bytes.Buffer{}
-	if err := json.NewEncoder(buf).Encode(&vq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write(buf.Bytes())
+// A VersionRequest allows the client to request the current version string
+// from the running daemon
+type VersionRequest struct {
+	Version string `json:"version"`
 }

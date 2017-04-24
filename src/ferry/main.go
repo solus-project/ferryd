@@ -66,11 +66,7 @@ func (f *Client) formURI(part string) string {
 
 // GetVersion will return the version of the remote daemon
 func (f *Client) GetVersion() (string, error) {
-	vq := struct {
-		Version string
-	}{
-		"",
-	}
+	var vq VersionRequest
 	resp, e := f.client.Get(f.formURI("api/v1/version"))
 	if e != nil {
 		return "", e
