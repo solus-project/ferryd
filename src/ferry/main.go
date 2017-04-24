@@ -28,15 +28,15 @@ const (
 	Version = "0.0.1"
 )
 
-// A FerryClient is used to communicate with the system ferryd
-type FerryClient struct {
+// A Client is used to communicate with the system ferryd
+type Client struct {
 	client *http.Client
 }
 
-// NewClient will return a new FerryClient for the local unix socket, suitable
+// NewClient will return a new Client for the local unix socket, suitable
 // for communicating with the daemon.
-func NewClient(address string) *FerryClient {
-	return &FerryClient{
+func NewClient(address string) *Client {
+	return &Client{
 		client: &http.Client{
 			Transport: &http.Transport{
 				Dial: func(protocol, address string) (net.Conn, error) {
@@ -53,12 +53,12 @@ func NewClient(address string) *FerryClient {
 
 // Close will kill any idle connections still in "keep-alive" and ensure we're
 // not leaking file descriptors.
-func (f *FerryClient) Close() {
+func (f *Client) Close() {
 	trans := f.client.Transport.(*http.Transport)
 	trans.CloseIdleConnections()
 }
 
 // GetVersion will return the version of the remote daemon
-func (f *FerryClient) GetVersion() (string, error) {
+func (f *Client) GetVersion() (string, error) {
 	return "", errors.New("Not yet implemented")
 }
