@@ -7,3 +7,6 @@
 [submodule "src/vendor/github.com/boltdb/bolt"]
 	path = src/vendor/github.com/boltdb/bolt
 	url = https://github.com/boltdb/bolt.git
+[submodule "src/vendor/github.com/sirupsen/logrus"]
+	path = src/vendor/github.com/sirupsen/logrus
+	url = https://github.com/sirupsen/logrus.git
