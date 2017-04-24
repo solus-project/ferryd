@@ -14,12 +14,18 @@
 // limitations under the License.
 //
 
-package ferryc
+package ferry
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"time"
+)
+
+const (
+	// Version of the ferry client library
+	Version = "0.0.1"
 )
 
 // A FerryClient is used to communicate with the system ferryd
@@ -50,4 +56,9 @@ func NewClient(address string) *FerryClient {
 func (f *FerryClient) Close() {
 	trans := f.client.Transport.(*http.Transport)
 	trans.CloseIdleConnections()
+}
+
+// GetVersion will return the version of the remote daemon
+func (f *FerryClient) GetVersion() (string, error) {
+	return "", errors.New("Not yet implemented")
 }
