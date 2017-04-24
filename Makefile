@@ -3,8 +3,14 @@ VERSION = 0.0.1
 
 .DEFAULT_GOAL := all
 
-# The resulting binaries map to the subproject names
-BINARIES = \
+# CLI app
+ferry:
+	GOPATH=$(CUR_DIR) go install -v cli && mv bin/cli bin/ferry
+
+ferryd:
+	GOPATH=$(CUR_DIR) go install -v daemon && mv bin/daemon bin/ferryd
+
+BINS = \
 	ferry \
 	ferryd
 
@@ -15,19 +21,16 @@ GO_TESTS = \
 include Makefile.gobuild
 
 _PKGS = \
+	cli \
+	cli/cmd \
 	ferry \
-	ferry/cmd \
-	ferryc \
-	ferryd \
-	ferryd/server \
+	daemon \
+	daemon/server \
 	libeopkg
 
 
 # We want to add compliance for all built binaries
 _CHECK_COMPLIANCE = $(addsuffix .compliant,$(_PKGS))
-
-# Build all binaries as static binary
-BINS = $(addsuffix .build,$(BINARIES))
 
 # Ensure our own code is compliant..
 compliant: $(_CHECK_COMPLIANCE)

@@ -1,5 +1,5 @@
 //
-// Copyright © 2016-2017 Ikey Doherty <ikey@solus-project.com>
+// Copyright © 2017 Ikey Doherty <ikey@solus-project.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,40 @@
 // limitations under the License.
 //
 
-package main
+package ferryc
 
 import (
-	"ferry/cmd"
-	_ "ferryc"
-	"os"
+	"net"
+	"net/http"
+	"time"
 )
 
-func main() {
-	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(1)
+// A FerryClient is used to communicate with the system ferryd
+type FerryClient struct {
+	client *http.Client
+}
+
+// NewClient will return a new FerryClient for the local unix socket, suitable
+// for communicating with the daemon.
+func NewClient(address string) *FerryClient {
+	return &FerryClient{
+		client: &http.Client{
+			Transport: &http.Transport{
+				Dial: func(protocol, address string) (net.Conn, error) {
+					return net.Dial("unix", address)
+				},
+				DisableKeepAlives:     false,
+				IdleConnTimeout:       30 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
+			},
+			Timeout: 20 * time.Second,
+		},
 	}
+}
+
+// Close will kill any idle connections still in "keep-alive" and ensure we're
+// not leaking file descriptors.
+func (f *FerryClient) Close() {
+	trans := f.client.Transport.(*http.Transport)
+	trans.CloseIdleConnections()
 }
