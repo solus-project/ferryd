@@ -19,6 +19,7 @@ package main
 import (
 	"ferryd/server"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -31,5 +32,6 @@ func mainLoop() {
 }
 
 func main() {
+	log.Info("Initialising server")
 	mainLoop()
 }
