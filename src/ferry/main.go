@@ -17,7 +17,9 @@
 package ferry
 
 import (
-	"errors"
+	"context"
+	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -39,7 +41,7 @@ func NewClient(address string) *Client {
 	return &Client{
 		client: &http.Client{
 			Transport: &http.Transport{
-				Dial: func(protocol, address string) (net.Conn, error) {
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 					return net.Dial("unix", address)
 				},
 				DisableKeepAlives:     false,
@@ -58,7 +60,24 @@ func (f *Client) Close() {
 	trans.CloseIdleConnections()
 }
 
+func (f *Client) formURI(part string) string {
+	return fmt.Sprintf("http://localhost.localdomain:0/%s", part)
+}
+
 // GetVersion will return the version of the remote daemon
 func (f *Client) GetVersion() (string, error) {
-	return "", errors.New("Not yet implemented")
+	vq := struct {
+		Version string
+	}{
+		"",
+	}
+	resp, e := f.client.Get(f.formURI("api/v1/version"))
+	if e != nil {
+		return "", e
+	}
+	defer resp.Body.Close()
+	if e = json.NewDecoder(resp.Body).Decode(&vq); e != nil {
+		return "", e
+	}
+	return vq.Version, nil
 }
