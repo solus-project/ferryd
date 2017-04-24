@@ -31,8 +31,8 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter
 	fmt.Printf("Got a version request: %v\n", r.URL.Path)
 
 	vq := ferry.VersionRequest{Version: ferry.Version}
-	buf := &bytes.Buffer{}
-	if err := json.NewEncoder(buf).Encode(&vq); err != nil {
+	buf := bytes.Buffer{}
+	if err := json.NewEncoder(&buf).Encode(&vq); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
