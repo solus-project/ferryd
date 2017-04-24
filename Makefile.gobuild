@@ -1,8 +1,8 @@
 CUR_DIR = $(shell pwd)
 
-# "Normal" static binary
-%.statbin:
-	GOPATH=$(CUR_DIR) go install -v $(subst .statbin,,$@)
+# ".build" references will cause that package under src/ to be built
+%.build:
+	GOPATH=$(CUR_DIR) go install -v $(subst .build,,$@)
 
 clean:
 	test ! -d $(CUR_DIR)/pkg || rm -rvf $(CUR_DIR)/pkg; \
@@ -10,19 +10,43 @@ clean:
 
 spellcheck:
 	@ ( \
-		misspell -error -i 'evolveos' `find $(PROJECT_ROOT) -not -path '*/vendor/*' -name '*.go'`; \
+		misspell -error `find $(PROJECT_ROOT) -not -path '*/vendor/*' -name '*.go'`; \
 	);
 
 %.compliant: spellcheck
 	@ ( \
-		pushd "$(PROJECT_ROOT)/$(subst .compliant,,$@)" >/dev/null || exit 1; \
+		cd "$(PROJECT_ROOT)/$(subst .compliant,,$@)" >/dev/null || exit 1; \
 		go fmt || exit 1; \
-		gofmt -s -w *.go || exit 1; \
 		GOPATH=$(CUR_DIR)/ golint || exit 1; \
 		GOPATH=$(CUR_DIR)/ go vet || exit 1; \
+	);
+
+prep_coverage:
+	@ ( \
+		echo "mode: count" > coverage.out; \
+	);
+
+%.test: prep_coverage
+	@ ( \
+		safe_nom=`echo "$(subst .test,,$@)" | sed 's/\//_/g'`; \
+		GOPATH=$(CUR_DIR) go test -v -cover -covermode=count -coverprofile=_coverage_$$safe_nom.out  $(subst .test,,$@); \
+		tail -n +2 _coverage_$$safe_nom.out >> coverage.out; \
+		rm _coverage_$$safe_nom.out; \
+	);
+
+%.benchmark:
+	@ ( \
+		safe_nom=`echo "$(subst .benchmark,,$@)" | sed 's/\//_/g'`; \
+		cd "$(PROJECT_ROOT)/$(subst .benchmark,,$@)" >/dev/null || exit 1; \
+		GOPATH=$(CUR_DIR) go test -run=XXX -v -bench=. -cpuprofile=$(CUR_DIR)/$$safe_nom.cpuprofile -memprofile=$(CUR_DIR)/$$safe_nom.memprofile; \
 	);
 
 %.test:
 	GOPATH=$(CUR_DIR) go test $(subst .test,,$@)
 
 check: $(GO_TESTS)
+
+bench: $(GO_BENCH)
+
+coverage: check
+	GOPATH=$(CUR_DIR)/ go tool cover -html=coverage.out -o coverage.html
