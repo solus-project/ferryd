@@ -17,6 +17,9 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
+	"ferry"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
@@ -26,4 +29,16 @@ import (
 func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// For now return nothing and default to 200 OK
 	fmt.Printf("Got a version request: %v\n", r.URL.Path)
+
+	vq := struct {
+		Version string
+	}{
+		ferry.Version,
+	}
+	buf := &bytes.Buffer{}
+	if err := json.NewEncoder(buf).Encode(&vq); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
 }
