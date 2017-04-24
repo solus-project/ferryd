@@ -14,24 +14,16 @@
 // limitations under the License.
 //
 
-package main
+package server
 
 import (
-	"daemon/server"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"os"
+	"github.com/julienschmidt/httprouter"
+	"net/http"
 )
 
-func mainLoop() {
-	server := server.New()
-	defer server.Close()
-	if e := server.Serve(); e != nil {
-		fmt.Fprintf(os.Stderr, "Error in sockets: %v\n", e)
-	}
-}
-
-func main() {
-	log.Info("Initialising server")
-	mainLoop()
+// GetVersion will return the current version of the ferryd
+func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// For now return nothing and default to 200 OK
+	fmt.Printf("Got a version request: %v\n", r.URL.Path)
 }

@@ -18,6 +18,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
 	"os"
@@ -34,14 +35,22 @@ const (
 type Server struct {
 	srv     *http.Server
 	running bool
+	router  *httprouter.Router
 }
 
 // New will return a newly initialised Server which is currently unbound
 func New() *Server {
-	return &Server{
-		srv:     &http.Server{},
+	router := httprouter.New()
+	s := &Server{
+		srv: &http.Server{
+			Handler: router,
+		},
 		running: false,
+		router:  router,
 	}
+	// Set up the API bits
+	router.GET("/api/v1/version", s.GetVersion)
+	return s
 }
 
 // killHandler will ensure we cleanly tear down on a ctrl+c/sigint
