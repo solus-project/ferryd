@@ -19,6 +19,7 @@ package main
 import (
 	"daemon/server"
 	"fmt"
+	_ "github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"os"
 )

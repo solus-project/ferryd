@@ -10,3 +10,6 @@
 [submodule "src/vendor/github.com/sirupsen/logrus"]
 	path = src/vendor/github.com/sirupsen/logrus
 	url = https://github.com/sirupsen/logrus.git
+[submodule "src/vendor/github.com/julienschmidt/httprouter"]
+	path = src/vendor/github.com/julienschmidt/httprouter
+	url = https://github.com/julienschmidt/httprouter.git
