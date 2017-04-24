@@ -3,6 +3,10 @@ VERSION = 0.0.1
 
 .DEFAULT_GOAL := all
 
+# We want to add compliance for all built binaries
+_CHECK_COMPLIANCE = $(shell find src/ -not -path '*/vendor/*' -name '*.go' | xargs -I{} dirname {} |sed 's/src\///g' | uniq | sort)
+_TESTS = $(shell find src/ -not -path '*/vendor/*' -name '*_test.go' | xargs -I{} dirname {} | sed 's/src\///g'|uniq | sort)
+
 # CLI app
 ferry:
 	GOPATH=$(CUR_DIR) go install -v cli && mv bin/cli bin/ferry
@@ -14,26 +18,13 @@ BINS = \
 	ferry \
 	ferryd
 
-GO_TESTS = \
-	libeopkg.test
-
+GO_TESTS = $(addsuffix .test,$(_TESTS))
 
 include Makefile.gobuild
 
-_PKGS = \
-	cli \
-	cli/cmd \
-	ferry \
-	daemon \
-	daemon/server \
-	libeopkg
-
-
-# We want to add compliance for all built binaries
-_CHECK_COMPLIANCE = $(addsuffix .compliant,$(_PKGS))
-
 # Ensure our own code is compliant..
-compliant: $(_CHECK_COMPLIANCE)
+compliant: $(addsuffix .compliant,$(_CHECK_COMPLIANCE))
+
 install: $(BINS)
 	test -d $(DESTDIR)/usr/bin || install -D -d -m 00755 $(DESTDIR)/usr/bin; \
 	install -m 00755 bin/* $(DESTDIR)/usr/bin/.;
