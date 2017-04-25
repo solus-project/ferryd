@@ -18,25 +18,10 @@ package main
 
 import (
 	"cli/cmd"
-	"ferry"
-	"fmt"
 	"os"
 )
 
-// Testing some basic client communication
-func dummyCode() {
-	client := ferry.NewClient("./ferryd.sock")
-	defer client.Close()
-	version, err := client.GetVersion()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting version: %v\n", err)
-		return
-	}
-	fmt.Fprintf(os.Stderr, "Got version: %v\n", version)
-}
-
 func main() {
-	dummyCode()
 	if err := cmd.RootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
