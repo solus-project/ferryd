@@ -17,8 +17,9 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"os"
@@ -36,6 +37,7 @@ type Server struct {
 	srv     *http.Server
 	running bool
 	router  *httprouter.Router
+	socket  net.Listener
 }
 
 // New will return a newly initialised Server which is currently unbound
@@ -59,15 +61,16 @@ func (s *Server) killHandler() {
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
-		fmt.Fprintf(os.Stderr, " -> shutting down due to ctrl+c\n")
+		log.Warning("Shutting down due to CTRL+C")
 		s.Close()
 		// Stop any mainLoop defers here
 		os.Exit(1)
 	}()
 }
 
-// Serve will continuously serve on the unix socket until dead
-func (s *Server) Serve() error {
+// Bind will attempt to set up the listener on the unix socket
+// prior to serving.
+func (s *Server) Bind() error {
 	l, e := net.Listen("unix", UnixSocketPath)
 	if e != nil {
 		return e
@@ -76,20 +79,28 @@ func (s *Server) Serve() error {
 	gid := os.Getegid()
 	// Avoid umask issues
 	if e = os.Chown(UnixSocketPath, uid, gid); e != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Cannot assert ownership of socket: %v\n", e)
+		return e
 	}
 	// Fatal if we cannot chmod the socket to be ours only
 	if e = os.Chmod(UnixSocketPath, 0600); e != nil {
 		return e
+	}
+	s.socket = l
+	return nil
+}
+
+// Serve will continuously serve on the unix socket until dead
+func (s *Server) Serve() error {
+	if s.socket == nil {
+		return errors.New("Cannot serve without a bound server socket")
 	}
 	s.running = true
 	s.killHandler()
 	defer func() {
 		s.running = false
 	}()
-	e = s.srv.Serve(l)
 	// Don't treat Shutdown/Close as an error, it's intended by us.
-	if e != http.ErrServerClosed {
+	if e := s.srv.Serve(s.socket); e != http.ErrServerClosed {
 		return e
 	}
 	return nil

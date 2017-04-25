@@ -18,9 +18,7 @@ package main
 
 import (
 	"daemon/server"
-	"fmt"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 // Set up the main logger formatting used in USpin
@@ -32,10 +30,19 @@ func init() {
 }
 
 func mainLoop() {
-	server := server.New()
-	defer server.Close()
-	if e := server.Serve(); e != nil {
-		fmt.Fprintf(os.Stderr, "Error in sockets: %v\n", e)
+	srv := server.New()
+	defer srv.Close()
+	if e := srv.Bind(); e != nil {
+		log.WithFields(log.Fields{
+			"socket": server.UnixSocketPath,
+			"error":  e,
+		}).Error("Error in binding server socket")
+	}
+	if e := srv.Serve(); e != nil {
+		log.WithFields(log.Fields{
+			"socket": server.UnixSocketPath,
+			"error":  e,
+		}).Error("Error in serving on socket")
 	}
 }
 
