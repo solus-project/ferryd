@@ -37,12 +37,14 @@ func mainLoop() {
 			"socket": server.UnixSocketPath,
 			"error":  e,
 		}).Error("Error in binding server socket")
+		return
 	}
 	if e := srv.Serve(); e != nil {
 		log.WithFields(log.Fields{
 			"socket": server.UnixSocketPath,
 			"error":  e,
 		}).Error("Error in serving on socket")
+		return
 	}
 }
 
