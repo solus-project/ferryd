@@ -22,23 +22,8 @@
 // organised into the repositories.
 package slip
 
-import (
-	"errors"
-	"github.com/boltdb/bolt"
+const (
+	// DatabasePathComponent is the suffix applied to a working directory
+	// for the database file itself.
+	DatabasePathComponent = "ferry.db"
 )
-
-// A Manager is the the singleton responsible for slip management
-type Manager struct {
-	db *bolt.DB
-}
-
-// NewManager will attempt to instaniate a manager for the given path,
-// which will yield an error if the database cannot be opened for access.
-func NewManager() (*Manager, error) {
-	return nil, errors.New("Not yet implemented")
-}
-
-// Close will close and clean up any associated resources, such as the
-// underlying database.
-func (m *Manager) Close() {
-}
