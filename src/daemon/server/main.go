@@ -18,6 +18,7 @@ package server
 
 import (
 	"errors"
+	"ferry/slip"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -38,6 +39,8 @@ type Server struct {
 	running bool
 	router  *httprouter.Router
 	socket  net.Listener
+
+	manager *slip.Manager // heart of the story
 }
 
 // New will return a newly initialised Server which is currently unbound
@@ -75,6 +78,14 @@ func (s *Server) Bind() error {
 	if e != nil {
 		return e
 	}
+
+	// Create new Slip Manager for the current directory
+	m, e := slip.NewManager(".")
+	if e != nil {
+		return e
+	}
+	s.manager = m
+
 	uid := os.Geteuid()
 	gid := os.Getegid()
 	// Avoid umask issues
@@ -111,6 +122,7 @@ func (s *Server) Close() {
 	if !s.running {
 		return
 	}
+	s.manager.Close()
 	s.running = false
 	s.srv.Shutdown(nil)
 	os.Remove(UnixSocketPath)
