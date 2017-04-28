@@ -5,3 +5,6 @@
 # Coverage output
 coverage.html
 coverage.out
+
+# Testing
+testenv/
