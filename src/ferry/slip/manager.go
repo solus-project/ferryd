@@ -46,10 +46,39 @@ func NewManager(path string) (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Manager{
+	m := &Manager{
 		db:   db,
 		path: dbPath,
-	}, nil
+	}
+
+	// Initialise the buckets in a one-time
+	if err = m.initBuckets(); err != nil {
+		m.Close()
+		return nil, err
+	}
+
+	return m, nil
+}
+
+// initBuckets will ensure all initial buckets are create in the toplevel
+// namespace, to require less complexity further down the line
+func (m *Manager) initBuckets() error {
+	// TODO: Use constants here!
+	buckets := []string{
+		"endpoint",
+		"repo",
+		"pool",
+	}
+
+	// Create all root-level buckets in a single transaction
+	return m.db.Update(func(tx *bolt.Tx) error {
+		for _, bucket := range buckets {
+			if _, e := tx.CreateBucketIfNotExists([]byte(bucket)); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
 }
 
 // Close will close and clean up any associated resources, such as the
