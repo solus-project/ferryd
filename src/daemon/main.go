@@ -18,6 +18,7 @@ package main
 
 import (
 	"daemon/server"
+	_ "ferry/slip"
 	log "github.com/sirupsen/logrus"
 )
 
