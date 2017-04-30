@@ -17,6 +17,7 @@
 package slip
 
 import (
+	"errors"
 	"github.com/boltdb/bolt"
 )
 
@@ -36,4 +37,17 @@ func NewPool(db *bolt.DB) *Pool {
 	return &Pool{
 		db: db,
 	}
+}
+
+// RefEntry will include the given eopkg if it doesn't yet exist, otherwise
+// it will simply increase the ref count by 1.
+func (p *Pool) RefEntry(id string) error {
+	return errors.New("Not yet implemented")
+}
+
+// UnrefEntry will unref a given ID from the repository.
+// Should the refcount hit 0, the package will then be removed from the pool
+// storage.
+func (p *Pool) UnrefEntry(id string) error {
+	return errors.New("Not yet implemented")
 }
