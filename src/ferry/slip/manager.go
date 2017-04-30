@@ -18,39 +18,32 @@ package slip
 
 import (
 	"github.com/boltdb/bolt"
-	"os"
-	"path/filepath"
 )
 
 // A Manager is the the singleton responsible for slip management
 type Manager struct {
 	db   *bolt.DB // Open database connection
-	path string   // Path to our DB file
-
-	pool *Pool // Our main pool for eopkgs
+	ctx  *Context // Context shares all our path assignments
+	pool *Pool    // Our main pool for eopkgs
 }
 
 // NewManager will attempt to instaniate a manager for the given path,
 // which will yield an error if the database cannot be opened for access.
 func NewManager(path string) (*Manager, error) {
-	// Ensure the initial directory exists first
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, err
-	}
-	dbPath, err := filepath.Abs(filepath.Join(path, DatabasePathComponent))
+	ctx, err := NewContext(path)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open the database if we can
 	// TODO: Add a timeout for locks
-	db, err := bolt.Open(dbPath, 00600, nil)
+	db, err := bolt.Open(ctx.DbPath, 00600, nil)
 	if err != nil {
 		return nil, err
 	}
 	m := &Manager{
 		db:   db,
-		path: dbPath,
+		ctx:  ctx,
 		pool: NewPool(db),
 	}
 

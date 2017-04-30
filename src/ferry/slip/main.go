@@ -22,8 +22,38 @@
 // organised into the repositories.
 package slip
 
+import (
+	"os"
+	"path/filepath"
+)
+
 const (
 	// DatabasePathComponent is the suffix applied to a working directory
 	// for the database file itself.
 	DatabasePathComponent = "ferry.db"
 )
+
+// The Context is shared between all of the components of ferryd to provide
+// working directories and such.
+type Context struct {
+	BaseDir string // Base directory of operations
+	DbPath  string // Path to the main database file
+}
+
+// NewContext will construct a context from the given base directory for
+// all file path functions
+func NewContext(root string) (*Context, error) {
+	// Ensure root to context exists
+	if _, err := os.Stat(root); os.IsNotExist(err) {
+		return nil, err
+	}
+	// Start with the absolute filepath and then join anything there after
+	basedir, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	return &Context{
+		BaseDir: basedir,
+		DbPath:  filepath.Join(basedir, DatabasePathComponent),
+	}, nil
+}
