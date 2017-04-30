@@ -19,6 +19,7 @@ package slip
 import (
 	"errors"
 	"github.com/boltdb/bolt"
+	"libeopkg"
 	"os"
 	"path/filepath"
 )
@@ -30,6 +31,20 @@ const (
 	// PoolPathComponent is the storage directory for all of our main files
 	PoolPathComponent = "pool"
 )
+
+// A PoolEntry is the main storage unit within ferryd.
+// Each entry contains the full data for a given eopkg file, as well as the
+// reference count.
+//
+// When the refcount hits 0, files are then purge from the pool and freed from
+// disk. When adding a pool item to a repository, the ref count is increased,
+// and the file is then hard-linked into place, saving on disk storage.
+type PoolEntry struct {
+	SchemaVersion string                // Version used when this pool entry was created
+	Name          string                // Name&ID of the pool entry
+	RefCount      uint64                // How many instances of this file exist right now
+	Meta          *libeopkg.MetaPackage // The eopkg metadata
+}
 
 // A Pool is used to manage and deduplicate resources between multiple resources,
 // and represents the real backing store for referenced eopkg files.
