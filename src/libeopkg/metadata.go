@@ -16,6 +16,11 @@
 
 package libeopkg
 
+import (
+	"path/filepath"
+	"strings"
+)
+
 // A Packager identifies the person responsible for maintaining the source
 // package. In terms of ypkg builds, it will indicate the last person who
 // made a change to the package, allowing a natural "blame" system to work
@@ -96,4 +101,28 @@ type MetaPackage struct {
 type Metadata struct {
 	Source  Source      // Source of this package
 	Package MetaPackage `xml:"Package"` // Meta on the package itself
+}
+
+// GetPathComponent will get the source part of the string which is used
+// in all subdirectories of the repository.
+//
+// For all packages with a source name of 4 or more characters, the path
+// component will be split on this, i.e.:
+//
+//      libr/libreoffice
+//
+// For all other packages, the first letter of the source name is used, i.e.:
+//
+//      n/nano
+//
+func (m *Metadata) GetPathComponent() string {
+	nom := strings.ToLower(m.Source.Name)
+	letter := nom[0:1]
+	var path string
+	if strings.HasPrefix(nom, "lib") && len(nom) > 3 {
+		path = filepath.Join(nom[0:4], nom)
+	} else {
+		path = filepath.Join(letter, nom)
+	}
+	return path
 }
