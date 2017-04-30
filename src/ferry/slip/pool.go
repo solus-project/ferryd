@@ -37,11 +37,6 @@ type Pool struct {
 	poolDir string // Storage area
 }
 
-// NewPool will return a new Pool instance for use by the Manager
-func NewPool() *Pool {
-	return &Pool{}
-}
-
 // Init will create our initial working paths and DB bucket
 func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
 	p.poolDir = filepath.Join(ctx.BaseDir, PoolPathComponent)

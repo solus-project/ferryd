@@ -44,7 +44,7 @@ func NewManager(path string) (*Manager, error) {
 	m := &Manager{
 		db:   db,
 		ctx:  ctx,
-		pool: NewPool(),
+		pool: &Pool{},
 	}
 
 	// Initialise the buckets in a one-time
