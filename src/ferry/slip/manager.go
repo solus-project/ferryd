@@ -48,7 +48,7 @@ func NewManager(path string) (*Manager, error) {
 	}
 
 	// Initialise the buckets in a one-time
-	if err = m.initBuckets(); err != nil {
+	if err = m.initComponents(); err != nil {
 		m.Close()
 		return nil, err
 	}
@@ -56,9 +56,9 @@ func NewManager(path string) (*Manager, error) {
 	return m, nil
 }
 
-// initBuckets will ensure all initial buckets are create in the toplevel
+// initComponents will ensure all initial buckets are create in the toplevel
 // namespace, to require less complexity further down the line
-func (m *Manager) initBuckets() error {
+func (m *Manager) initComponents() error {
 	// Components to bring up
 	components := []Component{
 		m.pool,
