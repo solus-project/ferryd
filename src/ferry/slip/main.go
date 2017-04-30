@@ -23,6 +23,7 @@
 package slip
 
 import (
+	"github.com/boltdb/bolt"
 	"os"
 	"path/filepath"
 )
@@ -56,4 +57,15 @@ func NewContext(root string) (*Context, error) {
 		BaseDir: basedir,
 		DbPath:  filepath.Join(basedir, DatabasePathComponent),
 	}, nil
+}
+
+// A Component of ferryd has special considerations to bootstrap itself
+// during ferryd start, and clean up during ferryd shutdown.
+type Component interface {
+
+	// Initialise the component on the initial transaction
+	Init(ctx *Context, tx *bolt.Tx) error
+
+	// Close will request the component stops any ongoing operations and cleanup
+	Close()
 }

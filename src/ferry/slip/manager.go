@@ -44,7 +44,7 @@ func NewManager(path string) (*Manager, error) {
 	m := &Manager{
 		db:   db,
 		ctx:  ctx,
-		pool: NewPool(db),
+		pool: NewPool(),
 	}
 
 	// Initialise the buckets in a one-time
@@ -59,18 +59,16 @@ func NewManager(path string) (*Manager, error) {
 // initBuckets will ensure all initial buckets are create in the toplevel
 // namespace, to require less complexity further down the line
 func (m *Manager) initBuckets() error {
-	// TODO: Use constants here!
-	buckets := []string{
-		"endpoint",
-		"repo",
-		DatabaseBucketPool,
+	// Components to bring up
+	components := []Component{
+		m.pool,
 	}
 
 	// Create all root-level buckets in a single transaction
 	return m.db.Update(func(tx *bolt.Tx) error {
-		for _, bucket := range buckets {
-			if _, e := tx.CreateBucketIfNotExists([]byte(bucket)); e != nil {
-				return e
+		for _, component := range components {
+			if err := component.Init(m.ctx, tx); err != nil {
+				return err
 			}
 		}
 		return nil
@@ -82,6 +80,13 @@ func (m *Manager) initBuckets() error {
 func (m *Manager) Close() {
 	if m.db == nil {
 		return
+	}
+	// Components to tear down
+	components := []Component{
+		m.pool,
+	}
+	for _, component := range components {
+		component.Close()
 	}
 	m.db.Close()
 	m.db = nil

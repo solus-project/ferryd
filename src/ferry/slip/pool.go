@@ -19,25 +19,41 @@ package slip
 import (
 	"errors"
 	"github.com/boltdb/bolt"
+	"os"
+	"path/filepath"
 )
 
 const (
 	// DatabaseBucketPool is the identifier for the pool main bucket
 	DatabaseBucketPool = "pool"
+
+	// PoolPathComponent is the storage directory for all of our main files
+	PoolPathComponent = "pool"
 )
 
 // A Pool is used to manage and deduplicate resources between multiple resources,
 // and represents the real backing store for referenced eopkg files.
 type Pool struct {
-	db *bolt.DB
+	poolDir string // Storage area
 }
 
 // NewPool will return a new Pool instance for use by the Manager
-func NewPool(db *bolt.DB) *Pool {
-	return &Pool{
-		db: db,
-	}
+func NewPool() *Pool {
+	return &Pool{}
 }
+
+// Init will create our initial working paths and DB bucket
+func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
+	p.poolDir = filepath.Join(ctx.BaseDir, PoolPathComponent)
+	if err := os.MkdirAll(p.poolDir, 00755); err != nil {
+		return err
+	}
+	_, err := tx.CreateBucketIfNotExists([]byte(DatabaseBucketPool))
+	return err
+}
+
+// Close doesn't currently do anything
+func (p *Pool) Close() {}
 
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise
 // it will simply increase the ref count by 1.
