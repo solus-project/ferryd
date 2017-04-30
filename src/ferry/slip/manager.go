@@ -26,6 +26,8 @@ import (
 type Manager struct {
 	db   *bolt.DB // Open database connection
 	path string   // Path to our DB file
+
+	pool *Pool // Our main pool for eopkgs
 }
 
 // NewManager will attempt to instaniate a manager for the given path,
@@ -49,6 +51,7 @@ func NewManager(path string) (*Manager, error) {
 	m := &Manager{
 		db:   db,
 		path: dbPath,
+		pool: NewPool(db),
 	}
 
 	// Initialise the buckets in a one-time
@@ -67,7 +70,7 @@ func (m *Manager) initBuckets() error {
 	buckets := []string{
 		"endpoint",
 		"repo",
-		"pool",
+		DatabaseBucketPool,
 	}
 
 	// Create all root-level buckets in a single transaction
