@@ -17,7 +17,6 @@
 package main
 
 import (
-	"daemon/server"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,18 +29,18 @@ func init() {
 }
 
 func mainLoop() {
-	srv := server.New()
+	srv := NewServer()
 	defer srv.Close()
 	if e := srv.Bind(); e != nil {
 		log.WithFields(log.Fields{
-			"socket": server.UnixSocketPath,
+			"socket": UnixSocketPath,
 			"error":  e,
 		}).Error("Error in binding server socket")
 		return
 	}
 	if e := srv.Serve(); e != nil {
 		log.WithFields(log.Fields{
-			"socket": server.UnixSocketPath,
+			"socket": UnixSocketPath,
 			"error":  e,
 		}).Error("Error in serving on socket")
 		return

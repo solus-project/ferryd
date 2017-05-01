@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package server
+package main
 
 import (
 	"errors"
@@ -43,8 +43,8 @@ type Server struct {
 	manager *slip.Manager // heart of the story
 }
 
-// New will return a newly initialised Server which is currently unbound
-func New() *Server {
+// NewServer will return a newly initialised Server which is currently unbound
+func NewServer() *Server {
 	router := httprouter.New()
 	s := &Server{
 		srv: &http.Server{
