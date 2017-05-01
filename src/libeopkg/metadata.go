@@ -115,7 +115,7 @@ type Metadata struct {
 //
 //      n/nano
 //
-func (m *Metadata) GetPathComponent() string {
+func (m *MetaPackage) GetPathComponent() string {
 	nom := strings.ToLower(m.Source.Name)
 	letter := nom[0:1]
 	var path string

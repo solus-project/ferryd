@@ -31,7 +31,7 @@ func TestMetadataSourcePackage(t *testing.T) {
 		t.Fatalf("Failed to read metadata: %v", err)
 	}
 	expPath := "n/nano"
-	gotPath := pkg.Meta.GetPathComponent()
+	gotPath := pkg.Meta.Package.GetPathComponent()
 	if expPath != gotPath {
 		t.Fatalf("Expected source path '%s', got '%s'", expPath, gotPath)
 	}
@@ -40,23 +40,23 @@ func TestMetadataSourcePackage(t *testing.T) {
 // Test a variety of source names and ensure we get the right component
 // each time for the subpath we expect to see in the repository
 func TestMetadataSourceDummy(t *testing.T) {
-	metaDatas := []Metadata{
-		Metadata{
+	metaDatas := []MetaPackage{
+		MetaPackage{
 			Source: Source{
 				Name: "libreoffice",
 			},
 		},
-		Metadata{
+		MetaPackage{
 			Source: Source{
 				Name: "lib",
 			},
 		},
-		Metadata{
+		MetaPackage{
 			Source: Source{
 				Name: "alsa-lib",
 			},
 		},
-		Metadata{
+		MetaPackage{
 			Source: Source{
 				Name: "NANO",
 			},
