@@ -22,9 +22,10 @@ import (
 
 // A Manager is the the singleton responsible for slip management
 type Manager struct {
-	db   *bolt.DB // Open database connection
-	ctx  *Context // Context shares all our path assignments
-	pool *Pool    // Our main pool for eopkgs
+	db   *bolt.DB           // Open database connection
+	ctx  *Context           // Context shares all our path assignments
+	pool *Pool              // Our main pool for eopkgs
+	repo *RepositoryManager // Repo management
 }
 
 // NewManager will attempt to instaniate a manager for the given path,
@@ -45,6 +46,7 @@ func NewManager(path string) (*Manager, error) {
 		db:   db,
 		ctx:  ctx,
 		pool: &Pool{},
+		repo: &RepositoryManager{},
 	}
 
 	// Initialise the buckets in a one-time
@@ -62,6 +64,7 @@ func (m *Manager) initComponents() error {
 	// Components to bring up
 	components := []Component{
 		m.pool,
+		m.repo,
 	}
 
 	// Create all root-level buckets in a single transaction
@@ -84,6 +87,7 @@ func (m *Manager) Close() {
 	// Components to tear down
 	components := []Component{
 		m.pool,
+		m.repo,
 	}
 	for _, component := range components {
 		component.Close()
