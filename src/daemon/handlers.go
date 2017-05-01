@@ -22,6 +22,7 @@ import (
 	"ferry"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -37,4 +38,21 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 	w.Write(buf.Bytes())
+}
+
+// CreateRepo will handle remote requests for repository creation
+func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	log.WithFields(log.Fields{
+		"id": id,
+	}).Info("Repository creation requested")
+	err := s.manager.CreateRepo(id)
+	// TODO: Make this Moar Better..
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":    id,
+			"error": err,
+		}).Error("Failed to create repository")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

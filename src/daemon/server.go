@@ -55,6 +55,9 @@ func NewServer() *Server {
 	}
 	// Set up the API bits
 	router.GET("/api/v1/version", s.GetVersion)
+
+	// Repo management
+	router.GET("/api/v1/create_repo/:id", s.CreateRepo)
 	return s
 }
 

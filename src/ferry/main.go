@@ -77,3 +77,16 @@ func (f *Client) GetVersion() (string, error) {
 	}
 	return vq.Version, nil
 }
+
+// CreateRepo will attempt to create a repository in the daemon
+func (f *Client) CreateRepo(id string) error {
+	resp, e := f.client.Get(f.formURI("api/v1/create_repo/" + id))
+	if e != nil {
+		return e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Unable to create repo %s", id)
+	}
+	return nil
+}
