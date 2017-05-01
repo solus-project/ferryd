@@ -51,6 +51,7 @@ func CopyFile(source, dest string) error {
 	// If it fails, meh.
 	os.Chtimes(dest, st.ModTime(), st.ModTime())
 	os.Chown(dest, os.Getuid(), os.Getgid())
+	os.Chmod(dest, 00644)
 	return nil
 }
 
