@@ -99,7 +99,7 @@ func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 // passed to us is believed to be under our ownership now.
 func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package) error {
 	// Check if this is just a simple case of bumping the refcount
-	if entry, err := p.GetEntry(tx, pkg.ID); err != nil {
+	if entry, err := p.GetEntry(tx, pkg.ID); err == nil {
 		entry.RefCount++
 		return p.putEntry(tx, entry)
 	}
