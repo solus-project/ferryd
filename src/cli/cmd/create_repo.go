@@ -19,7 +19,6 @@ package cmd
 import (
 	"ferry"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -46,10 +45,7 @@ func createRepo(cmd *cobra.Command, args []string) {
 	defer client.Close()
 
 	if err := client.CreateRepo(args[0]); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"repo":  args[0],
-		}).Error("Cannot create repository")
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}
 	fmt.Printf("Created repository: %s\n", args[0])
