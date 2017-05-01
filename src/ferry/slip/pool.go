@@ -30,6 +30,9 @@ const (
 
 	// PoolPathComponent is the storage directory for all of our main files
 	PoolPathComponent = "pool"
+
+	// PoolSchemaVersion is the current schema version for a PoolEntry
+	PoolSchemaVersion = "1.0"
 )
 
 // A PoolEntry is the main storage unit within ferryd.
@@ -91,6 +94,42 @@ func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 	return rootBucket.Put([]byte(entry.Name), enc)
 }
 
+// AddPackage will determine where the new eopkg goes, and whether we need
+// to actually push it on disk, or simply bump the ref count. Any file
+// passed to us is believed to be under our ownership now.
+func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package) error {
+	// Check if this is just a simple case of bumping the refcount
+	if entry, err := p.GetEntry(tx, pkg.ID); err != nil {
+		entry.RefCount++
+		return p.putEntry(tx, entry)
+	}
+	// We have no refcount, so now we need to actually include this package
+	// into the repositories.
+	pkgDir := filepath.Join(p.poolDir, pkg.Meta.Package.GetPathComponent())
+	if err := os.MkdirAll(pkgDir, 00755); err != nil {
+		return err
+	}
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+	// Try to hard link the file into place
+	if err := LinkOrCopyFile(pkg.Path, pkgTarget); err != nil {
+		return err
+	}
+	entry := &PoolEntry{
+		SchemaVersion: PoolSchemaVersion,
+		Name:          pkg.ID,
+		RefCount:      1,
+		Meta:          &pkg.Meta.Package,
+	}
+	if err := p.putEntry(tx, entry); err != nil {
+		// Just clean out what we did because we can't write it into the DB
+		// Error isn't important, really.
+		os.Remove(pkgTarget)
+		RemovePackageParents(pkgTarget)
+		return err
+	}
+	return nil
+}
+
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise
 // it will simply increase the ref count by 1.
 func (p *Pool) RefEntry(tx *bolt.Tx, id string) error {
@@ -111,6 +150,20 @@ func (p *Pool) UnrefEntry(tx *bolt.Tx, id string) error {
 		return err
 	}
 	entry.RefCount--
-	// TODO: If refcount is now zero, delete this guy!
-	return p.putEntry(tx, entry)
+	if entry.RefCount > 0 {
+		return p.putEntry(tx, entry)
+	}
+
+	// RefCount is 0 so we now need to delete this entry
+	pkgPath := filepath.Join(p.poolDir, entry.Meta.GetPathComponent(), id)
+	if err := os.Remove(pkgPath); err != nil {
+		return err
+	}
+
+	// TODO: Warn if unable to delete parents
+	RemovePackageParents(pkgPath)
+
+	// Now remove from DB
+	b := tx.Bucket([]byte(DatabaseBucketPool))
+	return b.Delete([]byte(id))
 }
