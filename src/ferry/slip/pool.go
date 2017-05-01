@@ -17,7 +17,7 @@
 package slip
 
 import (
-	"errors"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"os"
@@ -49,12 +49,14 @@ type PoolEntry struct {
 // A Pool is used to manage and deduplicate resources between multiple resources,
 // and represents the real backing store for referenced eopkg files.
 type Pool struct {
-	poolDir string // Storage area
+	poolDir    string // Storage area
+	transcoder *GobTranscoder
 }
 
 // Init will create our initial working paths and DB bucket
 func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
 	p.poolDir = filepath.Join(ctx.BaseDir, PoolPathComponent)
+	p.transcoder = NewGobTranscoder()
 	if err := os.MkdirAll(p.poolDir, 00755); err != nil {
 		return err
 	}
@@ -65,15 +67,50 @@ func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
 // Close doesn't currently do anything
 func (p *Pool) Close() {}
 
+// GetEntry will return the package entry for the given ID
+func (p *Pool) GetEntry(tx *bolt.Tx, id string) (*PoolEntry, error) {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketPool))
+	v := rootBucket.Get([]byte(id))
+	if v == nil {
+		return nil, fmt.Errorf("Unknown pool entry: %s", id)
+	}
+	entry := &PoolEntry{}
+	if err := p.transcoder.DecodeType(v, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// Private method to re-put the entry into the DB
+func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketPool))
+	enc, err := p.transcoder.EncodeType(entry)
+	if err != nil {
+		return err
+	}
+	return rootBucket.Put([]byte(entry.Name), enc)
+}
+
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise
 // it will simply increase the ref count by 1.
-func (p *Pool) RefEntry(id string) error {
-	return errors.New("Not yet implemented")
+func (p *Pool) RefEntry(tx *bolt.Tx, id string) error {
+	entry, err := p.GetEntry(tx, id)
+	if err != nil {
+		return err
+	}
+	entry.RefCount++
+	return p.putEntry(tx, entry)
 }
 
 // UnrefEntry will unref a given ID from the repository.
 // Should the refcount hit 0, the package will then be removed from the pool
 // storage.
-func (p *Pool) UnrefEntry(id string) error {
-	return errors.New("Not yet implemented")
+func (p *Pool) UnrefEntry(tx *bolt.Tx, id string) error {
+	entry, err := p.GetEntry(tx, id)
+	if err != nil {
+		return err
+	}
+	entry.RefCount--
+	// TODO: If refcount is now zero, delete this guy!
+	return p.putEntry(tx, entry)
 }
