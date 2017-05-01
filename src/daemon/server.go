@@ -82,8 +82,11 @@ func (s *Server) Bind() error {
 		return e
 	}
 
-	// Create new Slip Manager for the current directory
-	m, e := slip.NewManager(".")
+	// Create new Slip Manager for the "./ferry" repo
+	if err := os.MkdirAll("./ferry", 00755); err != nil {
+		return err
+	}
+	m, e := slip.NewManager("./ferry")
 	if e != nil {
 		return e
 	}
