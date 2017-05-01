@@ -17,6 +17,7 @@
 package slip
 
 import (
+	"fmt"
 	"github.com/boltdb/bolt"
 	"os"
 	"path/filepath"
@@ -37,6 +38,13 @@ type RepositoryManager struct {
 	transcoder *GobTranscoder
 }
 
+// A Repository is a simplistic representation of a exported repository
+// within ferryd
+type Repository struct {
+	ID   string // Name of this repository (unique)
+	path string // Where this is on disk
+}
+
 // Init will create our initial working paths and DB bucket
 func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
@@ -50,3 +58,37 @@ func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 
 // Close doesn't currently do anything
 func (r *RepositoryManager) Close() {}
+
+// GetRepo will attempt to get the named repo if it exists, otherwise
+// return an error. This is a transactional helper to make the API simpler
+func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error) {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo))
+	repo := rootBucket.Bucket([]byte(id))
+	if repo == nil {
+		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
+	}
+	return &Repository{
+		ID:   id,
+		path: filepath.Join(r.repoBase, id),
+	}, nil
+}
+
+// CreateRepo will create a new repository (bucket) within the top level
+// repo bucket.
+func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, error) {
+	if _, err := r.GetRepo(tx, id); err == nil {
+		return nil, fmt.Errorf("The specified repository '%s' already exists", id)
+	}
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo))
+	if _, err := rootBucket.CreateBucket([]byte(id)); err != nil {
+		return nil, err
+	}
+	repoDir := filepath.Join(r.repoBase, id)
+	if err := os.MkdirAll(repoDir, 00755); err != nil {
+		return nil, err
+	}
+	return &Repository{
+		ID:   id,
+		path: repoDir,
+	}, nil
+}
