@@ -17,8 +17,8 @@
 package main
 
 import (
+	"daemon/slip"
 	"errors"
-	"ferry/slip"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"net"
