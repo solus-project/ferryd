@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package slip
+package ferry
 
 import (
 	"bytes"
