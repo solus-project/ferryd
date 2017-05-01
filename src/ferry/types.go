@@ -16,8 +16,16 @@
 
 package ferry
 
+// Response is the base portion for all ferryd responses, and will
+// include any relevant information on errors
+type Response struct {
+	Error       bool   // Whether this response is indication of an error
+	ErrorString string // The associated error message
+}
+
 // A VersionRequest allows the client to request the current version string
 // from the running daemon
 type VersionRequest struct {
+	Response
 	Version string `json:"version"`
 }

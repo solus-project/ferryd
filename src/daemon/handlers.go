@@ -24,7 +24,41 @@ import (
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"runtime"
 )
+
+// getMethodOrigin helps us determine the caller so that we can print
+// an appropriate method name into the log without tons of boilerplate
+func getMethodCaller() string {
+	n, _, _, ok := runtime.Caller(2)
+	if !ok {
+		return ""
+	}
+	if details := runtime.FuncForPC(n); details != nil {
+		return details.Name()
+	}
+	return ""
+}
+
+// sendStockError is a utility to send a standard response to the ferry
+// client that embeds the error message from ourside.
+func (s *Server) sendStockError(err error, w http.ResponseWriter, r *http.Request) {
+	response := ferry.Response{
+		Error:       true,
+		ErrorString: err.Error(),
+	}
+	log.WithFields(log.Fields{
+		"error":  err,
+		"method": getMethodCaller(),
+	}).Error("Client communication error")
+	buf := bytes.Buffer{}
+	if e2 := json.NewEncoder(&buf).Encode(&response); e2 != nil {
+		http.Error(w, e2.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write(buf.Bytes())
+}
 
 // GetVersion will return the current version of the ferryd
 func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -49,10 +83,6 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	err := s.manager.CreateRepo(id)
 	// TODO: Make this Moar Better..
 	if err != nil {
-		log.WithFields(log.Fields{
-			"id":    id,
-			"error": err,
-		}).Error("Failed to create repository")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.sendStockError(err, w, r)
 	}
 }

@@ -19,6 +19,7 @@ package ferry
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -55,19 +56,19 @@ func NewClient(address string) *Client {
 
 // Close will kill any idle connections still in "keep-alive" and ensure we're
 // not leaking file descriptors.
-func (f *Client) Close() {
-	trans := f.client.Transport.(*http.Transport)
+func (c *Client) Close() {
+	trans := c.client.Transport.(*http.Transport)
 	trans.CloseIdleConnections()
 }
 
-func (f *Client) formURI(part string) string {
+func (c *Client) formURI(part string) string {
 	return fmt.Sprintf("http://localhost.localdomain:0/%s", part)
 }
 
 // GetVersion will return the version of the remote daemon
-func (f *Client) GetVersion() (string, error) {
+func (c *Client) GetVersion() (string, error) {
 	var vq VersionRequest
-	resp, e := f.client.Get(f.formURI("api/v1/version"))
+	resp, e := c.client.Get(c.formURI("api/v1/version"))
 	if e != nil {
 		return "", e
 	}
@@ -78,15 +79,28 @@ func (f *Client) GetVersion() (string, error) {
 	return vq.Version, nil
 }
 
-// CreateRepo will attempt to create a repository in the daemon
-func (f *Client) CreateRepo(id string) error {
-	resp, e := f.client.Get(f.formURI("api/v1/create_repo/" + id))
+// A helper to wrap the trivial functionality, chaining off
+// the appropriate errors, etc.
+func (c *Client) getBasicResponse(url string, outT interface{}) error {
+	resp, e := c.client.Get(url)
 	if e != nil {
 		return e
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unable to create repo %s", id)
+	if resp.ContentLength > 0 {
+		if e = json.NewDecoder(resp.Body).Decode(outT); e != nil {
+			return e
+		}
 	}
-	return nil
+	fc := outT.(*Response)
+	if !fc.Error {
+		return nil
+	}
+	return errors.New(fc.ErrorString)
+}
+
+// CreateRepo will attempt to create a repository in the daemon
+func (c *Client) CreateRepo(id string) error {
+	uri := c.formURI("/api/v1/create_repo/" + id)
+	return c.getBasicResponse(uri, &Response{})
 }
