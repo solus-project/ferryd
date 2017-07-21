@@ -34,6 +34,6 @@ func init() {
 
 func printVersion(cmd *cobra.Command, args []string) {
 	// Print local version
-	fmt.Printf("ferry %v\n\nCopyright © 2016-2017 Solus Project\n", "0.0.0")
+	fmt.Printf("ferryd %v\n\nCopyright © 2016-2017 Solus Project\n", "0.0.0")
 	fmt.Printf("Licensed under the Apache License, Version 2.0\n\n")
 }
