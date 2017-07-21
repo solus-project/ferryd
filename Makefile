@@ -7,16 +7,12 @@ VERSION = 0.0.1
 _CHECK_COMPLIANCE = $(shell find src/ -not -path '*/vendor/*' -name '*.go' | xargs -I{} dirname {} |sed 's/src\///g' | uniq | sort)
 _TESTS = $(shell find src/ -not -path '*/vendor/*' -name '*_test.go' | xargs -I{} dirname {} | sed 's/src\///g'|uniq | sort)
 
-# CLI app
-ferry:
-	GOPATH=$(CUR_DIR) go install -v cli && mv bin/cli bin/ferry
-
-ferryd:
-	GOPATH=$(CUR_DIR) go install -v daemon && mv bin/daemon bin/ferryd
-
-BINS = \
-	ferry \
+BINARIES = \
 	ferryd
+
+# Build all binaries as static binary
+BINS = $(addsuffix .build,$(BINARIES))
+
 
 GO_TESTS = $(addsuffix .test,$(_TESTS))
 
