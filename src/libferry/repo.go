@@ -147,21 +147,8 @@ func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 	return rootBucket.Put([]byte(entry.Name), enc)
 }
 
-// AddPackage will attempt to add the package to this repository
-func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error {
-	pkg, err := libeopkg.Open(filename)
-	if err != nil {
-		return err
-	}
-
-	defer pkg.Close()
-	if err = pkg.ReadMetadata(); err != nil {
-		return err
-	}
-
-	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
-	pkgTarget := filepath.Join(pkgDir, pkg.ID)
-
+// AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
+func (r *Repository) AddLocalPackage(tx *bolt.Tx, pool *Pool, pkg *libeopkg.Package) error {
 	fmt.Printf("Processing %s-%s-%d\n", pkg.Meta.Package.Name, pkg.Meta.Package.GetVersion(), pkg.Meta.Package.GetRelease())
 
 	repoEntry := &RepoEntry{
@@ -169,6 +156,9 @@ func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error 
 		Name:          pkg.Meta.Package.Name,
 		Published:     pkg.ID,
 	}
+
+	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
 
 	// Already have a package, so let's copy the existing bits over
 	entry, err := r.GetEntry(tx, pkg.Meta.Package.Name)
@@ -217,4 +207,20 @@ func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error 
 	}
 
 	return r.putEntry(tx, repoEntry)
+}
+
+// AddPackage will attempt to load the local package and then add it to the
+// repository via AddLocalPackage
+func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error {
+	pkg, err := libeopkg.Open(filename)
+	if err != nil {
+		return err
+	}
+
+	defer pkg.Close()
+	if err = pkg.ReadMetadata(); err != nil {
+		return err
+	}
+
+	return r.AddLocalPackage(tx, pool, pkg)
 }
