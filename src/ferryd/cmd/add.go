@@ -41,7 +41,7 @@ func addPackages(cmd *cobra.Command, args []string) {
 	}
 
 	repoName := args[0]
-	repoDir := "./ferryd"
+	repoDir := "./ferry"
 
 	// TODO: Get the right cwd always ..
 	manager, err := libferry.NewManager(repoDir)
