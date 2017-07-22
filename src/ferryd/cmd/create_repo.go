@@ -42,8 +42,14 @@ func createRepo(cmd *cobra.Command, args []string) {
 
 	repoName := args[0]
 
+	repoDir := "./ferry"
+	if err := os.MkdirAll(repoDir, 00755); err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to create required directory \"%s\": %s", repoDir, err)
+		return
+	}
+
 	// TODO: Get the right cwd always ..
-	manager, err := libferry.NewManager("ferry")
+	manager, err := libferry.NewManager(repoDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
