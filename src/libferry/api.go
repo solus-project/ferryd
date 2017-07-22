@@ -78,3 +78,16 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		return repo.Index(tx, m.pool)
 	})
 }
+
+// Index will cause the repository's index to be reconstructed
+func (m *Manager) Index(repoID string) error {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return err
+	}
+
+	// Now emit the repo index itself
+	return m.db.View(func(tx *bolt.Tx) error {
+		return repo.Index(tx, m.pool)
+	})
+}
