@@ -30,6 +30,9 @@ const (
 	// DatabasePathComponent is the suffix applied to a working directory
 	// for the database file itself.
 	DatabasePathComponent = "ferry.db"
+
+	// Version of the ferry client library
+	Version = "0.0.0"
 )
 
 // The Context is shared between all of the components of ferryd to provide
