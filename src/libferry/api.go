@@ -60,13 +60,12 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		return err
 	}
 
-	for _, pkg := range packages {
-		err := m.db.Update(func(tx *bolt.Tx) error {
-			return repo.AddPackage(tx, m.pool, pkg)
-		})
-		if err != nil {
-			return err
+	return m.db.Update(func(tx *bolt.Tx) error {
+		for _, pkg := range packages {
+			if err := repo.AddPackage(tx, m.pool, pkg); err != nil {
+				return err
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }

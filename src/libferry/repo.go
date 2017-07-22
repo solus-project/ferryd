@@ -49,9 +49,8 @@ type RepositoryManager struct {
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID     string             // Name of this repository (unique)
-	path   string             // Where this is on disk
-	parent *RepositoryManager // Private reference to manager
+	ID   string // Name of this repository (unique)
+	path string // Where this is on disk
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -86,9 +85,8 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 	return &Repository{
-		ID:     id,
-		path:   filepath.Join(r.repoBase, id),
-		parent: r,
+		ID:   id,
+		path: filepath.Join(r.repoBase, id),
 	}, nil
 }
 
@@ -117,9 +115,8 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		return nil, err
 	}
 	return &Repository{
-		ID:     id,
-		path:   repoDir,
-		parent: r,
+		ID:   id,
+		path: repoDir,
 	}, nil
 }
 
@@ -131,7 +128,9 @@ func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
 		return nil, nil
 	}
 	entry := &RepoEntry{}
-	if err := r.parent.transcoder.DecodeType(v, entry); err != nil {
+	trans := NewGobTranscoder()
+
+	if err := trans.DecodeType(v, entry); err != nil {
 		return nil, err
 	}
 	return entry, nil
@@ -140,7 +139,8 @@ func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
 // Private method to re-put the entry into the DB
 func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
-	enc, err := r.parent.transcoder.EncodeType(entry)
+	trans := NewGobTranscoder()
+	enc, err := trans.EncodeType(entry)
 	if err != nil {
 		return err
 	}
