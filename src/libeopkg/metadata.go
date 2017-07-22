@@ -62,9 +62,13 @@ type Update struct {
 	Type    string `xml:"type,attr,omitempty"` // i.e. security
 	Date    string // When the update was issued
 	Version string // Version of the package at the time of this update
-	Comment string // Comment explaining  the update
-	Name    string // Updater's name
-	Email   string // Updater's email
+	Comment struct {
+		Value string `xml:",cdata"` // Comment explaining  the update
+	}
+	Name struct {
+		Value string `xml:",cdata"` // Updater's name
+	}
+	Email string // Updater's email
 }
 
 // A MetaPackage is the Package section of the metadata file. It contains
