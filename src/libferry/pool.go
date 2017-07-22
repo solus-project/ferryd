@@ -14,13 +14,12 @@
 // limitations under the License.
 //
 
-package slip
+package libferry
 
 import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"libeopkg"
-	"libferry"
 	"os"
 	"path/filepath"
 )
@@ -54,13 +53,13 @@ type PoolEntry struct {
 // and represents the real backing store for referenced eopkg files.
 type Pool struct {
 	poolDir    string // Storage area
-	transcoder *libferry.GobTranscoder
+	transcoder *GobTranscoder
 }
 
 // Init will create our initial working paths and DB bucket
 func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
 	p.poolDir = filepath.Join(ctx.BaseDir, PoolPathComponent)
-	p.transcoder = libferry.NewGobTranscoder()
+	p.transcoder = NewGobTranscoder()
 	if err := os.MkdirAll(p.poolDir, 00755); err != nil {
 		return err
 	}

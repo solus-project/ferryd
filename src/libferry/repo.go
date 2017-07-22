@@ -14,12 +14,11 @@
 // limitations under the License.
 //
 
-package slip
+package libferry
 
 import (
 	"fmt"
 	"github.com/boltdb/bolt"
-	"libferry"
 	"os"
 	"path/filepath"
 )
@@ -36,7 +35,7 @@ const (
 // turn linked to the main pool
 type RepositoryManager struct {
 	repoBase   string
-	transcoder *libferry.GobTranscoder
+	transcoder *GobTranscoder
 }
 
 // A Repository is a simplistic representation of a exported repository
@@ -49,7 +48,7 @@ type Repository struct {
 // Init will create our initial working paths and DB bucket
 func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
-	r.transcoder = libferry.NewGobTranscoder()
+	r.transcoder = NewGobTranscoder()
 	if err := os.MkdirAll(r.repoBase, 00755); err != nil {
 		return err
 	}

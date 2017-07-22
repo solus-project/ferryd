@@ -14,13 +14,11 @@
 // limitations under the License.
 //
 
-// Package slip provides the Ferry Slip implementation.
+// Package libferry provides the Ferry library implementation.
 //
 // This portion of ferryd is responsible for the management of management
 // of the repositories, and receives packages from the builders.
-// In the ferryd design, packages are ferried to the slip, where it is then
-// organised into the repositories.
-package slip
+package libferry
 
 import (
 	"github.com/boltdb/bolt"
