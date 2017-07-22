@@ -97,22 +97,22 @@ func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 // AddPackage will determine where the new eopkg goes, and whether we need
 // to actually push it on disk, or simply bump the ref count. Any file
 // passed to us is believed to be under our ownership now.
-func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package) error {
+func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolEntry, error) {
 	// Check if this is just a simple case of bumping the refcount
 	if entry, err := p.GetEntry(tx, pkg.ID); err == nil {
 		entry.RefCount++
-		return p.putEntry(tx, entry)
+		return entry, p.putEntry(tx, entry)
 	}
 	// We have no refcount, so now we need to actually include this package
 	// into the repositories.
 	pkgDir := filepath.Join(p.poolDir, pkg.Meta.Package.GetPathComponent())
 	if err := os.MkdirAll(pkgDir, 00755); err != nil {
-		return err
+		return nil, err
 	}
 	pkgTarget := filepath.Join(pkgDir, pkg.ID)
 	// Try to hard link the file into place
-	if err := LinkOrCopyFile(pkg.Path, pkgTarget); err != nil {
-		return err
+	if err := LinkOrCopyFile(pkg.Path, pkgTarget, copy); err != nil {
+		return nil, err
 	}
 	entry := &PoolEntry{
 		SchemaVersion: PoolSchemaVersion,
@@ -125,9 +125,9 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package) error {
 		// Error isn't important, really.
 		os.Remove(pkgTarget)
 		RemovePackageParents(pkgTarget)
-		return err
+		return nil, err
 	}
-	return nil
+	return entry, nil
 }
 
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise

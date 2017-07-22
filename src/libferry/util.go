@@ -58,7 +58,10 @@ func CopyFile(source, dest string) error {
 // LinkOrCopyFile is a helper which will initially try to hard link,
 // however if we hit an error (because we tried a cross-filesystem hardlink)
 // we'll try to copy instead.
-func LinkOrCopyFile(source, dest string) error {
+func LinkOrCopyFile(source, dest string, forceCopy bool) error {
+	if forceCopy {
+		return CopyFile(source, dest)
+	}
 	if os.Link(source, dest) == nil {
 		return nil
 	}

@@ -99,7 +99,7 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 }
 
 // AddPackage will attempt to add the package to this repository
-func (r *Repository) AddPackage(tx *bolt.Tx, filename string) error {
+func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error {
 	pkg, err := libeopkg.Open(filename)
 	if err != nil {
 		return err
@@ -108,6 +108,16 @@ func (r *Repository) AddPackage(tx *bolt.Tx, filename string) error {
 	if err = pkg.ReadMetadata(); err != nil {
 		return err
 	}
+
 	fmt.Printf("Processing %s-%s-%d\n", pkg.Meta.Package.Name, pkg.Meta.Package.GetVersion(), pkg.Meta.Package.GetRelease())
+
+	// Grab the pool reference for this package (Always copy)
+	poolEntry, err := pool.AddPackage(tx, pkg, true)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Pool entry is %s (%d)\n", poolEntry.Name, poolEntry.RefCount)
+
 	return errors.New("Not yet implemented")
 }
