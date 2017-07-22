@@ -17,7 +17,6 @@
 package libferry
 
 import (
-	"bufio"
 	"encoding/xml"
 	"github.com/boltdb/bolt"
 	"os"
@@ -43,8 +42,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	// Ensure we'll emit in a sane order
 	sort.Strings(pkgIds)
 
-	buf := bufio.NewWriter(file)
-	encoder := xml.NewEncoder(buf)
+	encoder := xml.NewEncoder(file)
 	encoder.Indent("", "    ")
 
 	// Wrap every output item as Package
@@ -78,7 +76,6 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		return err
 	}
 
-	buf.Flush()
 	return encoder.Flush()
 }
 
