@@ -78,7 +78,8 @@ func (p *Pool) GetEntry(tx *bolt.Tx, id string) (*PoolEntry, error) {
 		return nil, fmt.Errorf("Unknown pool entry: %s", id)
 	}
 	entry := &PoolEntry{}
-	if err := p.transcoder.DecodeType(v, entry); err != nil {
+	dec := NewGobDecoderLight()
+	if err := dec.DecodeType(v, entry); err != nil {
 		return nil, err
 	}
 	return entry, nil
@@ -87,7 +88,8 @@ func (p *Pool) GetEntry(tx *bolt.Tx, id string) (*PoolEntry, error) {
 // Private method to re-put the entry into the DB
 func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 	rootBucket := tx.Bucket([]byte(DatabaseBucketPool))
-	enc, err := p.transcoder.EncodeType(entry)
+	code := NewGobEncoderLight()
+	enc, err := code.EncodeType(entry)
 	if err != nil {
 		return err
 	}
