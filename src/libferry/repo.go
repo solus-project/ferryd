@@ -128,9 +128,8 @@ func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
 		return nil, nil
 	}
 	entry := &RepoEntry{}
-	trans := NewGobTranscoder()
-
-	if err := trans.DecodeType(v, entry); err != nil {
+	code := NewGobDecoderLight()
+	if err := code.DecodeType(v, entry); err != nil {
 		return nil, err
 	}
 	return entry, nil
@@ -139,8 +138,8 @@ func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
 // Private method to re-put the entry into the DB
 func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
-	trans := NewGobTranscoder()
-	enc, err := trans.EncodeType(entry)
+	code := NewGobEncoderLight()
+	enc, err := code.EncodeType(entry)
 	if err != nil {
 		return err
 	}

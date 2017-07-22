@@ -38,6 +38,36 @@ type GobTranscoder struct {
 	decoderMut *sync.Mutex
 }
 
+// GobEncoderLight is a lighter variant of the transcoder for encoding
+type GobEncoderLight struct {
+	bytes   *bytes.Buffer
+	encoder *gob.Encoder
+}
+
+// GobDecoderLight is a lighter variant of the transcoder for decoding
+type GobDecoderLight struct {
+	bytes   *bytes.Buffer
+	decoder *gob.Decoder
+}
+
+// NewGobEncoderLight returns a new lock-free encoder
+func NewGobEncoderLight() *GobEncoderLight {
+	ret := &GobEncoderLight{
+		bytes: &bytes.Buffer{},
+	}
+	ret.encoder = gob.NewEncoder(ret.bytes)
+	return ret
+}
+
+// NewGobDecoderLight returns a new lock-free decoder
+func NewGobDecoderLight() *GobDecoderLight {
+	ret := &GobDecoderLight{
+		bytes: &bytes.Buffer{},
+	}
+	ret.decoder = gob.NewDecoder(ret.bytes)
+	return ret
+}
+
 // NewGobTranscoder will return a newly initialised transcoder to help
 // with the mundane encoding/decoding operations
 func NewGobTranscoder() *GobTranscoder {
@@ -67,6 +97,19 @@ func (g *GobTranscoder) EncodeType(t interface{}) ([]byte, error) {
 	return g.outBytes.Bytes(), nil
 }
 
+// EncodeType will convert give given pointer into a gob encoded
+// byte set, and return them
+func (g *GobEncoderLight) EncodeType(t interface{}) ([]byte, error) {
+	defer func() {
+		g.bytes.Reset()
+	}()
+	err := g.encoder.Encode(t)
+	if err != nil {
+		return nil, err
+	}
+	return g.bytes.Bytes(), nil
+}
+
 // DecodeType will attempt to decode the buffer into the pointer outT
 func (g *GobTranscoder) DecodeType(buf []byte, outT interface{}) error {
 	g.decoderMut.Lock()
@@ -76,6 +119,18 @@ func (g *GobTranscoder) DecodeType(buf []byte, outT interface{}) error {
 	}()
 	reader := bytes.NewReader(buf)
 	if _, err := io.Copy(g.inBytes, reader); err != nil {
+		return err
+	}
+	return g.decoder.Decode(outT)
+}
+
+// DecodeType will attempt to decode the buffer into the pointer outT
+func (g *GobDecoderLight) DecodeType(buf []byte, outT interface{}) error {
+	defer func() {
+		g.bytes.Reset()
+	}()
+	reader := bytes.NewReader(buf)
+	if _, err := io.Copy(g.bytes, reader); err != nil {
 		return err
 	}
 	return g.decoder.Decode(outT)
