@@ -92,6 +92,16 @@ type MetaPackage struct {
 	Source Source // Duplicate source to satisfy indexing
 }
 
+// GetRelease is a helpful wrapper to return the package's current release
+func (m *MetaPackage) GetRelease() int {
+	return m.History[0].Release
+}
+
+// GetVersion is a helpful wrapper to return the package's current version
+func (m *MetaPackage) GetVersion() string {
+	return m.History[0].Version
+}
+
 // Metadata contains all of the information a package can provide to a user
 // prior to installation. This includes the name, version, release, and so
 // forth.
