@@ -17,7 +17,6 @@
 package libferry
 
 import (
-	"errors"
 	"github.com/boltdb/bolt"
 )
 
@@ -56,9 +55,16 @@ func (m *Manager) GetRepo(id string) (*Repository, error) {
 
 // AddPackages will attempt to add the named packages to the repository
 func (m *Manager) AddPackages(repoID string, packages []string) error {
-	_, err := m.GetRepo(repoID)
+	repo, err := m.GetRepo(repoID)
 	if err != nil {
 		return err
 	}
-	return errors.New("Not yet implemented")
+	return m.db.Update(func(tx *bolt.Tx) error {
+		for _, pkg := range packages {
+			if err := repo.AddPackage(tx, pkg); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

@@ -17,8 +17,10 @@
 package libferry
 
 import (
+	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"libeopkg"
 	"os"
 	"path/filepath"
 )
@@ -41,8 +43,9 @@ type RepositoryManager struct {
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID   string // Name of this repository (unique)
-	path string // Where this is on disk
+	ID     string             // Name of this repository (unique)
+	path   string             // Where this is on disk
+	parent *RepositoryManager // Private reference to manager
 }
 
 // Init will create our initial working paths and DB bucket
@@ -68,8 +71,9 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 	return &Repository{
-		ID:   id,
-		path: filepath.Join(r.repoBase, id),
+		ID:     id,
+		path:   filepath.Join(r.repoBase, id),
+		parent: r,
 	}, nil
 }
 
@@ -88,7 +92,22 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		return nil, err
 	}
 	return &Repository{
-		ID:   id,
-		path: repoDir,
+		ID:     id,
+		path:   repoDir,
+		parent: r,
 	}, nil
+}
+
+// AddPackage will attempt to add the package to this repository
+func (r *Repository) AddPackage(tx *bolt.Tx, filename string) error {
+	pkg, err := libeopkg.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer pkg.Close()
+	if err = pkg.ReadMetadata(); err != nil {
+		return err
+	}
+	fmt.Printf("Processing %s-%s-%d\n", pkg.Meta.Package.Name, pkg.Meta.Package.GetVersion(), pkg.Meta.Package.GetRelease())
+	return errors.New("Not yet implemented")
 }
