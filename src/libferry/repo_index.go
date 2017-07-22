@@ -17,16 +17,16 @@
 package libferry
 
 import (
+	"bufio"
 	"encoding/xml"
-	"errors"
 	"github.com/boltdb/bolt"
 	"os"
 	"sort"
 )
 
-// Index will attempt to write the eopkg index out to disk
-// This only requires a read-only database view
-func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+// emitIndex does the heavy lifting of writing to the given file descriptor,
+// i.e. serialising the DB repo out to the index file
+func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	var pkgIds []string
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 
@@ -43,7 +43,8 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 	// Ensure we'll emit in a sane order
 	sort.Strings(pkgIds)
 
-	encoder := xml.NewEncoder(os.Stdout)
+	buf := bufio.NewWriter(file)
+	encoder := xml.NewEncoder(buf)
 	encoder.Indent("", "    ")
 
 	// Wrap every output item as Package
@@ -77,9 +78,19 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 		return err
 	}
 
-	if err := encoder.Flush(); err != nil {
+	buf.Flush()
+	return encoder.Flush()
+}
+
+// Index will attempt to write the eopkg index out to disk
+// This only requires a read-only database view
+func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+	// TODO: Use the right path, and a temporary name. Then write the new file
+	// back over the original
+	f, err := os.Create("eopkg-index.xml")
+	if err != nil {
 		return err
 	}
-
-	return errors.New("not yet implemented")
+	defer f.Close()
+	return r.emitIndex(tx, pool, f)
 }
