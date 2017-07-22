@@ -60,7 +60,7 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		return err
 	}
 
-	return m.db.Update(func(tx *bolt.Tx) error {
+	err = m.db.Update(func(tx *bolt.Tx) error {
 		for _, pkg := range packages {
 			if err := repo.AddPackage(tx, m.pool, pkg); err != nil {
 				return err
@@ -68,4 +68,11 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		}
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now emit the repo index itself
+	return repo.Index()
 }
