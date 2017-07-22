@@ -17,9 +17,10 @@
 package libferry
 
 import (
+	"encoding/xml"
 	"errors"
-	"fmt"
 	"github.com/boltdb/bolt"
+	"os"
 	"sort"
 )
 
@@ -42,13 +43,42 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 	// Ensure we'll emit in a sane order
 	sort.Strings(pkgIds)
 
+	encoder := xml.NewEncoder(os.Stdout)
+	encoder.Indent("", "    ")
+
+	// Wrap every output item as Package
+	elem := xml.StartElement{
+		Name: xml.Name{
+			Local: "Package",
+		},
+	}
+
+	// Ensure we have the start element
+	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "PISI"}}); err != nil {
+		return err
+	}
+
+	// TODO: merge distributions.xml here
+
 	for _, pkg := range pkgIds {
 		entry, err := pool.GetEntry(tx, pkg)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("-> Package '%s' (%s-%d)\n", entry.Name, entry.Meta.GetVersion(), entry.Meta.GetRelease())
-		fmt.Printf("    -> %v\n", entry.Meta.Summary)
+		if err = encoder.EncodeElement(entry.Meta, elem); err != nil {
+			return err
+		}
+	}
+
+	// TODO: Insert Components, then Groups
+
+	// Now finalise the document
+	if err := encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "PISI"}}); err != nil {
+		return err
+	}
+
+	if err := encoder.Flush(); err != nil {
+		return err
 	}
 
 	return errors.New("not yet implemented")
