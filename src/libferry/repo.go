@@ -31,6 +31,9 @@ const (
 
 	// DatabaseBucketRepo is the name for the main repo toplevel bucket
 	DatabaseBucketRepo = "repo"
+
+	// DatabaseBucketPackage is the path to the subbucket within a repo bucket
+	DatabaseBucketPackage = "package"
 )
 
 // The RepositoryManager maintains all repos within ferryd which are in
@@ -83,10 +86,20 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 	if _, err := r.GetRepo(tx, id); err == nil {
 		return nil, fmt.Errorf("The specified repository '%s' already exists", id)
 	}
+
+	// Create the main sub-bucket for this repo
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo))
-	if _, err := rootBucket.CreateBucket([]byte(id)); err != nil {
+	bucket, err := rootBucket.CreateBucket([]byte(id))
+	if err != nil {
 		return nil, err
 	}
+
+	// Storage for package entries
+	_, err = bucket.CreateBucket([]byte(DatabaseBucketPackage))
+	if err != nil {
+		return nil, err
+	}
+
 	repoDir := filepath.Join(r.repoBase, id)
 	if err := os.MkdirAll(repoDir, 00755); err != nil {
 		return nil, err
