@@ -18,9 +18,38 @@ package libferry
 
 import (
 	"errors"
+	"fmt"
+	"github.com/boltdb/bolt"
+	"sort"
 )
 
 // Index will attempt to write the eopkg index out to disk
-func (r *Repository) Index() error {
+// This only requires a read-only database view
+func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+	var pkgIds []string
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	c := rootBucket.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		code := NewGobDecoderLight()
+		entry := RepoEntry{}
+		if err := code.DecodeType(v, &entry); err != nil {
+			return err
+		}
+		pkgIds = append(pkgIds, entry.Published)
+	}
+
+	// Ensure we'll emit in a sane order
+	sort.Strings(pkgIds)
+
+	for _, pkg := range pkgIds {
+		entry, err := pool.GetEntry(tx, pkg)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("-> Package '%s' (%s-%d)\n", entry.Name, entry.Meta.GetVersion(), entry.Meta.GetRelease())
+		fmt.Printf("    -> %v\n", entry.Meta.Summary)
+	}
+
 	return errors.New("not yet implemented")
 }

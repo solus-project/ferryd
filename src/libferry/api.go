@@ -74,5 +74,7 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 	}
 
 	// Now emit the repo index itself
-	return repo.Index()
+	return m.db.View(func(tx *bolt.Tx) error {
+		return repo.Index(tx, m.pool)
+	})
 }
