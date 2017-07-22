@@ -17,12 +17,12 @@
 package libferry
 
 import (
-	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"libeopkg"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 const (
@@ -34,6 +34,9 @@ const (
 
 	// DatabaseBucketPackage is the path to the subbucket within a repo bucket
 	DatabaseBucketPackage = "package"
+
+	// RepoSchemaVersion is the current schema version for a RepoEntry
+	RepoSchemaVersion = "1.0"
 )
 
 // The RepositoryManager maintains all repos within ferryd which are in
@@ -49,6 +52,15 @@ type Repository struct {
 	ID     string             // Name of this repository (unique)
 	path   string             // Where this is on disk
 	parent *RepositoryManager // Private reference to manager
+}
+
+// RepoEntry is the basic repository storage unit, and details what packages
+// are exported in the index.
+type RepoEntry struct {
+	SchemaVersion string   // Version used when this repo entry was created
+	Name          string   // Base package name
+	Available     []string // The available packages for this package name (eopkg IDs)
+	Published     string   // The "tip" version of this package (eopkg ID)
 }
 
 // Init will create our initial working paths and DB bucket
@@ -111,26 +123,99 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 	}, nil
 }
 
+// GetEntry will return the package entry for the given ID
+func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+	v := rootBucket.Get([]byte(id))
+	if v == nil {
+		return nil, nil
+	}
+	entry := &RepoEntry{}
+	if err := r.parent.transcoder.DecodeType(v, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// Private method to re-put the entry into the DB
+func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+	enc, err := r.parent.transcoder.EncodeType(entry)
+	if err != nil {
+		return err
+	}
+
+	return rootBucket.Put([]byte(entry.Name), enc)
+}
+
 // AddPackage will attempt to add the package to this repository
 func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error {
 	pkg, err := libeopkg.Open(filename)
 	if err != nil {
 		return err
 	}
+
 	defer pkg.Close()
 	if err = pkg.ReadMetadata(); err != nil {
 		return err
 	}
 
+	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+
 	fmt.Printf("Processing %s-%s-%d\n", pkg.Meta.Package.Name, pkg.Meta.Package.GetVersion(), pkg.Meta.Package.GetRelease())
 
-	// Grab the pool reference for this package (Always copy)
-	poolEntry, err := pool.AddPackage(tx, pkg, true)
-	if err != nil {
+	repoEntry := &RepoEntry{
+		SchemaVersion: RepoSchemaVersion,
+		Name:          pkg.Meta.Package.Name,
+		Published:     pkg.ID,
+	}
+
+	// Already have a package, so let's copy the existing bits over
+	entry, err := r.GetEntry(tx, pkg.Meta.Package.Name)
+	if entry != nil {
+		repoEntry.Available = entry.Available
+		repoEntry.Published = entry.Published
+
+		pkgAvail, err := pool.GetEntry(tx, repoEntry.Published)
+		if err == nil {
+			if pkg.Meta.Package.GetRelease() > pkgAvail.Meta.GetRelease() {
+				repoEntry.Published = pkg.ID
+			}
+		} else {
+			repoEntry.Published = pkg.ID
+		}
+	} else if err != nil {
+		fmt.Printf("Error was %v\n", err)
+	}
+
+	// Check if we've already indexed it, non-fatal
+	for _, id := range repoEntry.Available {
+		if id == pkg.ID {
+			fmt.Printf("Skipping already included %s\n", id)
+			return nil
+		}
+	}
+
+	// Construct root dirs
+	if err := os.MkdirAll(pkgDir, 00755); err != nil {
 		return err
 	}
 
-	fmt.Printf("Pool entry is %s (%d)\n", poolEntry.Name, poolEntry.RefCount)
+	// Keep the available list clean + sorted
+	repoEntry.Available = append(repoEntry.Available, pkg.ID)
+	sort.Strings(repoEntry.Available)
 
-	return errors.New("Not yet implemented")
+	// Grab the pool reference for this package (Always copy)
+	if _, err = pool.AddPackage(tx, pkg, true); err != nil {
+		return err
+	}
+
+	// Ensure the eopkg file is linked inside our own tree
+	source := pool.GetPackagePoolPath(pkg)
+	if err = LinkOrCopyFile(source, pkgTarget, false); err != nil {
+		return err
+	}
+
+	return r.putEntry(tx, repoEntry)
 }

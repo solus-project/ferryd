@@ -94,6 +94,14 @@ func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 	return rootBucket.Put([]byte(entry.Name), enc)
 }
 
+// GetPackagePoolPath Convenience function to grab the target for the given package
+// within the current pool
+func (p *Pool) GetPackagePoolPath(pkg *libeopkg.Package) string {
+	pkgDir := filepath.Join(p.poolDir, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+	return pkgTarget
+}
+
 // AddPackage will determine where the new eopkg goes, and whether we need
 // to actually push it on disk, or simply bump the ref count. Any file
 // passed to us is believed to be under our ownership now.
@@ -105,11 +113,11 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 	}
 	// We have no refcount, so now we need to actually include this package
 	// into the repositories.
-	pkgDir := filepath.Join(p.poolDir, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := p.GetPackagePoolPath(pkg)
+	pkgDir := filepath.Dir(pkgTarget)
 	if err := os.MkdirAll(pkgDir, 00755); err != nil {
 		return nil, err
 	}
-	pkgTarget := filepath.Join(pkgDir, pkg.ID)
 	// Try to hard link the file into place
 	if err := LinkOrCopyFile(pkg.Path, pkgTarget, copy); err != nil {
 		return nil, err
