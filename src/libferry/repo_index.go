@@ -20,10 +20,97 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"libeopkg"
 	"os"
 	"path/filepath"
 	"sort"
 )
+
+// emitDistribution is responsible for loading the distribution.xml file from
+// the assets store and merging it into the final index
+func (r *Repository) emitDistribution(encoder *xml.Encoder) error {
+	dpath := filepath.Join(r.assetPath, "distribution.xml")
+	if !PathExists(dpath) {
+		fmt.Fprintf(os.Stderr, "WARNING: no distribution.xml defined\n")
+		return nil
+	}
+	dist, err := libeopkg.NewDistribution(dpath)
+	if err != nil {
+		return err
+	}
+	elem := xml.StartElement{
+		Name: xml.Name{
+			Local: "Distribution",
+		},
+	}
+	return encoder.EncodeElement(dist, elem)
+}
+
+// emitComponents is responsible for loading the components.xml file from
+// the assets store and merging it into the final index
+func (r *Repository) emitComponents(encoder *xml.Encoder) error {
+	dpath := filepath.Join(r.assetPath, "components.xml")
+	if !PathExists(dpath) {
+		fmt.Fprintf(os.Stderr, "WARNING: no components.xml defined\n")
+		return nil
+	}
+	comp, err := libeopkg.NewComponents(dpath)
+	if err != nil {
+		return err
+	}
+
+	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "Components"}}); err != nil {
+		return err
+	}
+
+	elem := xml.StartElement{
+		Name: xml.Name{
+			Local: "Component",
+		},
+	}
+
+	for i := range comp.Components {
+		c := &comp.Components[i]
+		if err := encoder.EncodeElement(c, elem); err != nil {
+			return err
+		}
+	}
+	// Now finalise the document
+	return encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "Components"}})
+}
+
+// emitGroups is responsible for loading the groups.xml file from
+// the assets store and merging it into the final index
+func (r *Repository) emitGroups(encoder *xml.Encoder) error {
+	dpath := filepath.Join(r.assetPath, "groups.xml")
+	if !PathExists(dpath) {
+		fmt.Fprintf(os.Stderr, "WARNING: no groups.xml defined\n")
+		return nil
+	}
+	grp, err := libeopkg.NewGroups(dpath)
+	if err != nil {
+		return err
+	}
+
+	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "Groups"}}); err != nil {
+		return err
+	}
+
+	elem := xml.StartElement{
+		Name: xml.Name{
+			Local: "Group",
+		},
+	}
+
+	for i := range grp.Groups {
+		g := &grp.Groups[i]
+		if err := encoder.EncodeElement(g, elem); err != nil {
+			return err
+		}
+	}
+	// Now finalise the document
+	return encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "Groups"}})
+}
 
 // emitIndex does the heavy lifting of writing to the given file descriptor,
 // i.e. serialising the DB repo out to the index file
@@ -45,6 +132,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	sort.Strings(pkgIds)
 
 	encoder := xml.NewEncoder(file)
+	// encoder.Indent("    ", "    ")
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
@@ -57,7 +145,10 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		return err
 	}
 
-	// TODO: merge distributions.xml here
+	// Ensure distribution is at the head
+	if err := r.emitDistribution(encoder); err != nil {
+		return err
+	}
 
 	for _, pkg := range pkgIds {
 		entry, err := pool.GetEntry(tx, pkg)
@@ -69,7 +160,15 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		}
 	}
 
-	// TODO: Insert Components, then Groups
+	// Stick in the components
+	if err := r.emitComponents(encoder); err != nil {
+		return err
+	}
+
+	// Stick in the groups ..
+	if err := r.emitGroups(encoder); err != nil {
+		return err
+	}
 
 	// Now finalise the document
 	if err := encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "PISI"}}); err != nil {
