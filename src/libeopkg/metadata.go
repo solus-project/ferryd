@@ -35,7 +35,7 @@ type Packager struct {
 // This source identifies one or more packages coming from the same origin,
 // i.e they have the same *source name*.
 type Source struct {
-	Homepage string   // From whence it came
+	Homepage string   `xml:"Homepage,omitempty"` // From whence it came
 	Name     string   // Source name
 	Packager Packager // Who is responsible for packaging this source.
 }
