@@ -149,8 +149,6 @@ func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 
 // AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
 func (r *Repository) AddLocalPackage(tx *bolt.Tx, pool *Pool, pkg *libeopkg.Package) error {
-	fmt.Printf("Processing %s-%s-%d\n", pkg.Meta.Package.Name, pkg.Meta.Package.GetVersion(), pkg.Meta.Package.GetRelease())
-
 	repoEntry := &RepoEntry{
 		SchemaVersion: RepoSchemaVersion,
 		Name:          pkg.Meta.Package.Name,
@@ -196,7 +194,7 @@ func (r *Repository) AddLocalPackage(tx *bolt.Tx, pool *Pool, pkg *libeopkg.Pack
 	sort.Strings(repoEntry.Available)
 
 	// Grab the pool reference for this package (Always copy)
-	if _, err = pool.AddPackage(tx, pkg, true); err != nil {
+	if _, err = pool.AddPackage(tx, pkg, false); err != nil {
 		return err
 	}
 
