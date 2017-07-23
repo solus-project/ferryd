@@ -101,7 +101,7 @@ type MetaPackage struct {
 		Value string `xml:",cdata"`
 		Lang  string `xml:"lang,attr,omitempty"`
 	}
-    IsA                 string `xml:"IsA,omitempty"` // Legacy construct defining type
+	IsA                 string        `xml:"IsA,omitempty"`    // Legacy construct defining type
 	PartOf              string        `xml:"PartOf,omitempty"` // Which component the package belongs to
 	License             []string      // The package license(s)
 	RuntimeDependencies *[]Dependency `xml:"RuntimeDependencies>Dependency,omitempty"` // Packages this package depends on at runtime
