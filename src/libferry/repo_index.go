@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // initDistribution will look for the distribution.xml file which will define
@@ -129,7 +130,6 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		}
 
 		if r.dist != nil && r.dist.IsObsolete(entry.Name) {
-			fmt.Fprintf(os.Stderr, " - Skipping obsolete package: %s\n", entry.Name)
 			continue
 		}
 
@@ -158,17 +158,33 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		return err
 	}
 
-onoes:
 	for _, pkg := range pkgIds {
 		entry, err := pool.GetEntry(tx, pkg)
 		if err != nil {
 			return err
 		}
+
+		// Retain compatibility with eopkg, auto-drop -dbginfo
+		nom := entry.Meta.Name
+		if strings.HasSuffix(nom, "-dbginfo") {
+			nom = nom[0 : len(nom)-8]
+		}
+
+		// Check if its obsolete, if its automatically obsolete through our
+		// dbginfo trick, warn in the console
+		if r.dist.IsObsolete(nom) {
+			if nom != entry.Name {
+				fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", pkg)
+			}
+			continue
+		}
+
+		// Warn that a package depends on an obsolete package so that it can be
+		// purged from the repo (as it won't work!)
 		if entry.Meta.RuntimeDependencies != nil && r.dist != nil {
 			for _, p := range *entry.Meta.RuntimeDependencies {
 				if r.dist.IsObsolete(p.Name) {
-					fmt.Fprintf(os.Stderr, " *** %s depends on obsolete package %s\n", entry.Name, p.Name)
-					continue onoes
+					fmt.Fprintf(os.Stderr, " **** UNINSTALLABLE PACKAGE:  %s depends on obsolete package %s ****\n", entry.Name, p.Name)
 				}
 			}
 		}
