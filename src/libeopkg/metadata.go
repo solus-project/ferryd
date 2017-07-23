@@ -35,8 +35,8 @@ type Packager struct {
 // This source identifies one or more packages coming from the same origin,
 // i.e they have the same *source name*.
 type Source struct {
-	Homepage string   `xml:"Homepage,omitempty"` // From whence it came
 	Name     string   // Source name
+	Homepage string   `xml:"Homepage,omitempty"` // From whence it came
 	Packager Packager // Who is responsible for packaging this source.
 }
 
@@ -101,6 +101,7 @@ type MetaPackage struct {
 		Value string `xml:",cdata"`
 		Lang  string `xml:"lang,attr,omitempty"`
 	}
+    IsA                 string `xml:"IsA,omitempty"` // Legacy construct defining type
 	PartOf              string        `xml:"PartOf,omitempty"` // Which component the package belongs to
 	License             []string      // The package license(s)
 	RuntimeDependencies *[]Dependency `xml:"RuntimeDependencies>Dependency,omitempty"` // Packages this package depends on at runtime
