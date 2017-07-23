@@ -47,6 +47,7 @@ type PoolEntry struct {
 	Name          string                // Name&ID of the pool entry
 	RefCount      uint64                // How many instances of this file exist right now
 	Meta          *libeopkg.MetaPackage // The eopkg metadata
+	Sha1Sum       string                // Sha1sum for this package
 }
 
 // A Pool is used to manage and deduplicate resources between multiple resources,
@@ -124,11 +125,16 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 	if err := LinkOrCopyFile(pkg.Path, pkgTarget, copy); err != nil {
 		return nil, err
 	}
+	sha, err := FileSha1sum(pkg.Path)
+	if err != nil {
+		return nil, err
+	}
 	entry := &PoolEntry{
 		SchemaVersion: PoolSchemaVersion,
 		Name:          pkg.ID,
 		RefCount:      1,
 		Meta:          &pkg.Meta.Package,
+		Sha1Sum:       sha,
 	}
 	if err := p.putEntry(tx, entry); err != nil {
 		// Just clean out what we did because we can't write it into the DB
