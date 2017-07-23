@@ -89,9 +89,17 @@ type Provides struct {
 type MetaPackage struct {
 
 	// Main details
-	Name                string       // Name of this binary package
-	Summary             string       // Brief description, one line, of the package functionality
-	Description         string       // A full fleshed description of the package
+	Name string // Name of this binary package
+	// Brief description, one line, of the package functionality
+	Summary []struct {
+		Value string `xml:",cdata"`
+		Lang  string `xml:"lang,attr,omitempty"`
+	}
+	// A full fleshed description of the package
+	Description []struct {
+		Value string `xml:",cdata"`
+		Lang  string `xml:"lang,attr,omitempty"`
+	}
 	PartOf              string       // Which component the package belongs to
 	License             []string     // The package license(s)
 	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
