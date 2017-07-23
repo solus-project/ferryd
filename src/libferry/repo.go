@@ -29,6 +29,9 @@ const (
 	// RepoPathComponent is the base for all repository directories
 	RepoPathComponent = "repo"
 
+	// AssetPathComponent is where we'll find extra files like distribution.xml
+	AssetPathComponent = "assets"
+
 	// DatabaseBucketRepo is the name for the main repo toplevel bucket
 	DatabaseBucketRepo = "repo"
 
@@ -43,14 +46,16 @@ const (
 // turn linked to the main pool
 type RepositoryManager struct {
 	repoBase   string
+	assetBase  string
 	transcoder *GobTranscoder
 }
 
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID   string // Name of this repository (unique)
-	path string // Where this is on disk
+	ID        string // Name of this repository (unique)
+	path      string // Where this is on disk
+	assetPath string // Where our assets are stored on disk
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -65,9 +70,17 @@ type RepoEntry struct {
 // Init will create our initial working paths and DB bucket
 func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
+	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
 	r.transcoder = NewGobTranscoder()
-	if err := os.MkdirAll(r.repoBase, 00755); err != nil {
-		return err
+	paths := []string{
+		r.repoBase,
+		r.assetBase,
+	}
+	// Ensure we have all paths
+	for _, p := range paths {
+		if err := os.MkdirAll(p, 00755); err != nil {
+			return err
+		}
 	}
 	_, err := tx.CreateBucketIfNotExists([]byte(DatabaseBucketRepo))
 	return err
@@ -85,8 +98,9 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 	return &Repository{
-		ID:   id,
-		path: filepath.Join(r.repoBase, id),
+		ID:        id,
+		path:      filepath.Join(r.repoBase, id),
+		assetPath: filepath.Join(r.assetBase, id),
 	}, nil
 }
 
@@ -115,8 +129,9 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		return nil, err
 	}
 	return &Repository{
-		ID:   id,
-		path: repoDir,
+		ID:        id,
+		path:      repoDir,
+		assetPath: filepath.Join(r.assetBase, id),
 	}, nil
 }
 
