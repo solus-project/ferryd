@@ -47,7 +47,6 @@ type PoolEntry struct {
 	Name          string                // Name&ID of the pool entry
 	RefCount      uint64                // How many instances of this file exist right now
 	Meta          *libeopkg.MetaPackage // The eopkg metadata
-	Sha1Sum       string                // Sha1sum for this package
 }
 
 // A Pool is used to manage and deduplicate resources between multiple resources,
@@ -114,6 +113,12 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 		entry.RefCount++
 		return entry, p.putEntry(tx, entry)
 	}
+
+	st, err := os.Stat(pkg.Path)
+	if err != nil {
+		return nil, err
+	}
+
 	// We have no refcount, so now we need to actually include this package
 	// into the repositories.
 	pkgTarget := p.GetPackagePoolPath(pkg)
@@ -129,12 +134,17 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 	if err != nil {
 		return nil, err
 	}
+
+	// Store immediately useful index bits here
+	pkg.Meta.Package.PackageHash = sha
+	pkg.Meta.Package.PackageSize = st.Size()
+	pkg.Meta.Package.PackageURI = fmt.Sprintf("%s/%s", pkg.Meta.Package.GetPathComponent(), pkg.ID)
+
 	entry := &PoolEntry{
 		SchemaVersion: PoolSchemaVersion,
 		Name:          pkg.ID,
 		RefCount:      1,
 		Meta:          &pkg.Meta.Package,
-		Sha1Sum:       sha,
 	}
 	if err := p.putEntry(tx, entry); err != nil {
 		// Just clean out what we did because we can't write it into the DB

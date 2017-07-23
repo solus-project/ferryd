@@ -112,7 +112,13 @@ type MetaPackage struct {
 	DistributionRelease string // Name/ID if this distro release, i.e. "1"
 	Architecture        string // i.e. x86_64
 	InstalledSize       int64  // How much disk space this package takes up
-	PackageFormat       string // Locked to 1.2 for eopkg
+	PackageSize         int64  // Actual size on disk of the .eopkg
+	PackageHash         string // Sha1sum for this package
+	PackageURI          string // Relative location to the package
+
+	// TODO: Add delta packages
+
+	PackageFormat string // Locked to 1.2 for eopkg
 
 	// TODO: Investigate why this is present in the metadata.xml!
 	Source Source // Duplicate source to satisfy indexing

@@ -119,7 +119,7 @@ func FileSha1sum(path string) (string, error) {
 	}
 	defer mfile.Close()
 	h := sha1.New()
-	// Pump from memory into hash for zer-copy sha1sum
+	// Pump from memory into hash for zero-copy sha1sum
 	h.Write(mfile.Data)
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
