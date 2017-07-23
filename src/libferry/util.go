@@ -162,3 +162,12 @@ func WriteXz(inpPath, outPath string) (ret error) {
 	}
 	return nil
 }
+
+// PathExists is a trivial helper to figure out if a path exists or not
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	return !(err == os.ErrNotExist)
+}
