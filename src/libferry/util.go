@@ -111,16 +111,14 @@ func AtomicRename(origPath, newPath string) error {
 
 // FileSha1sum is a quick wrapper to grab the sha1sum for the given file
 func FileSha1sum(path string) (string, error) {
-	inp, err := os.Open(path)
+	mfile, err := MapFile(path)
 	if err != nil {
 		return "", err
 	}
-	defer inp.Close()
+	defer mfile.Close()
 	h := sha1.New()
-	// TODO: mmap the input file and pass unsafe buffer to sha1.Sum
-	if _, err := io.Copy(h, inp); err != nil {
-		return "", err
-	}
+	// Pump from memory into hash for zer-copy sha1sum
+	h.Write(mfile.Data)
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
