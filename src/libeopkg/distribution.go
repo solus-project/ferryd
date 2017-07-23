@@ -52,8 +52,10 @@ func NewDistribution(xmlfile string) (*Distribution, error) {
 	if err = dec.Decode(dist); err != nil {
 		return nil, err
 	}
-	for _, p := range dist.Obsoletes {
-		dist.obsmap[p] = true
+	if dist.Obsoletes != nil {
+		for _, p := range dist.Obsoletes {
+			dist.obsmap[p] = true
+		}
 	}
 	return dist, nil
 }

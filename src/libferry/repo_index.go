@@ -172,7 +172,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 
 		// Check if its obsolete, if its automatically obsolete through our
 		// dbginfo trick, warn in the console
-		if r.dist.IsObsolete(nom) {
+		if r.dist != nil && r.dist.IsObsolete(nom) {
 			if nom != entry.Name {
 				fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", pkg)
 			}
