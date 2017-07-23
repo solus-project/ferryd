@@ -45,8 +45,6 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	sort.Strings(pkgIds)
 
 	encoder := xml.NewEncoder(file)
-	encoder.Indent("", "    ")
-
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
