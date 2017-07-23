@@ -20,6 +20,7 @@ import (
 	"encoding/xml"
 	"github.com/boltdb/bolt"
 	"os"
+	"path/filepath"
 	"sort"
 )
 
@@ -82,12 +83,17 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 // Index will attempt to write the eopkg index out to disk
 // This only requires a read-only database view
 func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
-	// TODO: Use the right path, and a temporary name. Then write the new file
-	// back over the original
-	f, err := os.Create("eopkg-index.xml")
+	indexPath := filepath.Join(r.path, "eopkg-index.xml.new")
+	indexPathFinal := filepath.Join(r.path, "eopkg-index.xml")
+	f, err := os.Create(indexPath)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return r.emitIndex(tx, pool, f)
+	err = r.emitIndex(tx, pool, f)
+	f.Close()
+	if err != nil {
+		os.Remove(indexPath)
+		return err
+	}
+	return AtomicRename(indexPath, indexPathFinal)
 }
