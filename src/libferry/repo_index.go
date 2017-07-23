@@ -158,10 +158,19 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		return err
 	}
 
+onoes:
 	for _, pkg := range pkgIds {
 		entry, err := pool.GetEntry(tx, pkg)
 		if err != nil {
 			return err
+		}
+		if entry.Meta.RuntimeDependencies != nil && r.dist != nil {
+			for _, p := range *entry.Meta.RuntimeDependencies {
+				if r.dist.IsObsolete(p.Name) {
+					fmt.Fprintf(os.Stderr, " *** %s depends on obsolete package %s\n", entry.Name, p.Name)
+					continue onoes
+				}
+			}
 		}
 		if err = encoder.EncodeElement(entry.Meta, elem); err != nil {
 			return err
