@@ -79,10 +79,10 @@ type MetaPackage struct {
 	Name                string       // Name of this binary package
 	Summary             string       // Brief description, one line, of the package functionality
 	Description         string       // A full fleshed description of the package
-	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
 	PartOf              string       // Which component the package belongs to
 	License             []string     // The package license(s)
-	History             []Update     `xml:"History>Update"` // A series of updates to the package
+	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
+	History             []Update     `xml:"History>Update"`                 // A series of updates to the package
 
 	// Binary details
 	BuildHost           string // Which build server produced the package

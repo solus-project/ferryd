@@ -24,7 +24,6 @@ import (
 // A Distribution as seen through the eyes of XML
 type Distribution struct {
 	SourceName string // Name of source to match source repos
-	Version    string // Published version number for compatibility
 
 	// Translated description
 	Description []struct {
@@ -32,6 +31,7 @@ type Distribution struct {
 		Lang  string `xml:"lang,attr,omitempty"`
 	}
 
+	Version    string // Published version number for compatibility
 	Type       string // Type of repository (should always be main, really. Just descriptive)
 	BinaryName string // Name of the binary repository
 
