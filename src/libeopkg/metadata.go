@@ -101,11 +101,11 @@ type MetaPackage struct {
 		Value string `xml:",cdata"`
 		Lang  string `xml:"lang,attr,omitempty"`
 	}
-	PartOf              string       // Which component the package belongs to
-	License             []string     // The package license(s)
-	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
-	Provides            *Provides    `xml:"Provides,omitempty"`
-	History             []Update     `xml:"History>Update"` // A series of updates to the package
+	PartOf              string        // Which component the package belongs to
+	License             []string      // The package license(s)
+	RuntimeDependencies *[]Dependency `xml:"RuntimeDependencies>Dependency,omitempty"` // Packages this package depends on at runtime
+	Provides            *Provides     `xml:"Provides,omitempty"`
+	History             []Update      `xml:"History>Update"` // A series of updates to the package
 
 	// Binary details
 	BuildHost           string // Which build server produced the package
