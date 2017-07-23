@@ -26,9 +26,13 @@ import (
 	"sort"
 )
 
-// emitDistribution is responsible for loading the distribution.xml file from
-// the assets store and merging it into the final index
-func (r *Repository) emitDistribution(encoder *xml.Encoder) error {
+// initDistribution will look for the distribution.xml file which will define
+// the all-important Obsoletes set
+func (r *Repository) initDistribution() error {
+	if r.dist != nil {
+		return nil
+	}
+
 	dpath := filepath.Join(r.assetPath, "distribution.xml")
 	if !PathExists(dpath) {
 		fmt.Fprintf(os.Stderr, "WARNING: no distribution.xml defined\n")
@@ -38,12 +42,19 @@ func (r *Repository) emitDistribution(encoder *xml.Encoder) error {
 	if err != nil {
 		return err
 	}
+	r.dist = dist
+	return nil
+}
+
+// emitDistribution is responsible for loading the distribution.xml file from
+// the assets store and merging it into the final index
+func (r *Repository) emitDistribution(encoder *xml.Encoder) error {
 	elem := xml.StartElement{
 		Name: xml.Name{
 			Local: "Distribution",
 		},
 	}
-	return encoder.EncodeElement(dist, elem)
+	return encoder.EncodeElement(r.dist, elem)
 }
 
 // emitComponents is responsible for loading the components.xml file from
@@ -125,6 +136,12 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		if err := code.DecodeType(v, &entry); err != nil {
 			return err
 		}
+
+		if r.dist != nil && r.dist.IsObsolete(entry.Name) {
+			fmt.Fprintf(os.Stderr, " - Skipping obsolete package: %s\n", entry.Name)
+			continue
+		}
+
 		pkgIds = append(pkgIds, entry.Published)
 	}
 
@@ -132,7 +149,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	sort.Strings(pkgIds)
 
 	encoder := xml.NewEncoder(file)
-	// encoder.Indent("    ", "    ")
+	encoder.Indent("    ", "    ")
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
@@ -199,6 +216,10 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 			}
 		}
 	}()
+
+	if err := r.initDistribution(); err != nil {
+		return err
+	}
 
 	// Create index file
 	f, err := os.Create(indexPath)

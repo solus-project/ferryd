@@ -53,9 +53,10 @@ type RepositoryManager struct {
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID        string // Name of this repository (unique)
-	path      string // Where this is on disk
-	assetPath string // Where our assets are stored on disk
+	ID        string                 // Name of this repository (unique)
+	path      string                 // Where this is on disk
+	assetPath string                 // Where our assets are stored on disk
+	dist      *libeopkg.Distribution // Distribution
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages

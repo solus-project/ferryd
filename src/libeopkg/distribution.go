@@ -36,6 +36,8 @@ type Distribution struct {
 	BinaryName string // Name of the binary repository
 
 	Obsoletes []string `xml:"Obsoletes>Package"` // Package names that are no longer supported
+
+	obsmap map[string]bool
 }
 
 // NewDistribution will load the Distribution data from the XML file
@@ -45,10 +47,22 @@ func NewDistribution(xmlfile string) (*Distribution, error) {
 		return nil, err
 	}
 	defer fi.Close()
-	dist := &Distribution{}
+	dist := &Distribution{obsmap: make(map[string]bool)}
 	dec := xml.NewDecoder(fi)
 	if err = dec.Decode(dist); err != nil {
 		return nil, err
 	}
+	for _, p := range dist.Obsoletes {
+		dist.obsmap[p] = true
+	}
 	return dist, nil
+}
+
+// IsObsolete will allow quickly determination of whether the package name
+// was marked obsolete and should be hidden from the index
+func (d *Distribution) IsObsolete(id string) bool {
+	if f, ok := d.obsmap[id]; ok {
+		return f
+	}
+	return false
 }
