@@ -70,10 +70,6 @@ func (r *Repository) emitComponents(encoder *xml.Encoder) error {
 		return err
 	}
 
-	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "Components"}}); err != nil {
-		return err
-	}
-
 	elem := xml.StartElement{
 		Name: xml.Name{
 			Local: "Component",
@@ -87,7 +83,7 @@ func (r *Repository) emitComponents(encoder *xml.Encoder) error {
 		}
 	}
 	// Now finalise the document
-	return encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "Components"}})
+	return nil
 }
 
 // emitGroups is responsible for loading the groups.xml file from
@@ -103,10 +99,6 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 		return err
 	}
 
-	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "Groups"}}); err != nil {
-		return err
-	}
-
 	elem := xml.StartElement{
 		Name: xml.Name{
 			Local: "Group",
@@ -119,8 +111,7 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 			return err
 		}
 	}
-	// Now finalise the document
-	return encoder.EncodeToken(xml.EndElement{Name: xml.Name{Local: "Groups"}})
+	return nil
 }
 
 // emitIndex does the heavy lifting of writing to the given file descriptor,
