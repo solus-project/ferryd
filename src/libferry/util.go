@@ -169,5 +169,5 @@ func PathExists(path string) bool {
 	if err == nil {
 		return true
 	}
-	return !(err == os.ErrNotExist)
+	return false
 }
