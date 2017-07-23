@@ -18,6 +18,7 @@ package libferry
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"os"
 	"path/filepath"
@@ -83,17 +84,57 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 // Index will attempt to write the eopkg index out to disk
 // This only requires a read-only database view
 func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+	// If something goes wrong we need to remove our broken files
+	var outPaths []string
+	var finalPaths []string
+	var errAbort error
+
 	indexPath := filepath.Join(r.path, "eopkg-index.xml.new")
 	indexPathFinal := filepath.Join(r.path, "eopkg-index.xml")
+	outPaths = append(outPaths, indexPath)
+	finalPaths = append(finalPaths, indexPathFinal)
+
+	defer func() {
+		if errAbort != nil {
+			for _, p := range outPaths {
+				fmt.Fprintf(os.Stdout, "Removing potentially corrupt file %s: %v\n", p, errAbort)
+				os.Remove(p)
+			}
+		}
+	}()
+
+	// Create index file
 	f, err := os.Create(indexPath)
 	if err != nil {
-		return err
+		errAbort = err
+		return errAbort
 	}
-	err = r.emitIndex(tx, pool, f)
+
+	// Write the index file
+	errAbort = r.emitIndex(tx, pool, f)
 	f.Close()
-	if err != nil {
-		os.Remove(indexPath)
-		return err
+	if errAbort != nil {
+		return errAbort
 	}
-	return AtomicRename(indexPath, indexPathFinal)
+
+	// Sing the theme tune
+	indexPathSha := filepath.Join(r.path, "eopkg-index.xml.sha1sum.new")
+	indexPathShaFinal := filepath.Join(r.path, "eopkg-index.xml.sha1sum")
+	outPaths = append(outPaths, indexPathSha)
+	finalPaths = append(finalPaths, indexPathShaFinal)
+
+	// Star in it
+	if errAbort = WriteSha1sum(indexPath, indexPathSha); err != nil {
+		return errAbort
+	}
+
+	for i, sourcePath := range outPaths {
+		finalPath := finalPaths[i]
+
+		if errAbort = AtomicRename(sourcePath, finalPath); errAbort != nil {
+			return errAbort
+		}
+	}
+
+	return nil
 }
