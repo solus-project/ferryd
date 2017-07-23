@@ -128,6 +128,26 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 		return errAbort
 	}
 
+	// Write our XZ index out
+	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.xz.new")
+	indexPathXzFinal := filepath.Join(r.path, "eopkg-index.xml.xz")
+	outPaths = append(outPaths, indexPathXz)
+	finalPaths = append(finalPaths, indexPathXzFinal)
+
+	if errAbort = WriteXz(indexPath, indexPathXz); errAbort != nil {
+		return errAbort
+	}
+
+	// Write sha1sum for our xz file
+	indexPathXzSha := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum.new")
+	indexPathXzShaFinal := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum")
+	outPaths = append(outPaths, indexPathXzSha)
+	finalPaths = append(finalPaths, indexPathXzShaFinal)
+
+	if errAbort = WriteSha1sum(indexPathXz, indexPathXzSha); err != nil {
+		return errAbort
+	}
+
 	for i, sourcePath := range outPaths {
 		finalPath := finalPaths[i]
 

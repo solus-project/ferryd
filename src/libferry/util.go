@@ -19,6 +19,8 @@ package libferry
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
+	"github.com/solus-project/xzed"
 	"io"
 	"io/ioutil"
 	"os"
@@ -130,4 +132,33 @@ func WriteSha1sum(inpPath, outPath string) error {
 		return err
 	}
 	return ioutil.WriteFile(outPath, []byte(hash), 00644)
+}
+
+// WriteXz is a very simple function to map the input file and fire out an
+// XZ'd version of it. This is primarily used to provide an eopkg-index.xml.xz
+// file which is what eopkg client will download post-sha verification
+func WriteXz(inpPath, outPath string) (ret error) {
+	outF, err := os.Create(outPath)
+	if err != nil {
+		return err
+	}
+	defer outF.Close()
+	xz, err := xzed.NewWriter(outF)
+	if err != nil {
+		return err
+	}
+	defer xz.Close()
+	mfile, err := MapFile(inpPath)
+	if err != nil {
+		return err
+	}
+	defer mfile.Close()
+	i, err := xz.Write(mfile.Data)
+	if err != nil {
+		return err
+	}
+	if i != int(mfile.len) {
+		return errors.New("Failed to write all XZ data")
+	}
+	return nil
 }
