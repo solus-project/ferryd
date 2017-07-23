@@ -13,3 +13,6 @@
 [submodule "src/vendor/github.com/julienschmidt/httprouter"]
 	path = src/vendor/github.com/julienschmidt/httprouter
 	url = https://github.com/julienschmidt/httprouter.git
+[submodule "src/vendor/github.com/solus-project/xzed"]
+	path = src/vendor/github.com/solus-project/xzed
+	url = https://github.com/solus-project/xzed.git
