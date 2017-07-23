@@ -71,6 +71,19 @@ type Update struct {
 	Email string // Updater's email
 }
 
+// A COMAR script
+type COMAR struct {
+	Value  string `xml:",chardata"`             // Value of the COMAR name
+	Script string `xml:"script,attr,omitempty"` // The type of script
+}
+
+// Provides defines special items that might be exported by a package
+type Provides struct {
+	COMAR       []COMAR  `xml:"COMAR,omitempty"`
+	PkgConfig   []string `xml:"PkgConfig,omitempty"`
+	PkgConfig32 []string `xml:"PkgConfig32,omitempty"`
+}
+
 // A MetaPackage is the Package section of the metadata file. It contains
 // the main details that are important to users.
 type MetaPackage struct {
@@ -82,7 +95,8 @@ type MetaPackage struct {
 	PartOf              string       // Which component the package belongs to
 	License             []string     // The package license(s)
 	RuntimeDependencies []Dependency `xml:"RuntimeDependencies>Dependency"` // Packages this package depends on at runtime
-	History             []Update     `xml:"History>Update"`                 // A series of updates to the package
+	Provides            *Provides    `xml:"Provides,omitempty"`
+	History             []Update     `xml:"History>Update"` // A series of updates to the package
 
 	// Binary details
 	BuildHost           string // Which build server produced the package
