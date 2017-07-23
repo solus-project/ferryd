@@ -184,6 +184,8 @@ func (r *Repository) AddLocalPackage(tx *bolt.Tx, pool *Pool, pkg *libeopkg.Pack
 		if err == nil {
 			if pkg.Meta.Package.GetRelease() > pkgAvail.Meta.GetRelease() {
 				repoEntry.Published = pkg.ID
+			} else if pkg.Meta.Package.GetRelease() == pkgAvail.Meta.GetRelease() && pkgAvail.Name != pkg.ID {
+				fmt.Printf(" **** DUPLICATE RELEASE NUMBER DETECTED. FAK: %s %s **** \n", pkg.ID, pkgAvail.Name)
 			}
 		} else {
 			repoEntry.Published = pkg.ID
