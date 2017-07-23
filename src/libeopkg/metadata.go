@@ -56,6 +56,13 @@ type Dependency struct {
 	Version     string `xml:"version,attr,omitempty"`     // == version
 }
 
+// Action represents an action to take upon applying an update, such as restarting
+// the system.
+type Action struct {
+	Value   string `xml:",chardata"`              // i.e. "systemRestart
+	Package string `xml:"package,attr,omitempty"` // i.e. package="kernel"
+}
+
 // An Update forms part of a package's history, describing the version, release,
 // etc, for each release of the package.
 type Update struct {
@@ -70,6 +77,8 @@ type Update struct {
 		Value string `xml:",cdata"` // Updater's name
 	}
 	Email string // Updater's email
+
+	Requires *[]Action `xml:"Requires>Action,omitempty"`
 }
 
 // A COMAR script
