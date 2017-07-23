@@ -41,22 +41,22 @@ func TestMetadataSourcePackage(t *testing.T) {
 // each time for the subpath we expect to see in the repository
 func TestMetadataSourceDummy(t *testing.T) {
 	metaDatas := []MetaPackage{
-		MetaPackage{
+		{
 			Source: Source{
 				Name: "libreoffice",
 			},
 		},
-		MetaPackage{
+		{
 			Source: Source{
 				Name: "lib",
 			},
 		},
-		MetaPackage{
+		{
 			Source: Source{
 				Name: "alsa-lib",
 			},
 		},
-		MetaPackage{
+		{
 			Source: Source{
 				Name: "NANO",
 			},
