@@ -17,6 +17,8 @@
 package libferry
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"io"
 	"io/ioutil"
 	"os"
@@ -105,4 +107,29 @@ func AtomicRename(origPath, newPath string) error {
 		}
 	}
 	return os.Rename(origPath, newPath)
+}
+
+// FileSha1sum is a quick wrapper to grab the sha1sum for the given file
+func FileSha1sum(path string) (string, error) {
+	inp, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer inp.Close()
+	h := sha1.New()
+	// TODO: mmap the input file and pass unsafe buffer to sha1.Sum
+	if _, err := io.Copy(h, inp); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// WriteSha1sum will take the sha1sum of the input path and then dump it to
+// the given output path
+func WriteSha1sum(inpPath, outPath string) error {
+	hash, err := FileSha1sum(inpPath)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(outPath, []byte(hash), 00644)
 }
