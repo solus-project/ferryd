@@ -20,6 +20,7 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"path/filepath"
+	"strings"
 )
 
 //
@@ -104,6 +105,15 @@ func (p *Package) ReadMetadata() error {
 		return err
 	}
 	p.Meta = metadata
+	// Clean up extra junk
+	for i := range p.Meta.Package.Summary {
+		sum := &p.Meta.Package.Summary[i]
+		sum.Value = strings.TrimSpace(sum.Value)
+	}
+	for i := range p.Meta.Package.Description {
+		desc := &p.Meta.Package.Description[i]
+		desc.Value = strings.TrimSpace(desc.Value)
+	}
 	return nil
 }
 
