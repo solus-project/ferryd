@@ -105,6 +105,8 @@ type MetaPackage struct {
 	PartOf              string        `xml:"PartOf,omitempty"` // Which component the package belongs to
 	License             []string      // The package license(s)
 	RuntimeDependencies *[]Dependency `xml:"RuntimeDependencies>Dependency,omitempty"` // Packages this package depends on at runtime
+	Conflicts           *[]string     `xml:"Conflicts>Package,omitempty"`              // Conflicts with some package
+	Replaces            *[]string     `xml:"Replaces>Package,omitempty"`               // Replaces the named package
 	Provides            *Provides     `xml:"Provides,omitempty"`
 	History             []Update      `xml:"History>Update"` // A series of updates to the package
 
