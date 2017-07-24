@@ -115,6 +115,41 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 	return nil
 }
 
+func (r *Repository) emitIndexPackage(pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
+	// Wrap every output item as Package
+	elem := xml.StartElement{
+		Name: xml.Name{
+			Local: "Package",
+		},
+	}
+
+	// Retain compatibility with eopkg, auto-drop -dbginfo
+	nom := entry.Meta.Name
+	if strings.HasSuffix(nom, "-dbginfo") {
+		nom = nom[0 : len(nom)-8]
+	}
+
+	// Check if its obsolete, if its automatically obsolete through our
+	// dbginfo trick, warn in the console
+	if r.dist != nil && r.dist.IsObsolete(nom) {
+		if nom != entry.Name {
+			fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", pkg)
+		}
+		return nil
+	}
+
+	// Warn that a package depends on an obsolete package so that it can be
+	// purged from the repo (as it won't work!)
+	if entry.Meta.RuntimeDependencies != nil && r.dist != nil {
+		for _, p := range *entry.Meta.RuntimeDependencies {
+			if r.dist.IsObsolete(p.Name) {
+				fmt.Fprintf(os.Stderr, " **** UNINSTALLABLE PACKAGE:  %s depends on obsolete package %s ****\n", entry.Name, p.Name)
+			}
+		}
+	}
+	return encoder.EncodeElement(entry.Meta, elem)
+}
+
 // emitIndex does the heavy lifting of writing to the given file descriptor,
 // i.e. serialising the DB repo out to the index file
 func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
@@ -141,12 +176,6 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 
 	encoder := xml.NewEncoder(file)
 	// encoder.Indent("    ", "    ")
-	// Wrap every output item as Package
-	elem := xml.StartElement{
-		Name: xml.Name{
-			Local: "Package",
-		},
-	}
 
 	// Ensure we have the start element
 	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "PISI"}}); err != nil {
@@ -163,32 +192,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		if err != nil {
 			return err
 		}
-
-		// Retain compatibility with eopkg, auto-drop -dbginfo
-		nom := entry.Meta.Name
-		if strings.HasSuffix(nom, "-dbginfo") {
-			nom = nom[0 : len(nom)-8]
-		}
-
-		// Check if its obsolete, if its automatically obsolete through our
-		// dbginfo trick, warn in the console
-		if r.dist != nil && r.dist.IsObsolete(nom) {
-			if nom != entry.Name {
-				fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", pkg)
-			}
-			continue
-		}
-
-		// Warn that a package depends on an obsolete package so that it can be
-		// purged from the repo (as it won't work!)
-		if entry.Meta.RuntimeDependencies != nil && r.dist != nil {
-			for _, p := range *entry.Meta.RuntimeDependencies {
-				if r.dist.IsObsolete(p.Name) {
-					fmt.Fprintf(os.Stderr, " **** UNINSTALLABLE PACKAGE:  %s depends on obsolete package %s ****\n", entry.Name, p.Name)
-				}
-			}
-		}
-		if err = encoder.EncodeElement(entry.Meta, elem); err != nil {
+		if err = r.emitIndexPackage(pkg, encoder, entry); err != nil {
 			return err
 		}
 	}
