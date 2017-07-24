@@ -57,6 +57,12 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 		return err
 	}
 
+	// Now try to merge into the repo
+	pkgs := tram.GetPaths()
+	if err = manager.AddPackages(repo, pkgs); err != nil {
+		return err
+	}
+
 	log.WithFields(log.Fields{
 		"target":   repo,
 		"manifest": t.manifest.ID(),

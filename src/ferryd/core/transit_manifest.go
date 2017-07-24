@@ -77,6 +77,16 @@ func (t *TransitManifest) ID() string {
 	return t.id
 }
 
+// GetPaths will return the package paths as a slice of strings
+func (t *TransitManifest) GetPaths() []string {
+	var ret []string
+	for i := range t.File {
+		f := &t.File[i]
+		ret = append(ret, filepath.Join(t.dir, f.Path))
+	}
+	return ret
+}
+
 // TransitManifestFile provides simple verification data for each file in the
 // uploaded payload.
 type TransitManifestFile struct {
