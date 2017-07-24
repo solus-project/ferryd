@@ -49,6 +49,8 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 		return err
 	}
 
+	t.manifest = tram
+
 	log.WithFields(log.Fields{
 		"target":   t.manifest.Manifest.Target,
 		"manifest": t.manifest.ID(),
