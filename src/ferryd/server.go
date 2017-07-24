@@ -19,6 +19,7 @@ package main
 import (
 	"errors"
 	"ferryd/core"
+	"ferryd/jobs"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -40,7 +41,8 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager *core.Manager // heart of the story
+	manager *core.Manager   // heart of the story
+	jproc   *jobs.Processor // Allow scheduling jobs
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -91,6 +93,8 @@ func (s *Server) Bind() error {
 		return e
 	}
 	s.manager = m
+	// TODO: Expose setting for background job count
+	s.jproc = jobs.NewProcessor(s.manager, -1)
 
 	uid := os.Geteuid()
 	gid := os.Getegid()

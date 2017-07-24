@@ -17,9 +17,9 @@
 package jobs
 
 import (
+	"ferryd/core"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"libferry"
 	"os"
 	"reflect"
 	"runtime"
@@ -32,7 +32,7 @@ type Job interface {
 
 	// Perform will be called to let the Job perform its action using this manager
 	// instance.
-	Perform(m *libferry.Manager) error
+	Perform(m *core.Manager) error
 
 	// IsSequential should return true for operations that can be performed on the
 	// main job process. If the job is a heavyweight operation that should be run in
@@ -43,7 +43,7 @@ type Job interface {
 // A Processor is responsible for the main dispatch and bulking of jobs
 // to ensure they're handled in the most optimal fashion.
 type Processor struct {
-	manager        *libferry.Manager
+	manager        *core.Manager
 	sequentialjobs chan Job
 	backgroundJobs chan Job
 	quit           chan bool
@@ -56,7 +56,7 @@ type Processor struct {
 // NewProcessor will return a new Processor with the specified number
 // of jobs. Note that "njobs" only refers to the number of *background jobs*,
 // the majority of operations will run sequentially
-func NewProcessor(m *libferry.Manager, njobs int) *Processor {
+func NewProcessor(m *core.Manager, njobs int) *Processor {
 	if njobs < 0 {
 		njobs = runtime.NumCPU()
 	}

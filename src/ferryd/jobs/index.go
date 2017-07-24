@@ -17,8 +17,8 @@
 package jobs
 
 import (
+	"ferryd/core"
 	log "github.com/sirupsen/logrus"
-	"libferry"
 )
 
 // IndexJob is a sequential job which will cause the given repository to be
@@ -38,7 +38,7 @@ func (i *IndexJob) IsSequential() bool {
 }
 
 // Perform will invoke the indexing operation
-func (i *IndexJob) Perform(manager *libferry.Manager) error {
+func (i *IndexJob) Perform(manager *core.Manager) error {
 	if err := manager.Index(i.repoID); err != nil {
 		return err
 	}

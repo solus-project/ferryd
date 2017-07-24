@@ -17,8 +17,8 @@
 package jobs
 
 import (
+	"ferryd/core"
 	log "github.com/sirupsen/logrus"
-	"libferry"
 )
 
 // BulkAddJob is a sequential job which will attempt to add all of the packages
@@ -39,7 +39,7 @@ func (i *BulkAddJob) IsSequential() bool {
 }
 
 // Perform will invoke the operation
-func (i *BulkAddJob) Perform(manager *libferry.Manager) error {
+func (i *BulkAddJob) Perform(manager *core.Manager) error {
 	if err := manager.AddPackages(i.repoID, i.packagePaths); err != nil {
 		return err
 	}
