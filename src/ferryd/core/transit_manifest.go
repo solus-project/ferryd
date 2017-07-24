@@ -25,6 +25,11 @@ import (
 	"strings"
 )
 
+const (
+	// TransitManifestSuffix is the extension that a valid transit manifest must have
+	TransitManifestSuffix = ".tram"
+)
+
 var (
 	// ErrInvalidHeader will be returned when the [manifest] section is malformed
 	ErrInvalidHeader = errors.New("Manifest contains an invalid header")

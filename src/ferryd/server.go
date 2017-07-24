@@ -21,11 +21,13 @@ import (
 	"ferryd/core"
 	"ferryd/jobs"
 	"github.com/julienschmidt/httprouter"
+	"github.com/radu-munteanu/fsnotify"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 )
 
 const (
@@ -41,8 +43,11 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager *core.Manager   // heart of the story
-	jproc   *jobs.Processor // Allow scheduling jobs
+	manager    *core.Manager     // heart of the story
+	jproc      *jobs.Processor   // Allow scheduling jobs
+	watcher    *fsnotify.Watcher // Monitor incoming uploads
+	watchChan  chan bool         // Allow terminating the watcher
+	watchGroup *sync.WaitGroup   // Allow blocking watch terminate.
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -52,8 +57,9 @@ func NewServer() *Server {
 		srv: &http.Server{
 			Handler: router,
 		},
-		running: false,
-		router:  router,
+		running:    false,
+		router:     router,
+		watchGroup: &sync.WaitGroup{},
 	}
 	// Set up the API bits
 	router.GET("/api/v1/version", s.GetVersion)
@@ -72,7 +78,6 @@ func (s *Server) killHandler() {
 		<-ch
 		log.Warning("Shutting down due to CTRL+C")
 		s.Close()
-		s.jproc.Close()
 		// Stop any mainLoop defers here
 		os.Exit(1)
 	}()
@@ -97,6 +102,11 @@ func (s *Server) Bind() error {
 	s.manager = m
 	// TODO: Expose setting for background job count
 	s.jproc = jobs.NewProcessor(s.manager, -1)
+
+	// Set up watching the manager's incoming directory
+	if err := s.InitWatcher(); err != nil {
+		return err
+	}
 
 	uid := os.Geteuid()
 	gid := os.Getegid()
@@ -124,6 +134,7 @@ func (s *Server) Serve() error {
 	}()
 	// Serve the job queue
 	s.jproc.Begin()
+	s.WatchIncoming()
 	// Don't treat Shutdown/Close as an error, it's intended by us.
 	if e := s.srv.Serve(s.socket); e != http.ErrServerClosed {
 		return e
@@ -136,6 +147,8 @@ func (s *Server) Close() {
 	if !s.running {
 		return
 	}
+	s.StopWatching()
+	s.jproc.Close()
 	s.manager.Close()
 	s.running = false
 	s.srv.Shutdown(nil)
