@@ -18,8 +18,10 @@ package jobs
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"libferry"
 	"os"
+	"reflect"
 	"runtime"
 	"sync"
 )
@@ -105,6 +107,14 @@ func (j *Processor) Begin() {
 	go j.processBackgroundQueue()
 }
 
+// reportError will report a failed job to the log
+func (j *Processor) reportError(job Job, e error) {
+	log.WithFields(log.Fields{
+		"error": e,
+		"type":  reflect.TypeOf(job).Elem().Name(),
+	}).Error("Job failed with error")
+}
+
 // processSequentialQueue is responsible for dealing with the sequential queue
 func (j *Processor) processSequentialQueue() {
 	defer j.wg.Done()
@@ -115,9 +125,8 @@ func (j *Processor) processSequentialQueue() {
 			if job == nil {
 				return
 			}
-			// TODO: Add proper logging for jobs
 			if err := job.Perform(j.manager); err != nil {
-				fmt.Fprintf(os.Stderr, "Job failed to run: %v\n", j)
+				j.reportError(job, err)
 			}
 		case <-j.quit:
 			return
@@ -150,9 +159,8 @@ func (j *Processor) backgroundWorker() {
 			if job == nil {
 				return
 			}
-			// TODO: Add proper logging for jobs
 			if err := job.Perform(j.manager); err != nil {
-				fmt.Fprintf(os.Stderr, "Job failed to run: %v\n", j)
+				j.reportError(job, err)
 			}
 		case <-j.quit:
 			return

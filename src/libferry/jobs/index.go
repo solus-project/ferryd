@@ -17,6 +17,7 @@
 package jobs
 
 import (
+	log "github.com/sirupsen/logrus"
 	"libferry"
 )
 
@@ -38,5 +39,9 @@ func (i *IndexJob) IsSequential() bool {
 
 // Perform will invoke the indexing operation
 func (i *IndexJob) Perform(manager *libferry.Manager) error {
-	return manager.Index(i.repoID)
+	if err := manager.Index(i.repoID); err != nil {
+		return err
+	}
+	log.WithFields(log.Fields{"repo": i.repoID}).Info("Indexed repository")
+	return nil
 }

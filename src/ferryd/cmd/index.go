@@ -56,8 +56,4 @@ func indexRepo(cmd *cobra.Command, args []string) {
 	jproc.Begin()
 	jproc.PushJob(jobs.NewIndexJob(repoName))
 	jproc.Close()
-
-	// TODO: Get error status!
-
-	fmt.Printf("Successfully reindexed: %s\n", repoName)
 }
