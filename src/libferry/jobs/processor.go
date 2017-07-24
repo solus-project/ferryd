@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"libferry"
 	"os"
+	"runtime"
 	"sync"
 )
 
@@ -54,6 +55,12 @@ type Processor struct {
 // of jobs. Note that "njobs" only refers to the number of *background jobs*,
 // the majority of operations will run sequentially
 func NewProcessor(m *libferry.Manager, njobs int) *Processor {
+	if njobs < 0 {
+		njobs = runtime.NumCPU()
+	}
+
+	fmt.Fprintf(os.Stderr, "Capped backgroundJobs to %d\n", njobs)
+
 	ret := &Processor{
 		manager:        m,
 		sequentialjobs: make(chan Job),
@@ -106,7 +113,6 @@ func (j *Processor) processSequentialQueue() {
 		select {
 		case job := <-j.sequentialjobs:
 			if job == nil {
-				fmt.Println("No seq job")
 				return
 			}
 			// TODO: Add proper logging for jobs
@@ -142,7 +148,6 @@ func (j *Processor) backgroundWorker() {
 		select {
 		case job := <-j.backgroundJobs:
 			if job == nil {
-				fmt.Println("No background job")
 				return
 			}
 			// TODO: Add proper logging for jobs

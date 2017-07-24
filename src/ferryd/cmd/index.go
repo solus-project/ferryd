@@ -52,8 +52,7 @@ func indexRepo(cmd *cobra.Command, args []string) {
 	}
 
 	defer manager.Close()
-	// TODO: Get job count from somewhere sensible.
-	jproc := jobs.NewProcessor(manager, 4)
+	jproc := jobs.NewProcessor(manager, -1)
 	jproc.Begin()
 	jproc.PushJob(jobs.NewIndexJob(repoName))
 	jproc.Close()
