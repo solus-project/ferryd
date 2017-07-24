@@ -26,24 +26,6 @@ import (
 	"sync"
 )
 
-// A Runnable is exactly what it looks like, the base operation type that we'll deal
-// with.
-type Runnable interface {
-
-	// Perform will be called to let the Runnable perform its action using this manager
-	// instance.
-	Perform(m *core.Manager) error
-
-	// IsSequential should return true for operations that can be performed on the
-	// main job process. If the job is a heavyweight operation that should be run in
-	// the background, it should return false (i.e. deltas)
-	IsSequential() bool
-
-	// Describe will request that the job identify itself in a meaningful way for
-	// logging purposes
-	Describe() string
-}
-
 // A Processor is responsible for the main dispatch and bulking of jobs
 // to ensure they're handled in the most optimal fashion.
 type Processor struct {
