@@ -19,6 +19,7 @@ package jobs
 import (
 	"ferryd/core"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 // TransitProcessJob is a sequential job that will process the incoming uploads
@@ -64,8 +65,20 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 	}
 
 	log.WithFields(log.Fields{
-		"target":   repo,
-		"manifest": t.manifest.ID(),
-	}).Info("Successfully processed upload")
+		"target": repo,
+		"id":     t.manifest.ID(),
+	}).Info("Successfully processed manifest upload")
+
+	// Append the manifest path because now we'll want to delete these
+	pkgs = append(pkgs, t.path)
+	for _, p := range pkgs {
+		if err := os.Remove(p); err != nil {
+			log.WithFields(log.Fields{
+				"file":  p,
+				"id":    t.manifest.ID(),
+				"error": err,
+			}).Error("Failed to remove manifest file upload")
+		}
+	}
 	return nil
 }
