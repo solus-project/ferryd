@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"ferryd/jobs"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
@@ -80,9 +81,5 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository creation requested")
-	err := s.manager.CreateRepo(id)
-	// TODO: Make this Moar Better..
-	if err != nil {
-		s.sendStockError(err, w, r)
-	}
+	s.jproc.PushJob(jobs.NewCreateRepoJob(id))
 }
