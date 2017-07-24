@@ -69,12 +69,15 @@ type JobTiming struct {
 // A Job is a unique tagged task that provides metadata about the Runnable
 // and should never be directly instaniated by the user.
 type Job struct {
-	Task Runnable
-	ID   string
+	// Public ID
+	ID string
 
 	// Timing metrics
 	Timing JobTiming
 
 	// Current status of this task
 	Status int
+
+	// Private task (not serialised)
+	task Runnable
 }

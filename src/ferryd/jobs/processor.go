@@ -103,7 +103,7 @@ func (j *Processor) reportError(job *Job, e error) {
 	log.WithFields(log.Fields{
 		"id":    job.ID,
 		"error": e,
-		"type":  reflect.TypeOf(job.Task).Elem().Name(),
+		"type":  reflect.TypeOf(job.task).Elem().Name(),
 	}).Error("Job failed with error")
 }
 
@@ -112,7 +112,7 @@ func (j *Processor) reportError(job *Job, e error) {
 func (j *Processor) executeJob(job *Job) {
 	job.Timing.Started = time.Now()
 	job.Status = StatusRunning
-	err := job.Task.Perform(j.manager)
+	err := job.task.Perform(j.manager)
 	job.Timing.Completed = time.Now()
 
 	if err != nil {
@@ -184,7 +184,7 @@ func (j *Processor) initMetadata(job *Job) {
 	job.Timing.Created = now
 	job.Status = StatusPending
 
-	nom := reflect.TypeOf(job.Task).Elem().Name()
+	nom := reflect.TypeOf(job.task).Elem().Name()
 	unix := now.UTC().Unix()
 
 	for {
@@ -208,7 +208,7 @@ func (j *Processor) PushJob(task Runnable) {
 	// We might spin here to get a valid ID, so we won't write lock and other
 	// jobs can still be added
 	job := &Job{
-		Task: task,
+		task: task,
 	}
 	j.initMetadata(job)
 
@@ -218,7 +218,7 @@ func (j *Processor) PushJob(task Runnable) {
 	j.jobTable[job.ID] = job
 
 	// Stick the jobs in the queue now
-	if job.Task.IsSequential() {
+	if job.task.IsSequential() {
 		j.sequentialjobs <- job
 	} else {
 		j.backgroundJobs <- job
