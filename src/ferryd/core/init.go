@@ -14,11 +14,11 @@
 // limitations under the License.
 //
 
-// Package main provides the Ferry Daemon implementation.
+// Package core provides the internal Ferry implementation.
 //
 // This portion of ferryd is responsible for the management  of the repositories,
 // and receives packages from the builders.
-package main
+package core
 
 import (
 	"github.com/boltdb/bolt"

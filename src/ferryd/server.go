@@ -18,6 +18,7 @@ package main
 
 import (
 	"errors"
+	"ferryd/core"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -39,7 +40,7 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager *Manager // heart of the story
+	manager *core.Manager // heart of the story
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -85,7 +86,7 @@ func (s *Server) Bind() error {
 	if err := os.MkdirAll("./ferry", 00755); err != nil {
 		return err
 	}
-	m, e := NewManager("./ferry")
+	m, e := core.NewManager("./ferry")
 	if e != nil {
 		return e
 	}
