@@ -17,10 +17,10 @@
 package cmd
 
 import (
-	"libferry"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"libferry"
 )
 
 var versionCmd = &cobra.Command{

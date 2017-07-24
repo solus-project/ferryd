@@ -17,9 +17,9 @@
 package cmd
 
 import (
-	"libferry"
 	"fmt"
 	"github.com/spf13/cobra"
+	"libferry"
 	"os"
 )
 
