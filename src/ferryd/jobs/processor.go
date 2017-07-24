@@ -26,11 +26,11 @@ import (
 	"sync"
 )
 
-// A Job is exactly what it looks like, the base operation type that we'll deal
+// A Runnable is exactly what it looks like, the base operation type that we'll deal
 // with.
-type Job interface {
+type Runnable interface {
 
-	// Perform will be called to let the Job perform its action using this manager
+	// Perform will be called to let the Runnable perform its action using this manager
 	// instance.
 	Perform(m *core.Manager) error
 
@@ -48,8 +48,8 @@ type Job interface {
 // to ensure they're handled in the most optimal fashion.
 type Processor struct {
 	manager        *core.Manager
-	sequentialjobs chan Job
-	backgroundJobs chan Job
+	sequentialjobs chan Runnable
+	backgroundJobs chan Runnable
 	quit           chan bool
 	mut            *sync.Mutex
 	wg             *sync.WaitGroup
@@ -69,8 +69,8 @@ func NewProcessor(m *core.Manager, njobs int) *Processor {
 
 	ret := &Processor{
 		manager:        m,
-		sequentialjobs: make(chan Job),
-		backgroundJobs: make(chan Job),
+		sequentialjobs: make(chan Runnable),
+		backgroundJobs: make(chan Runnable),
 		quit:           make(chan bool, 1+njobs),
 		mut:            &sync.Mutex{},
 		wg:             &sync.WaitGroup{},
@@ -113,7 +113,7 @@ func (j *Processor) Begin() {
 }
 
 // reportError will report a failed job to the log
-func (j *Processor) reportError(job Job, e error) {
+func (j *Processor) reportError(job Runnable, e error) {
 	log.WithFields(log.Fields{
 		"error": e,
 		"type":  reflect.TypeOf(job).Elem().Name(),
@@ -176,7 +176,7 @@ func (j *Processor) backgroundWorker() {
 // PushJob will take the new job and push it to the appropriate queing system
 // For sanity reasons this will lock on the new job add, even if the processing
 // is then parallel.
-func (j *Processor) PushJob(job Job) {
+func (j *Processor) PushJob(job Runnable) {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 
