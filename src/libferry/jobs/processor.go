@@ -83,6 +83,7 @@ func (j *Processor) Close() {
 	if j.closed {
 		return
 	}
+	j.closed = true
 
 	// Disallow further messaging
 	close(j.sequentialjobs)
