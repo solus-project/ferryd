@@ -14,59 +14,93 @@
 // limitations under the License.
 //
 
-// Package libferry provides the Ferry library implementation.
-//
-// This portion of ferryd is responsible for the management of management
-// of the repositories, and receives packages from the builders.
-package libferry
+package ferry
 
 import (
-	"github.com/boltdb/bolt"
-	"os"
-	"path/filepath"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"time"
 )
 
 const (
-	// DatabasePathComponent is the suffix applied to a working directory
-	// for the database file itself.
-	DatabasePathComponent = "ferry.db"
-
 	// Version of the ferry client library
-	Version = "0.0.0"
+	Version = "0.0.1"
 )
 
-// The Context is shared between all of the components of ferryd to provide
-// working directories and such.
-type Context struct {
-	BaseDir string // Base directory of operations
-	DbPath  string // Path to the main database file
+// A Client is used to communicate with the system ferryd
+type Client struct {
+	client *http.Client
 }
 
-// NewContext will construct a context from the given base directory for
-// all file path functions
-func NewContext(root string) (*Context, error) {
-	// Ensure root to context exists
-	if _, err := os.Stat(root); os.IsNotExist(err) {
-		return nil, err
+// NewClient will return a new Client for the local unix socket, suitable
+// for communicating with the daemon.
+func NewClient(address string) *Client {
+	return &Client{
+		client: &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return net.Dial("unix", address)
+				},
+				DisableKeepAlives:     false,
+				IdleConnTimeout:       30 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
+			},
+			Timeout: 20 * time.Second,
+		},
 	}
-	// Start with the absolute filepath and then join anything there after
-	basedir, err := filepath.Abs(root)
-	if err != nil {
-		return nil, err
-	}
-	return &Context{
-		BaseDir: basedir,
-		DbPath:  filepath.Join(basedir, DatabasePathComponent),
-	}, nil
 }
 
-// A Component of ferryd has special considerations to bootstrap itself
-// during ferryd start, and clean up during ferryd shutdown.
-type Component interface {
+// Close will kill any idle connections still in "keep-alive" and ensure we're
+// not leaking file descriptors.
+func (c *Client) Close() {
+	trans := c.client.Transport.(*http.Transport)
+	trans.CloseIdleConnections()
+}
 
-	// Initialise the component on the initial transaction
-	Init(ctx *Context, tx *bolt.Tx) error
+func (c *Client) formURI(part string) string {
+	return fmt.Sprintf("http://localhost.localdomain:0/%s", part)
+}
 
-	// Close will request the component stops any ongoing operations and cleanup
-	Close()
+// GetVersion will return the version of the remote daemon
+func (c *Client) GetVersion() (string, error) {
+	var vq VersionRequest
+	resp, e := c.client.Get(c.formURI("api/v1/version"))
+	if e != nil {
+		return "", e
+	}
+	defer resp.Body.Close()
+	if e = json.NewDecoder(resp.Body).Decode(&vq); e != nil {
+		return "", e
+	}
+	return vq.Version, nil
+}
+
+// A helper to wrap the trivial functionality, chaining off
+// the appropriate errors, etc.
+func (c *Client) getBasicResponse(url string, outT interface{}) error {
+	resp, e := c.client.Get(url)
+	if e != nil {
+		return e
+	}
+	defer resp.Body.Close()
+	if resp.ContentLength > 0 {
+		if e = json.NewDecoder(resp.Body).Decode(outT); e != nil {
+			return e
+		}
+	}
+	fc := outT.(*Response)
+	if !fc.Error {
+		return nil
+	}
+	return errors.New(fc.ErrorString)
+}
+
+// CreateRepo will attempt to create a repository in the daemon
+func (c *Client) CreateRepo(id string) error {
+	uri := c.formURI("/api/v1/create_repo/" + id)
+	return c.getBasicResponse(uri, &Response{})
 }
