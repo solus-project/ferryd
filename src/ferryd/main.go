@@ -18,8 +18,17 @@ package main
 
 import (
 	"ferryd/cmd"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
+
+// Set up the main logger formatting used in USpin
+func init() {
+	form := &log.TextFormatter{}
+	form.FullTimestamp = true
+	form.TimestampFormat = "15:04:05"
+	log.SetFormatter(form)
+}
 
 func main() {
 	if err := cmd.RootCmd.Execute(); err != nil {
