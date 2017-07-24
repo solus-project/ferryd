@@ -71,6 +71,7 @@ func (s *Server) killHandler() {
 		<-ch
 		log.Warning("Shutting down due to CTRL+C")
 		s.Close()
+		s.jproc.Close()
 		// Stop any mainLoop defers here
 		os.Exit(1)
 	}()
