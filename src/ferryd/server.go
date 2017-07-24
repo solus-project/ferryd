@@ -121,6 +121,8 @@ func (s *Server) Serve() error {
 	defer func() {
 		s.running = false
 	}()
+	// Serve the job queue
+	s.jproc.Begin()
 	// Don't treat Shutdown/Close as an error, it's intended by us.
 	if e := s.srv.Serve(s.socket); e != http.ErrServerClosed {
 		return e
