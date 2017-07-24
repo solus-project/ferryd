@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"libferry"
+	"libferry/jobs"
 	"os"
 )
 
@@ -49,12 +50,15 @@ func indexRepo(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error opening repo manager: %v\n", err)
 		return
 	}
-	defer manager.Close()
 
-	if err := manager.Index(repoName); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return
-	}
+	defer manager.Close()
+	// TODO: Get job count from somewhere sensible.
+	jproc := jobs.NewProcessor(manager, 4)
+	jproc.Begin()
+	jproc.PushJob(jobs.NewIndexJob(repoName))
+	jproc.Close()
+
+	// TODO: Get error status!
 
 	fmt.Printf("Successfully reindexed: %s\n", repoName)
 }
