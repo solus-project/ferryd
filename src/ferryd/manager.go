@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package libferry
+package main
 
 import (
 	"github.com/boltdb/bolt"

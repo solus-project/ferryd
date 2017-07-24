@@ -17,7 +17,7 @@
 package cmd
 
 import (
-	"ferry"
+	"libferry"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -41,7 +41,7 @@ func createRepo(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	client := ferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 
 	if err := client.CreateRepo(args[0]); err != nil {

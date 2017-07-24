@@ -20,7 +20,6 @@ import (
 	"errors"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
-	"libferry"
 	"net"
 	"net/http"
 	"os"
@@ -40,7 +39,7 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager *libferry.Manager // heart of the story
+	manager *Manager // heart of the story
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -86,7 +85,7 @@ func (s *Server) Bind() error {
 	if err := os.MkdirAll("./ferry", 00755); err != nil {
 		return err
 	}
-	m, e := libferry.NewManager("./ferry")
+	m, e := NewManager("./ferry")
 	if e != nil {
 		return e
 	}

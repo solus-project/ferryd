@@ -18,7 +18,7 @@
 //
 // This portion of ferryd is responsible for the management of management
 // of the repositories, and receives packages from the builders.
-package libferry
+package main
 
 import (
 	"github.com/boltdb/bolt"

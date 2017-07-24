@@ -17,7 +17,7 @@
 package cmd
 
 import (
-	"ferry"
+	"libferry"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,11 +36,11 @@ func init() {
 
 func printVersion(cmd *cobra.Command, args []string) {
 	// Print local version
-	fmt.Printf("ferry %v\n\nCopyright © 2016-2017 Solus Project\n", ferry.Version)
+	fmt.Printf("ferry %v\n\nCopyright © 2016-2017 Solus Project\n", libferry.Version)
 	fmt.Printf("Licensed under the Apache License, Version 2.0\n\n")
 
 	// Attempt to grab the local daemon version
-	client := ferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 	version, err := client.GetVersion()
 	if err != nil {
