@@ -22,3 +22,6 @@
 [submodule "src/vendor/github.com/BurntSushi/toml"]
 	path = src/vendor/github.com/BurntSushi/toml
 	url = https://github.com/BurntSushi/toml.git
+[submodule "src/vendor/golang.org/sys"]
+	path = src/vendor/golang.org/x/sys
+	url = https://github.com/golang/sys
