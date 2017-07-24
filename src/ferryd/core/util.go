@@ -18,6 +18,7 @@ package core
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"github.com/solus-project/xzed"
@@ -119,6 +120,19 @@ func FileSha1sum(path string) (string, error) {
 	}
 	defer mfile.Close()
 	h := sha1.New()
+	// Pump from memory into hash for zero-copy sha1sum
+	h.Write(mfile.Data)
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// FileSha256sum is a quick wrapper to grab the sha256sum for the given file
+func FileSha256sum(path string) (string, error) {
+	mfile, err := MapFile(path)
+	if err != nil {
+		return "", err
+	}
+	defer mfile.Close()
+	h := sha256.New()
 	// Pump from memory into hash for zero-copy sha1sum
 	h.Write(mfile.Data)
 	return hex.EncodeToString(h.Sum(nil)), nil

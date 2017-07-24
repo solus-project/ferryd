@@ -1,0 +1,11 @@
+[manifest]
+version = "1.0"
+target = "unstable"
+
+[[file]]
+path = "nano-2.7.5-68-1-x86_64.eopkg"
+sha256 = "1810f4d36d42a9d41a37bcd31a70c2279c4cb7b02627bcab981f94f3a24bfcc5"
+
+[[file]]
+path = "nano-dbginfo-2.7.5-68-1-x86_64.eopkg"
+sha256 = "e25f9326bad558da88e06839249d0a29aaec199995ab85dbd91bfb38913e1b13"
