@@ -51,8 +51,14 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 
 	t.manifest = tram
 
+	// Sanity.
+	repo := t.manifest.Manifest.Target
+	if _, err := manager.GetRepo(repo); err != nil {
+		return err
+	}
+
 	log.WithFields(log.Fields{
-		"target":   t.manifest.Manifest.Target,
+		"target":   repo,
 		"manifest": t.manifest.ID(),
 	}).Info("Successfully processed upload")
 	return nil
