@@ -125,14 +125,24 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		return nil, err
 	}
 
+	assetPath := filepath.Join(r.assetBase, id)
 	repoDir := filepath.Join(r.repoBase, id)
-	if err := os.MkdirAll(repoDir, 00755); err != nil {
-		return nil, err
+	paths := []string{
+		assetPath,
+		repoDir,
 	}
+
+	// Create all required paths
+	for _, p := range paths {
+		if err := os.MkdirAll(p, 00755); err != nil {
+			return nil, err
+		}
+	}
+
 	return &Repository{
 		ID:        id,
 		path:      repoDir,
-		assetPath: filepath.Join(r.assetBase, id),
+		assetPath: assetPath,
 	}, nil
 }
 
