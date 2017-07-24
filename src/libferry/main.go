@@ -104,3 +104,9 @@ func (c *Client) CreateRepo(id string) error {
 	uri := c.formURI("/api/v1/create_repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
+
+// IndexRepo will attempt to index a repository in the daemon
+func (c *Client) IndexRepo(id string) error {
+	uri := c.formURI("/api/v1/index_repo/" + id)
+	return c.getBasicResponse(uri, &Response{})
+}

@@ -83,3 +83,12 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	}).Info("Repository creation requested")
 	s.jproc.PushJob(jobs.NewCreateRepoJob(id))
 }
+
+// IndexRepo will handle remote requests for repository indexing
+func (s *Server) IndexRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	log.WithFields(log.Fields{
+		"id": id,
+	}).Info("Repository indexing requested")
+	s.jproc.PushJob(jobs.NewIndexJob(id))
+}
