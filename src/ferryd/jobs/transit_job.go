@@ -18,6 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
 )
@@ -81,4 +82,13 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 		}
 	}
 	return nil
+}
+
+// Describe will explain the purpose of this job
+func (t *TransitProcessJob) Describe() string {
+	if t.manifest == nil {
+		return fmt.Sprintf("Process manifest '%s'", t.path)
+	}
+
+	return fmt.Sprintf("Process manifest '%s' for target '%s'", t.manifest.ID(), t.manifest.Manifest.Target)
 }

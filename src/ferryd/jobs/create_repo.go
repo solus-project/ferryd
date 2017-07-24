@@ -18,6 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,4 +44,9 @@ func (c *CreateRepoJob) Perform(manager *core.Manager) error {
 	}
 	log.WithFields(log.Fields{"repo": c.repoID}).Info("Created repository")
 	return nil
+}
+
+// Describe will explain the purpose of this job
+func (c *CreateRepoJob) Describe() string {
+	return fmt.Sprintf("Create new repository '%s'", c.repoID)
 }

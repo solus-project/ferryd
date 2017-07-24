@@ -18,6 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,4 +45,9 @@ func (i *IndexJob) Perform(manager *core.Manager) error {
 	}
 	log.WithFields(log.Fields{"repo": i.repoID}).Info("Indexed repository")
 	return nil
+}
+
+// Describe will explain the purpose of this job
+func (i *IndexJob) Describe() string {
+	return fmt.Sprintf("Re-index repository '%s'", i.repoID)
 }

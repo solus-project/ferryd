@@ -18,6 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,4 +47,9 @@ func (i *BulkAddJob) Perform(manager *core.Manager) error {
 
 	log.WithFields(log.Fields{"repo": i.repoID}).Info("Added bulk packages")
 	return nil
+}
+
+// Describe will explain the purpose of this job
+func (i *BulkAddJob) Describe() string {
+	return fmt.Sprintf("Bulk add %d packages to '%s'", len(i.packagePaths), i.repoID)
 }

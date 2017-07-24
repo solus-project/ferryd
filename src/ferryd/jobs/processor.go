@@ -38,6 +38,10 @@ type Job interface {
 	// main job process. If the job is a heavyweight operation that should be run in
 	// the background, it should return false (i.e. deltas)
 	IsSequential() bool
+
+	// Describe will request that the job identify itself in a meaningful way for
+	// logging purposes
+	Describe() string
 }
 
 // A Processor is responsible for the main dispatch and bulking of jobs
