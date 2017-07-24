@@ -24,14 +24,15 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"time"
 )
 
 // A Processor is responsible for the main dispatch and bulking of jobs
 // to ensure they're handled in the most optimal fashion.
 type Processor struct {
 	manager        *core.Manager
-	sequentialjobs chan Runnable
-	backgroundJobs chan Runnable
+	sequentialjobs chan *Job
+	backgroundJobs chan *Job
 	quit           chan bool
 	mut            *sync.Mutex
 	wg             *sync.WaitGroup
@@ -51,8 +52,8 @@ func NewProcessor(m *core.Manager, njobs int) *Processor {
 
 	ret := &Processor{
 		manager:        m,
-		sequentialjobs: make(chan Runnable),
-		backgroundJobs: make(chan Runnable),
+		sequentialjobs: make(chan *Job),
+		backgroundJobs: make(chan *Job),
 		quit:           make(chan bool, 1+njobs),
 		mut:            &sync.Mutex{},
 		wg:             &sync.WaitGroup{},
@@ -95,11 +96,24 @@ func (j *Processor) Begin() {
 }
 
 // reportError will report a failed job to the log
-func (j *Processor) reportError(job Runnable, e error) {
+func (j *Processor) reportError(job *Job, e error) {
 	log.WithFields(log.Fields{
+		"id":    job.ID,
 		"error": e,
-		"type":  reflect.TypeOf(job).Elem().Name(),
+		"type":  reflect.TypeOf(job.Task).Elem().Name(),
 	}).Error("Job failed with error")
+}
+
+// executeJob will execute a single job and update the meta information
+// for it.
+func (j *Processor) executeJob(job *Job) {
+	job.Timing.Started = time.Now()
+	err := job.Task.Perform(j.manager)
+	job.Timing.Completed = time.Now()
+
+	if err != nil {
+		j.reportError(job, err)
+	}
 }
 
 // processSequentialQueue is responsible for dealing with the sequential queue
@@ -112,9 +126,7 @@ func (j *Processor) processSequentialQueue() {
 			if job == nil {
 				return
 			}
-			if err := job.Perform(j.manager); err != nil {
-				j.reportError(job, err)
-			}
+			j.executeJob(job)
 		case <-j.quit:
 			return
 		}
@@ -146,9 +158,7 @@ func (j *Processor) backgroundWorker() {
 			if job == nil {
 				return
 			}
-			if err := job.Perform(j.manager); err != nil {
-				j.reportError(job, err)
-			}
+			j.executeJob(job)
 		case <-j.quit:
 			return
 		}
@@ -158,7 +168,8 @@ func (j *Processor) backgroundWorker() {
 // PushJob will take the new job and push it to the appropriate queing system
 // For sanity reasons this will lock on the new job add, even if the processing
 // is then parallel.
-func (j *Processor) PushJob(job Runnable) {
+func (j *Processor) PushJob(task Runnable) {
+	now := time.Now()
 	j.mut.Lock()
 	defer j.mut.Unlock()
 
@@ -166,8 +177,14 @@ func (j *Processor) PushJob(job Runnable) {
 		panic("passed nil job!")
 	}
 
+	// TODO: Create useful ID
+	job := &Job{
+		Task: task,
+	}
+	job.Timing.Created = now
+
 	// TODO: Add descriptions to the Job type and emit to the log
-	if job.IsSequential() {
+	if job.Task.IsSequential() {
 		j.sequentialjobs <- job
 	} else {
 		j.backgroundJobs <- job
