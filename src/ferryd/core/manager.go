@@ -18,6 +18,8 @@ package core
 
 import (
 	"github.com/boltdb/bolt"
+	"os"
+	"path/filepath"
 )
 
 // A Manager is the the singleton responsible for slip management
@@ -26,6 +28,8 @@ type Manager struct {
 	ctx  *Context           // Context shares all our path assignments
 	pool *Pool              // Our main pool for eopkgs
 	repo *RepositoryManager // Repo management
+
+	IncomingPath string // Incoming directory
 }
 
 // NewManager will attempt to instaniate a manager for the given path,
@@ -42,11 +46,19 @@ func NewManager(path string) (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Need incoming to monitor uploads
+	incomingPath := filepath.Join(ctx.BaseDir, IncomingPathComponent)
+	if err := os.MkdirAll(incomingPath, 00755); err != nil {
+		return nil, err
+	}
+
 	m := &Manager{
-		db:   db,
-		ctx:  ctx,
-		pool: &Pool{},
-		repo: &RepositoryManager{},
+		db:           db,
+		ctx:          ctx,
+		pool:         &Pool{},
+		repo:         &RepositoryManager{},
+		IncomingPath: incomingPath,
 	}
 
 	// Initialise the buckets in a one-time

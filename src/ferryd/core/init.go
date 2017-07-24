@@ -31,6 +31,9 @@ const (
 	// for the database file itself.
 	DatabasePathComponent = "ferry.db"
 
+	// IncomingPathComponent is the base for all per-repo incoming directories
+	IncomingPathComponent = "incoming"
+
 	// Version of the ferry client library
 	Version = "0.0.0"
 )
