@@ -92,3 +92,22 @@ func (s *Server) IndexRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	}).Info("Repository indexing requested")
 	s.jproc.PushJob(jobs.NewIndexJob(id))
 }
+
+// ImportPackages will bulk-import the packages in the request
+func (s *Server) ImportPackages(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+
+	req := libferry.ImportRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"id":        id,
+		"npackages": len(req.Path),
+	}).Info("Repository bulk import requested")
+
+	s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
+}

@@ -67,6 +67,7 @@ func NewServer() *Server {
 	// Repo management
 	router.GET("/api/v1/create_repo/:id", s.CreateRepo)
 	router.GET("/api/v1/index_repo/:id", s.IndexRepo)
+	router.POST("/api/v1/import/:id", s.ImportPackages)
 	return s
 }
 

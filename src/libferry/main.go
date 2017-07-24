@@ -17,6 +17,7 @@
 package libferry
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -99,6 +100,34 @@ func (c *Client) getBasicResponse(url string, outT interface{}) error {
 	return errors.New(fc.ErrorString)
 }
 
+// A helper to wrap the trivial functionality, chaining off
+// the appropriate errors, etc.
+func (c *Client) postBasicResponse(url string, inT interface{}, outT interface{}) error {
+	b := &bytes.Buffer{}
+	enc := json.NewEncoder(b)
+	if err := enc.Encode(inT); err != nil {
+		return err
+	}
+
+	resp, e := c.client.Post(url, "application/json; charset=utf-8", b)
+	if e != nil {
+		return e
+	}
+
+	defer resp.Body.Close()
+	if resp.ContentLength > 0 {
+		if e = json.NewDecoder(resp.Body).Decode(outT); e != nil {
+			return e
+		}
+	}
+
+	fc := outT.(*Response)
+	if !fc.Error {
+		return nil
+	}
+	return errors.New(fc.ErrorString)
+}
+
 // CreateRepo will attempt to create a repository in the daemon
 func (c *Client) CreateRepo(id string) error {
 	uri := c.formURI("/api/v1/create_repo/" + id)
@@ -109,4 +138,13 @@ func (c *Client) CreateRepo(id string) error {
 func (c *Client) IndexRepo(id string) error {
 	uri := c.formURI("/api/v1/index_repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
+}
+
+// ImportPackages will ask ferryd to import the named packages with absolute
+// paths
+func (c *Client) ImportPackages(repoID string, pkgs []string) error {
+	iq := ImportRequest{
+		Path: pkgs,
+	}
+	return c.postBasicResponse(c.formURI("api/v1/import/"+repoID), &iq, &Response{})
 }

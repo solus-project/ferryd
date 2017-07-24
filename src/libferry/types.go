@@ -29,3 +29,10 @@ type VersionRequest struct {
 	Response
 	Version string `json:"version"`
 }
+
+// An ImportRequest is given to ferryd to ask for the given packages to be
+// included into the repository
+type ImportRequest struct {
+	Response
+	Path []string `json:"path"`
+}
