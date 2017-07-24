@@ -14,10 +14,10 @@
 // limitations under the License.
 //
 
-// Package libferry provides the Ferry library implementation.
+// Package main provides the Ferry Daemon implementation.
 //
-// This portion of ferryd is responsible for the management of management
-// of the repositories, and receives packages from the builders.
+// This portion of ferryd is responsible for the management  of the repositories,
+// and receives packages from the builders.
 package main
 
 import (
