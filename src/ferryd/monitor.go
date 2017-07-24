@@ -18,8 +18,9 @@ package main
 
 import (
 	"ferryd/core"
-	"fmt"
+	"ferryd/jobs"
 	"github.com/radu-munteanu/fsnotify"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,9 +50,13 @@ func (s *Server) WatchIncoming() {
 		for {
 			select {
 			case event := <-s.watcher.Events:
-				if event.Op&fsnotify.Close == fsnotify.Close {
+				// Not interested in subdirs
+				if filepath.Dir(event.Name) != s.manager.IncomingPath {
+					continue
+				}
+				if event.Op&fsnotify.Write|fsnotify.Close == fsnotify.Write|fsnotify.Close {
 					if strings.HasSuffix(event.Name, core.TransitManifestSuffix) {
-						s.processTransitManifest(event.Name)
+						s.processTransitManifest(filepath.Base(event.Name))
 					}
 				}
 			case <-s.watchChan:
@@ -70,7 +75,9 @@ func (s *Server) StopWatching() {
 // processTransitManifest is invoked when a .tram file is closed in our incoming
 // directory. We'll now push it for further processing
 func (s *Server) processTransitManifest(name string) {
-	st, err := os.Stat(name)
+	fullpath := filepath.Join(s.manager.IncomingPath, name)
+
+	st, err := os.Stat(fullpath)
 	if err != nil {
 		return
 	}
@@ -79,6 +86,8 @@ func (s *Server) processTransitManifest(name string) {
 		return
 	}
 
-	fullpath := filepath.Join(s.manager.IncomingPath, name)
-	fmt.Printf(" * Got a transit manifest: %s\n", fullpath)
+	log.WithFields(log.Fields{
+		"id": name,
+	}).Info("Received transit manifest upload")
+	s.jproc.PushJob(jobs.NewTransitProcessJob(fullpath))
 }

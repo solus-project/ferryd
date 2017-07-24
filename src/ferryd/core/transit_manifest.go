@@ -69,6 +69,12 @@ type TransitManifest struct {
 
 	path string // Privately held path to the file
 	dir  string // Where the .tram was loaded from
+	id   string // Effectively our basename
+}
+
+// ID will return the unique ID for the transit manifest file
+func (t *TransitManifest) ID() string {
+	return t.id
 }
 
 // TransitManifestFile provides simple verification data for each file in the
@@ -93,6 +99,7 @@ func NewTransitManifest(path string) (*TransitManifest, error) {
 	ret := &TransitManifest{
 		path: abs,
 		dir:  filepath.Dir(abs),
+		id:   filepath.Base(abs),
 	}
 
 	blob, err := ioutil.ReadFile(ret.path)
