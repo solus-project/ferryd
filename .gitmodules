@@ -19,3 +19,6 @@
 [submodule "src/vendor/github.com/radu-munteanu/fsnotify"]
 	path = src/vendor/github.com/radu-munteanu/fsnotify
 	url = https://github.com/radu-munteanu/fsnotify.git
+[submodule "src/vendor/github.com/BurntSushi/toml"]
+	path = src/vendor/github.com/BurntSushi/toml
+	url = https://github.com/BurntSushi/toml.git
