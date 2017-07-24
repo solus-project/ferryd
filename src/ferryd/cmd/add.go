@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"libferry"
+	"libferry/jobs"
 	"os"
 )
 
@@ -50,13 +51,10 @@ func addPackages(cmd *cobra.Command, args []string) {
 		return
 	}
 	defer manager.Close()
-
 	packages := args[1:]
-
-	if err := manager.AddPackages(repoName, packages); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return
-	}
-
-	fmt.Printf("Added packages to: %s\n", repoName)
+	defer manager.Close()
+	jproc := jobs.NewProcessor(manager, -1)
+	jproc.Begin()
+	jproc.PushJob(jobs.NewBulkAddJob(repoName, packages))
+	jproc.Close()
 }
