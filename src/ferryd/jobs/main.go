@@ -21,6 +21,20 @@ import (
 	"time"
 )
 
+const (
+	// StatusFailed indicates run and since failed
+	StatusFailed = 1 << iota
+
+	// StatusComplete indicates the task ran without issues
+	StatusComplete = 1 << iota
+
+	// StatusPending indicates the task is still waiting to be run
+	StatusPending = 1 << iota
+
+	// StatusRunning indicates the task is currently active
+	StatusRunning = 1 << iota
+)
+
 // A Runnable is the base interface that all Job tasks must implement to be
 // run by the JobProcessor
 type Runnable interface {
@@ -58,5 +72,9 @@ type Job struct {
 	Task Runnable
 	ID   string
 
+	// Timing metrics
 	Timing JobTiming
+
+	// Current status of this task
+	Status int
 }
