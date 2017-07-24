@@ -1,5 +1,5 @@
 //
-// Copyright © 2016-2017 Ikey Doherty <ikey@solus-project.com>
+// Copyright © 2017 Ikey Doherty <ikey@solus-project.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,7 @@
 package main
 
 import (
-	"ferryd/cmd"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 // Set up the main logger formatting used in USpin
@@ -30,8 +28,26 @@ func init() {
 	log.SetFormatter(form)
 }
 
-func main() {
-	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(1)
+func mainLoop() {
+	srv := NewServer()
+	defer srv.Close()
+	if e := srv.Bind(); e != nil {
+		log.WithFields(log.Fields{
+			"socket": UnixSocketPath,
+			"error":  e,
+		}).Error("Error in binding server socket")
+		return
 	}
+	if e := srv.Serve(); e != nil {
+		log.WithFields(log.Fields{
+			"socket": UnixSocketPath,
+			"error":  e,
+		}).Error("Error in serving on socket")
+		return
+	}
+}
+
+func main() {
+	log.Info("Initialising server")
+	mainLoop()
 }

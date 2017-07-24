@@ -19,10 +19,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"ferry"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	"libferry"
 	"net/http"
 	"runtime"
 )
@@ -43,7 +43,7 @@ func getMethodCaller() string {
 // sendStockError is a utility to send a standard response to the ferry
 // client that embeds the error message from ourside.
 func (s *Server) sendStockError(err error, w http.ResponseWriter, r *http.Request) {
-	response := ferry.Response{
+	response := libferry.Response{
 		Error:       true,
 		ErrorString: err.Error(),
 	}
@@ -65,7 +65,7 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter
 	// For now return nothing and default to 200 OK
 	fmt.Printf("Got a version request: %v\n", r.URL.Path)
 
-	vq := ferry.VersionRequest{Version: ferry.Version}
+	vq := libferry.VersionRequest{Version: libferry.Version}
 	buf := bytes.Buffer{}
 	if err := json.NewEncoder(&buf).Encode(&vq); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

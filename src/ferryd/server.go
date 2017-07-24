@@ -17,10 +17,10 @@
 package main
 
 import (
-	"daemon/slip"
 	"errors"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
+	"libferry"
 	"net"
 	"net/http"
 	"os"
@@ -40,7 +40,7 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager *slip.Manager // heart of the story
+	manager *libferry.Manager // heart of the story
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -86,7 +86,7 @@ func (s *Server) Bind() error {
 	if err := os.MkdirAll("./ferry", 00755); err != nil {
 		return err
 	}
-	m, e := slip.NewManager("./ferry")
+	m, e := libferry.NewManager("./ferry")
 	if e != nil {
 		return e
 	}

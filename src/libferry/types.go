@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package ferry
+package libferry
 
 // Response is the base portion for all ferryd responses, and will
 // include any relevant information on errors
