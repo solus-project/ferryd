@@ -48,5 +48,4 @@ func createRepo(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}
-	fmt.Printf("Created repository: %s\n", args[0])
 }
