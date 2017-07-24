@@ -14,10 +14,11 @@
 // limitations under the License.
 //
 
-package libferry
+package jobs
 
 import (
 	"fmt"
+	"libferry"
 	"os"
 	"sync"
 )
@@ -28,7 +29,7 @@ type Job interface {
 
 	// Perform will be called to let the Job perform its action using this manager
 	// instance.
-	Perform(m *Manager) error
+	Perform(m *libferry.Manager) error
 
 	// IsSequential should return true for operations that can be performed on the
 	// main job process. If the job is a heavyweight operation that should be run in
@@ -36,11 +37,11 @@ type Job interface {
 	IsSequential() bool
 }
 
-// A JobProcessor is responsible for the main dispatch and bulking of jobs
+// A Processor is responsible for the main dispatch and bulking of jobs
 // to ensure they're handled in the most optimal fashion.
-type JobProcessor struct {
-	manager        *Manager
-	jobs           chan Job
+type Processor struct {
+	manager        *libferry.Manager
+	sequentialjobs chan Job
 	backgroundJobs chan Job
 	quit           chan bool
 	mut            *sync.Mutex
@@ -49,13 +50,13 @@ type JobProcessor struct {
 	njobs          int
 }
 
-// NewJobProcessor will return a new JobProcessor with the specified number
+// NewProcessor will return a new Processor with the specified number
 // of jobs. Note that "njobs" only refers to the number of *background jobs*,
 // the majority of operations will run sequentially
-func NewJobProcessor(m *Manager, njobs int) *JobProcessor {
-	ret := &JobProcessor{
+func NewProcessor(m *libferry.Manager, njobs int) *Processor {
+	ret := &Processor{
 		manager:        m,
-		jobs:           make(chan Job),
+		sequentialjobs: make(chan Job),
 		backgroundJobs: make(chan Job),
 		quit:           make(chan bool, 1+njobs),
 		mut:            &sync.Mutex{},
@@ -66,8 +67,8 @@ func NewJobProcessor(m *Manager, njobs int) *JobProcessor {
 	return ret
 }
 
-// Close an existing JobProcessor, waiting for all jobs to complete
-func (j *JobProcessor) Close() {
+// Close an existing Processor, waiting for all jobs to complete
+func (j *Processor) Close() {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 	if j.closed {
@@ -75,7 +76,7 @@ func (j *JobProcessor) Close() {
 	}
 
 	// Disallow further messaging
-	close(j.jobs)
+	close(j.sequentialjobs)
 	close(j.backgroundJobs)
 
 	// Ensure all goroutines get the quit broadcast
@@ -86,7 +87,7 @@ func (j *JobProcessor) Close() {
 }
 
 // Begin will start the main job processor in parallel
-func (j *JobProcessor) Begin() {
+func (j *Processor) Begin() {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 	if j.closed {
@@ -98,12 +99,16 @@ func (j *JobProcessor) Begin() {
 }
 
 // processSequentialQueue is responsible for dealing with the sequential queue
-func (j *JobProcessor) processSequentialQueue() {
+func (j *Processor) processSequentialQueue() {
 	defer j.wg.Done()
 
 	for {
 		select {
-		case job := <-j.jobs:
+		case job := <-j.sequentialjobs:
+			if job == nil {
+				fmt.Println("No seq job")
+				return
+			}
 			// TODO: Add proper logging for jobs
 			if err := job.Perform(j.manager); err != nil {
 				fmt.Fprintf(os.Stderr, "Job failed to run: %v\n", j)
@@ -117,7 +122,7 @@ func (j *JobProcessor) processSequentialQueue() {
 // processBackgroundQueue will set up the background workers which will block
 // waiting for non-sequential work that cannot run on the main queue, however
 // it may put work back on the sequential queue.
-func (j *JobProcessor) processBackgroundQueue() {
+func (j *Processor) processBackgroundQueue() {
 	defer j.wg.Done()
 	j.wg.Add(j.njobs)
 
@@ -130,12 +135,16 @@ func (j *JobProcessor) processBackgroundQueue() {
 // in. The majority of tasks will be sequential on the main queue, so we're free
 // to spend more CPU time here dealing with large tasks like the construction
 // of delta packages.
-func (j *JobProcessor) backgroundWorker() {
+func (j *Processor) backgroundWorker() {
 	defer j.wg.Done()
 
 	for {
 		select {
 		case job := <-j.backgroundJobs:
+			if job == nil {
+				fmt.Println("No background job")
+				return
+			}
 			// TODO: Add proper logging for jobs
 			if err := job.Perform(j.manager); err != nil {
 				fmt.Fprintf(os.Stderr, "Job failed to run: %v\n", j)
@@ -149,7 +158,7 @@ func (j *JobProcessor) backgroundWorker() {
 // PushJob will take the new job and push it to the appropriate queing system
 // For sanity reasons this will lock on the new job add, even if the processing
 // is then parallel.
-func (j *JobProcessor) PushJob(job Job) {
+func (j *Processor) PushJob(job Job) {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 
@@ -159,7 +168,7 @@ func (j *JobProcessor) PushJob(job Job) {
 
 	// TODO: Add descriptions to the Job type and emit to the log
 	if job.IsSequential() {
-		j.jobs <- job
+		j.sequentialjobs <- job
 	} else {
 		j.backgroundJobs <- job
 	}
