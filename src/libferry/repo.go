@@ -32,6 +32,9 @@ const (
 	// AssetPathComponent is where we'll find extra files like distribution.xml
 	AssetPathComponent = "assets"
 
+	// IncomingPathComponent is the base for all per-repo incoming directories
+	IncomingPathComponent = "incoming"
+
 	// DatabaseBucketRepo is the name for the main repo toplevel bucket
 	DatabaseBucketRepo = "repo"
 
@@ -45,18 +48,20 @@ const (
 // The RepositoryManager maintains all repos within ferryd which are in
 // turn linked to the main pool
 type RepositoryManager struct {
-	repoBase   string
-	assetBase  string
-	transcoder *GobTranscoder
+	repoBase     string
+	assetBase    string
+	incomingBase string
+	transcoder   *GobTranscoder
 }
 
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID        string                 // Name of this repository (unique)
-	path      string                 // Where this is on disk
-	assetPath string                 // Where our assets are stored on disk
-	dist      *libeopkg.Distribution // Distribution
+	ID           string                 // Name of this repository (unique)
+	path         string                 // Where this is on disk
+	assetPath    string                 // Where our assets are stored on disk
+	incomingPath string                 // Where we'll look to process incoming eopkgs
+	dist         *libeopkg.Distribution // Distribution
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -72,6 +77,7 @@ type RepoEntry struct {
 func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
+	r.incomingBase = filepath.Join(ctx.BaseDir, IncomingPathComponent)
 	r.transcoder = NewGobTranscoder()
 	paths := []string{
 		r.repoBase,
@@ -99,9 +105,10 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 	return &Repository{
-		ID:        id,
-		path:      filepath.Join(r.repoBase, id),
-		assetPath: filepath.Join(r.assetBase, id),
+		ID:           id,
+		path:         filepath.Join(r.repoBase, id),
+		assetPath:    filepath.Join(r.assetBase, id),
+		incomingPath: filepath.Join(r.incomingBase, id),
 	}, nil
 }
 
@@ -127,9 +134,11 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 
 	assetPath := filepath.Join(r.assetBase, id)
 	repoDir := filepath.Join(r.repoBase, id)
+	incomingPath := filepath.Join(r.incomingBase, id)
 	paths := []string{
 		assetPath,
 		repoDir,
+		incomingPath,
 	}
 
 	// Create all required paths
@@ -140,9 +149,10 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 	}
 
 	return &Repository{
-		ID:        id,
-		path:      repoDir,
-		assetPath: assetPath,
+		ID:           id,
+		path:         repoDir,
+		assetPath:    assetPath,
+		incomingPath: incomingPath,
 	}, nil
 }
 
