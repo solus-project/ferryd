@@ -120,7 +120,7 @@ func (j *Processor) executeJob(job *Job) {
 		return
 	}
 
-	job.Status = StatusComplete
+	job.Status = StatusSuccess
 }
 
 // processSequentialQueue is responsible for dealing with the sequential queue

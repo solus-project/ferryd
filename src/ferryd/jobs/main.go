@@ -25,8 +25,8 @@ const (
 	// StatusFailed indicates run and since failed
 	StatusFailed = 1 << iota
 
-	// StatusComplete indicates the task ran without issues
-	StatusComplete = 1 << iota
+	// StatusSuccess indicates the task ran without issues
+	StatusSuccess = 1 << iota
 
 	// StatusPending indicates the task is still waiting to be run
 	StatusPending = 1 << iota
