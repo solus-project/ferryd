@@ -46,6 +46,15 @@ func (d *DeltaRepoJob) IsSequential() bool {
 
 // Perform will invoke the indexing operation
 func (d *DeltaRepoJob) Perform(manager *core.Manager) error {
+	packageNames, err := manager.GetPackageNames(d.repoID)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range packageNames {
+		d.jproc.PushJob(NewDeltaPackageJob(d.repoID, name))
+	}
+
 	return errors.New("Not yet implemented")
 }
 
