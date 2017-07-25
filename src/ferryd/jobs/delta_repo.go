@@ -66,7 +66,7 @@ func (d *DeltaRepoJob) Perform(manager *core.Manager) error {
 			indexJob = d.jproc.PushJobLater(NewIndexJob(d.repoID))
 		}
 		indexJob.AddDependency(j)
-		d.jproc.StartJob(j)
+		go d.jproc.StartJob(j)
 	}
 
 	if len(js) < 1 {

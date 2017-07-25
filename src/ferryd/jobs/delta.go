@@ -20,7 +20,25 @@ import (
 	"ferryd/core"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"libeopkg"
+	"path/filepath"
+	"sort"
 )
+
+// PackageSet provides sorting capabilities for a slice of packages
+type PackageSet []*libeopkg.MetaPackage
+
+func (p PackageSet) Len() int {
+	return len(p)
+}
+
+func (p PackageSet) Less(a, b int) bool {
+	return p[a].GetRelease() < p[b].GetRelease()
+}
+
+func (p PackageSet) Swap(a, b int) {
+	p[a], p[b] = p[b], p[a]
+}
 
 // DeltaPackageJob is a parallel job which will attempt the construction of
 // deltas for a given package name + repo
@@ -45,10 +63,28 @@ func (d *DeltaPackageJob) IsSequential() bool {
 
 // Perform will invoke the indexing operation
 func (d *DeltaPackageJob) Perform(manager *core.Manager) error {
-	log.WithFields(log.Fields{
-		"package": d.packageName,
-		"repo":    d.repoID,
-	}).Info("Delta package construction")
+	pkgs, err := manager.GetPackages(d.repoID, d.packageName)
+	if err != nil {
+		return err
+	}
+
+	// Duh.
+	if len(pkgs) < 2 {
+		return nil
+	}
+
+	sort.Sort(PackageSet(pkgs))
+	tip := pkgs[len(pkgs)-1]
+
+	for i := 0; i < len(pkgs)-1; i++ {
+		old := pkgs[i]
+		log.WithFields(log.Fields{
+			"old":  filepath.Base(old.PackageURI),
+			"new":  filepath.Base(tip.PackageURI),
+			"repo": d.repoID,
+		}).Info("Producing delta package")
+	}
+
 	return nil
 }
 
