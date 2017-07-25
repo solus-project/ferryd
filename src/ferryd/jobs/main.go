@@ -90,6 +90,9 @@ type Job struct {
 	dependents map[*Job]int
 	parents    map[*Job]int
 	depMut     *sync.RWMutex
+
+	// We can only be freed by a single child completing
+	claimed bool
 }
 
 // Internal helper to set a job useful™
@@ -97,6 +100,7 @@ func (j *Job) init() {
 	j.dependents = make(map[*Job]int)
 	j.parents = make(map[*Job]int)
 	j.depMut = &sync.RWMutex{}
+	j.claimed = false
 }
 
 // AddDependency will attempt to add the child @job as a dependency of this
@@ -172,7 +176,7 @@ func (j *Job) popParent(parent *Job) {
 func (j *Job) HasDependencies() bool {
 	j.depMut.RLock()
 	defer j.depMut.RUnlock()
-	return len(j.dependents) > 1
+	return len(j.dependents) > 0
 }
 
 // childNotify is used by a child job to notify the parent job that it is now
@@ -180,18 +184,30 @@ func (j *Job) HasDependencies() bool {
 // we can now be processed too
 func (j *Job) childNotify(child *Job) bool {
 	j.PopDependency(child)
-	return !j.HasDependencies()
+	j.depMut.Lock()
+	defer j.depMut.Unlock()
+	if !j.claimed {
+		if len(j.dependents) == 0 {
+			j.claimed = true
+			return true
+		}
+	}
+	return false
 }
 
 // NotifyDone will be used for the task to indicate that it is done, and will
 // return a list of parent tasks that are now freed
 func (j *Job) NotifyDone() []*Job {
+	var parents []*Job
 	j.depMut.RLock()
-	defer j.depMut.RUnlock()
+	for parent := range j.parents {
+		parents = append(parents, parent)
+	}
+	j.depMut.RUnlock()
 
 	var parentDone []*Job
 
-	for parent := range j.parents {
+	for _, parent := range parents {
 		if parent.childNotify(j) {
 			parentDone = append(parentDone, parent)
 		}
