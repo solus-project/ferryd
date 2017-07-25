@@ -18,6 +18,8 @@ package jobs
 
 import (
 	"ferryd/core"
+	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -84,4 +86,115 @@ type Job struct {
 
 	// Private task (not serialised)
 	task Runnable
+
+	dependents map[*Job]int
+	parents    map[*Job]int
+	depMut     *sync.RWMutex
+}
+
+// Internal helper to set a job useful™
+func (j *Job) init() {
+	j.dependents = make(map[*Job]int)
+	j.parents = make(map[*Job]int)
+	j.depMut = &sync.RWMutex{}
+}
+
+// AddDependency will attempt to add the child @job as a dependency of this
+// job.
+func (j *Job) AddDependency(child *Job) {
+	j.depMut.Lock()
+	defer j.depMut.Unlock()
+
+	if _, ok := j.dependents[child]; ok {
+		log.WithFields(log.Fields{
+			"child_id": child.id,
+			"id":       j.id,
+		}).Error("Attempted to re-add dependent child")
+		return
+	}
+
+	j.dependents[child] = 1
+	child.addParent(j)
+}
+
+// PopDependency will remove the dependency from the job
+func (j *Job) PopDependency(child *Job) {
+	j.depMut.Lock()
+	defer j.depMut.Unlock()
+
+	if _, ok := j.dependents[child]; !ok {
+		log.WithFields(log.Fields{
+			"child_id": child.id,
+			"id":       j.id,
+		}).Error("Attempted to remove invalid dependency")
+		return
+	}
+
+	delete(j.dependents, child)
+	child.popParent(j)
+}
+
+// addParent will add a parent dependent task
+func (j *Job) addParent(parent *Job) {
+	j.depMut.Lock()
+	defer j.depMut.Unlock()
+
+	if _, ok := j.parents[parent]; ok {
+		log.WithFields(log.Fields{
+			"parent_id": parent.id,
+			"id":        j.id,
+		}).Error("Attempted to re-add parent")
+		return
+	}
+
+	j.parents[parent] = 1
+}
+
+// popParent will remove the parent from the child
+func (j *Job) popParent(parent *Job) {
+	j.depMut.Lock()
+	defer j.depMut.Unlock()
+
+	if _, ok := j.parents[parent]; !ok {
+		log.WithFields(log.Fields{
+			"parent_id": parent.id,
+			"id":        j.id,
+		}).Error("Attempted to remove invalid parent")
+		return
+	}
+
+	delete(j.parents, parent)
+}
+
+// HasDependencies determines whether this task has any dependencies set up
+// Note that a tasks dependencies must be set up BEFORE pushing to the job
+// scheduler, otherwise it will never be pushed for execution!
+func (j *Job) HasDependencies() bool {
+	j.depMut.RLock()
+	defer j.depMut.RUnlock()
+	return len(j.dependents) > 1
+}
+
+// childNotify is used by a child job to notify the parent job that it is now
+// complete. If this is the last dependent child we'll return TRUE so that
+// we can now be processed too
+func (j *Job) childNotify(child *Job) bool {
+	j.PopDependency(child)
+	return !j.HasDependencies()
+}
+
+// NotifyDone will be used for the task to indicate that it is done, and will
+// return a list of parent tasks that are now freed
+func (j *Job) NotifyDone() []*Job {
+	j.depMut.RLock()
+	defer j.depMut.RUnlock()
+
+	var parentDone []*Job
+
+	for parent := range j.parents {
+		if parent.childNotify(j) {
+			parentDone = append(parentDone, parent)
+		}
+	}
+	return parentDone
 }

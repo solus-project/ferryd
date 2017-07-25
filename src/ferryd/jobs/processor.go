@@ -115,6 +115,16 @@ func (j *Processor) executeJob(job *Job) {
 	err := job.task.Perform(j.manager)
 	job.timing.Completed = time.Now()
 
+	parents := job.NotifyDone()
+
+	// If any parent tasks have been freed at this point, put them back into
+	// execution
+	if parents != nil {
+		for _, p := range parents {
+			go j.StartJob(p)
+		}
+	}
+
 	if err != nil {
 		j.reportError(job, err)
 		return
@@ -196,12 +206,9 @@ func (j *Processor) initMetadata(job *Job) {
 	}
 }
 
-// PushJob will take the new job and push it to the appropriate queing system
-// For sanity reasons this will lock on the new job add, even if the processing
-// is then parallel.
-func (j *Processor) PushJob(task Runnable) *Job {
-
-	if j == nil {
+// pushJobInternal is where the real work happens
+func (j *Processor) pushJobInternal(task Runnable) *Job {
+	if task == nil {
 		panic("passed nil job!")
 	}
 
@@ -210,6 +217,7 @@ func (j *Processor) PushJob(task Runnable) *Job {
 	job := &Job{
 		task: task,
 	}
+	job.init()
 	j.initMetadata(job)
 	job.task.Init(j)
 
@@ -218,12 +226,33 @@ func (j *Processor) PushJob(task Runnable) *Job {
 
 	j.jobTable[job.id] = job
 
+	return job
+}
+
+// PushJobLater will add the job to the system but won't start it, with the
+// assumption that it has dependencies
+func (j *Processor) PushJobLater(task Runnable) *Job {
+	return j.pushJobInternal(task)
+}
+
+// PushJob will take the new job and push it to the appropriate queing system
+// For sanity reasons this will lock on the new job add, even if the processing
+// is then parallel.
+func (j *Processor) PushJob(task Runnable) *Job {
+	job := j.pushJobInternal(task)
+	j.StartJob(job)
+	return job
+}
+
+// StartJob will actually set the job up for execution
+func (j *Processor) StartJob(job *Job) {
+	j.mut.Lock()
+	defer j.mut.Unlock()
+
 	// Stick the jobs in the queue now
 	if job.task.IsSequential() {
 		j.sequentialjobs <- job
 	} else {
 		j.backgroundJobs <- job
 	}
-
-	return job
 }
