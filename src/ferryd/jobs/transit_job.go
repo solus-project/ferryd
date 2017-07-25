@@ -35,6 +35,9 @@ func NewTransitProcessJob(path string) *TransitProcessJob {
 	return &TransitProcessJob{path: path}
 }
 
+// Init is unused for this job
+func (t *TransitProcessJob) Init(jproc *Processor) {}
+
 // IsSequential will return true as we're going to need to index after
 func (t *TransitProcessJob) IsSequential() bool {
 	return true

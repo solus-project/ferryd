@@ -33,6 +33,9 @@ func NewIndexJob(repoID string) *IndexJob {
 	return &IndexJob{repoID: repoID}
 }
 
+// Init is unused for this job
+func (i *IndexJob) Init(jproc *Processor) {}
+
 // IsSequential will return true as the index must be written atomically
 func (i *IndexJob) IsSequential() bool {
 	return true

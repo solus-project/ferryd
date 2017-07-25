@@ -25,11 +25,18 @@ import (
 // DeltaRepoJob is a sequential job which will attempt to create a new repo
 type DeltaRepoJob struct {
 	repoID string
+	jproc  *Processor
 }
 
 // NewDeltaRepoJob will create a new job with the given ID
 func NewDeltaRepoJob(repoID string) *DeltaRepoJob {
 	return &DeltaRepoJob{repoID: repoID}
+}
+
+// Init allows the job to store a reference to the job processor internally
+// to dispatch further non sequential jobs
+func (d *DeltaRepoJob) Init(jproc *Processor) {
+	d.jproc = jproc
 }
 
 // IsSequential will return true as the repo state must be sane in the server

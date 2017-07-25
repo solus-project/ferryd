@@ -39,6 +39,10 @@ const (
 // run by the JobProcessor
 type Runnable interface {
 
+	// Allow the job to initialise itself and store any references to the job
+	// processor for further dispatches
+	Init(jproc *Processor)
+
 	// Perform will be called to let the Runnable perform its action using this manager
 	// instance.
 	Perform(m *core.Manager) error

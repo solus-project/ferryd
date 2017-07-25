@@ -32,6 +32,9 @@ func NewCreateRepoJob(repoID string) *CreateRepoJob {
 	return &CreateRepoJob{repoID: repoID}
 }
 
+// Init is unused for this job
+func (c *CreateRepoJob) Init(jproc *Processor) {}
+
 // IsSequential will return true as the repo state must be sane in the server
 func (c *CreateRepoJob) IsSequential() bool {
 	return true

@@ -34,6 +34,9 @@ func NewBulkAddJob(repoID string, packagePaths []string) *BulkAddJob {
 	return &BulkAddJob{repoID: repoID, packagePaths: packagePaths}
 }
 
+// Init is unused for this job
+func (i *BulkAddJob) Init(jproc *Processor) {}
+
 // IsSequential will return true as we're going to need to index after
 func (i *BulkAddJob) IsSequential() bool {
 	return true

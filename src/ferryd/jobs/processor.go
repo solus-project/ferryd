@@ -211,6 +211,7 @@ func (j *Processor) PushJob(task Runnable) {
 		task: task,
 	}
 	j.initMetadata(job)
+	job.task.Init(j)
 
 	j.mut.Lock()
 	defer j.mut.Unlock()
