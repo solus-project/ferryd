@@ -266,7 +266,7 @@ func (r *Repository) GetPackageNames(tx *bolt.Tx) ([]string, error) {
 			return nil, err
 		}
 
-		pkgIds = append(pkgIds, entry.Published)
+		pkgIds = append(pkgIds, entry.Name)
 	}
 	return pkgIds, nil
 }
@@ -276,7 +276,7 @@ func (r *Repository) GetPackages(tx *bolt.Tx, pool *Pool, pkgName string) ([]*li
 	var pkgs []*libeopkg.MetaPackage
 
 	entry, err := r.GetEntry(tx, pkgName)
-	if err != nil {
+	if err != nil || entry == nil {
 		return nil, err
 	}
 
