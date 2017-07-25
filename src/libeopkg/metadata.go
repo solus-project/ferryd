@@ -94,6 +94,20 @@ type Provides struct {
 	PkgConfig32 []string `xml:"PkgConfig32,omitempty"`
 }
 
+// Delta describes a delta package that may be used for an update to save on bandwidth
+// for the users.
+//
+// Delta upgrades are determined by placing the <DeltaPackages> section into the index, with
+// each Delta listed with a releaseFrom. If the user is currently using one of the listed
+// releaseFrom IDs in their installation, that delta package will be selected instead of the
+// full package.
+type Delta struct {
+	ReleaseFrom int    `xml:"releaseFrom,attr,omitempty"` // Delta from specified release to this one
+	PackageURI  string // Relative location to the package
+	PackageSize int64  // Actual size on disk of the .eopkg
+	PackageHash string // Sha1sum for this package
+}
+
 // A MetaPackage is the Package section of the metadata file. It contains
 // the main details that are important to users.
 type MetaPackage struct {
@@ -129,7 +143,8 @@ type MetaPackage struct {
 	PackageHash         string // Sha1sum for this package
 	PackageURI          string // Relative location to the package
 
-	// TODO: Add delta packages
+	// DeltaPackages are only emitted in the index itself
+	DeltaPackages *[]Delta `xml:"DeltaPackages>Delta,omitempty"`
 
 	PackageFormat string // Locked to 1.2 for eopkg
 
