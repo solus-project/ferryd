@@ -99,9 +99,9 @@ func (j *Processor) Begin() {
 
 // reportError will report a failed job to the log
 func (j *Processor) reportError(job *Job, e error) {
-	job.Status = StatusFailed
+	job.status = StatusFailed
 	log.WithFields(log.Fields{
-		"id":    job.ID,
+		"id":    job.id,
 		"error": e,
 		"type":  reflect.TypeOf(job.task).Elem().Name(),
 	}).Error("Job failed with error")
@@ -110,17 +110,17 @@ func (j *Processor) reportError(job *Job, e error) {
 // executeJob will execute a single job and update the meta information
 // for it.
 func (j *Processor) executeJob(job *Job) {
-	job.Timing.Started = time.Now()
-	job.Status = StatusRunning
+	job.timing.Started = time.Now()
+	job.status = StatusRunning
 	err := job.task.Perform(j.manager)
-	job.Timing.Completed = time.Now()
+	job.timing.Completed = time.Now()
 
 	if err != nil {
 		j.reportError(job, err)
 		return
 	}
 
-	job.Status = StatusSuccess
+	job.status = StatusSuccess
 }
 
 // processSequentialQueue is responsible for dealing with the sequential queue
@@ -181,15 +181,15 @@ func (j *Processor) initMetadata(job *Job) {
 	defer j.mut.RUnlock()
 
 	counter := 0
-	job.Timing.Created = now
-	job.Status = StatusPending
+	job.timing.Created = now
+	job.status = StatusPending
 
 	nom := reflect.TypeOf(job.task).Elem().Name()
 	unix := now.UTC().Unix()
 
 	for {
-		job.ID = fmt.Sprintf("%s-%d-%d", nom, unix, counter)
-		if _, ok := j.jobTable[job.ID]; !ok {
+		job.id = fmt.Sprintf("%s-%d-%d", nom, unix, counter)
+		if _, ok := j.jobTable[job.id]; !ok {
 			return
 		}
 		counter++
@@ -199,7 +199,7 @@ func (j *Processor) initMetadata(job *Job) {
 // PushJob will take the new job and push it to the appropriate queing system
 // For sanity reasons this will lock on the new job add, even if the processing
 // is then parallel.
-func (j *Processor) PushJob(task Runnable) {
+func (j *Processor) PushJob(task Runnable) *Job {
 
 	if j == nil {
 		panic("passed nil job!")
@@ -216,7 +216,7 @@ func (j *Processor) PushJob(task Runnable) {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 
-	j.jobTable[job.ID] = job
+	j.jobTable[job.id] = job
 
 	// Stick the jobs in the queue now
 	if job.task.IsSequential() {
@@ -224,4 +224,6 @@ func (j *Processor) PushJob(task Runnable) {
 	} else {
 		j.backgroundJobs <- job
 	}
+
+	return job
 }

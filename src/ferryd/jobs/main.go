@@ -74,13 +74,13 @@ type JobTiming struct {
 // and should never be directly instaniated by the user.
 type Job struct {
 	// Public ID
-	ID string
+	id string
 
 	// Timing metrics
-	Timing JobTiming
+	timing JobTiming
 
 	// Current status of this task
-	Status int
+	status int
 
 	// Private task (not serialised)
 	task Runnable
