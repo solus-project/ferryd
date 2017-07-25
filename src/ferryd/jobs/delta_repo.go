@@ -17,9 +17,9 @@
 package jobs
 
 import (
-	"errors"
 	"ferryd/core"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 )
 
 // DeltaRepoJob is a sequential job which will attempt to create a new repo
@@ -44,19 +44,38 @@ func (d *DeltaRepoJob) IsSequential() bool {
 	return true
 }
 
-// Perform will invoke the indexing operation
+// Perform will iterate all package names within the given repo, and then create
+// one delta task per package *name*, not per package *set*.
 func (d *DeltaRepoJob) Perform(manager *core.Manager) error {
 	packageNames, err := manager.GetPackageNames(d.repoID)
 	if err != nil {
 		return err
 	}
 
+	var js []*Job
+	var indexJob *Job
+
 	for _, name := range packageNames {
-		// d.jproc.PushJob(NewDeltaPackageJob(d.repoID, name))
-		fmt.Printf("pkg: %v\n", name)
+		j := d.jproc.PushJobLater(NewDeltaPackageJob(d.repoID, name))
+		js = append(js, j)
 	}
 
-	return errors.New("Not yet implemented")
+	// Start all of our delta jobs
+	for _, j := range js {
+		if indexJob == nil {
+			indexJob = d.jproc.PushJobLater(NewIndexJob(d.repoID))
+		}
+		indexJob.AddDependency(j)
+		d.jproc.StartJob(j)
+	}
+
+	if len(js) < 1 {
+		log.WithFields(log.Fields{
+			"repo": d.repoID,
+		}).Warning("Requested delta for empty repository")
+	}
+
+	return nil
 }
 
 // Describe will explain the purpose of this job
