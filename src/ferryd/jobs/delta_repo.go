@@ -52,7 +52,8 @@ func (d *DeltaRepoJob) Perform(manager *core.Manager) error {
 	}
 
 	for _, name := range packageNames {
-		d.jproc.PushJob(NewDeltaPackageJob(d.repoID, name))
+		// d.jproc.PushJob(NewDeltaPackageJob(d.repoID, name))
+		fmt.Printf("pkg: %v\n", name)
 	}
 
 	return errors.New("Not yet implemented")
