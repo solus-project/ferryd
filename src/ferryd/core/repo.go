@@ -250,3 +250,43 @@ func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error 
 
 	return r.AddLocalPackage(tx, pool, pkg)
 }
+
+// GetPackageNames will traverse the buckets and find all package names as stored
+// within the DB. This doesn't account for obsolete names, which should in fact
+// be removed from the repo entirely.
+func (r *Repository) GetPackageNames(tx *bolt.Tx) ([]string, error) {
+	var pkgIds []string
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	c := rootBucket.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		code := NewGobDecoderLight()
+		entry := RepoEntry{}
+		if err := code.DecodeType(v, &entry); err != nil {
+			return nil, err
+		}
+
+		pkgIds = append(pkgIds, entry.Published)
+	}
+	return pkgIds, nil
+}
+
+// GetPackages will return all package objects for a given name
+func (r *Repository) GetPackages(tx *bolt.Tx, pool *Pool, pkgName string) ([]*libeopkg.MetaPackage, error) {
+	var pkgs []*libeopkg.MetaPackage
+
+	entry, err := r.GetEntry(tx, pkgName)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, id := range entry.Available {
+		p, err := pool.GetEntry(tx, id)
+		if err != nil {
+			return nil, err
+		}
+		pkgs = append(pkgs, p.Meta)
+	}
+
+	return pkgs, nil
+}

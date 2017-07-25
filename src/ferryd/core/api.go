@@ -18,6 +18,7 @@ package core
 
 import (
 	"github.com/boltdb/bolt"
+	"libeopkg"
 )
 
 // This file provides the public API functions which are used by ferryd
@@ -90,4 +91,38 @@ func (m *Manager) Index(repoID string) error {
 	return m.db.View(func(tx *bolt.Tx) error {
 		return repo.Index(tx, m.pool)
 	})
+}
+
+// GetPackageNames will attempt to load all package names for the given
+// repository.
+func (m *Manager) GetPackageNames(repoID string) ([]string, error) {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []string
+	err = m.db.View(func(tx *bolt.Tx) error {
+		ret, err = repo.GetPackageNames(tx)
+		return err
+	})
+
+	return ret, err
+}
+
+// GetPackages will return a set of packages for the package name within the
+// specified repository
+func (m *Manager) GetPackages(repoID, pkgName string) ([]*libeopkg.MetaPackage, error) {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []*libeopkg.MetaPackage
+	err = m.db.View(func(tx *bolt.Tx) error {
+		ret, err = repo.GetPackages(tx, m.pool, pkgName)
+		return err
+	})
+
+	return ret, err
 }
