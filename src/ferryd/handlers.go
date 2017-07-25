@@ -84,6 +84,15 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	s.jproc.PushJob(jobs.NewCreateRepoJob(id))
 }
 
+// DeltaRepo will handle remote requests for repository deltaing
+func (s *Server) DeltaRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	log.WithFields(log.Fields{
+		"id": id,
+	}).Info("Repository delta requested")
+	s.jproc.PushJob(jobs.NewDeltaRepoJob(id))
+}
+
 // IndexRepo will handle remote requests for repository indexing
 func (s *Server) IndexRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
