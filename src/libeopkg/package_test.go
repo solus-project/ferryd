@@ -69,3 +69,29 @@ func TestPackageMeta(t *testing.T) {
 	fmt.Fprintf(os.Stderr, "Package: %s (%s-%d)\n", metaPkg.Name, metaPkg.History[0].Version, metaPkg.History[0].Release)
 	fmt.Fprintf(os.Stderr, "Summary: %s\n", metaPkg.Summary)
 }
+
+func TestPackageFiles(t *testing.T) {
+	pkg, err := Open(eopkgTestFile)
+	if err != nil {
+		t.Fatalf("Error opening valid .eopkg file: %v", err)
+	}
+	defer pkg.Close()
+	if err = pkg.ReadFiles(); err != nil {
+		t.Fatalf("Error reading files: %v", err)
+	}
+	var wanted *File
+	for _, file := range pkg.Files.File {
+		if file.Path == "usr/bin/nano" {
+			wanted = file
+			break
+		}
+	}
+
+	if wanted == nil {
+		t.Fatalf("Failed to find nano executable")
+	}
+
+	if wanted.FileMode().String() != "-rwxr-xr-x" {
+		t.Fatalf("Invalid file mode on nano: %s", wanted.FileMode().String())
+	}
+}

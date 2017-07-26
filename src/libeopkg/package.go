@@ -41,9 +41,10 @@ import (
 // is presently written in Python.
 //
 type Package struct {
-	Path string    // Path to this .eopkg file
-	ID   string    // Basename of the package, unique.
-	Meta *Metadata // Metadata for this package
+	Path  string    // Path to this .eopkg file
+	ID    string    // Basename of the package, unique.
+	Meta  *Metadata // Metadata for this package
+	Files *Files    // Files for this package
 
 	zipFile *zip.ReadCloser // .eopkg is a zip archvie
 }
@@ -120,8 +121,26 @@ func (p *Package) ReadMetadata() error {
 // ReadFiles will read the `files.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadFiles() error {
-	if p.FindFile("files.xml") == nil {
+	files := p.FindFile("files.xml")
+	if files == nil {
 		return ErrEopkgCorrupted
 	}
-	return ErrNotYetImplemented
+	fi, err := files.Open()
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	ret := &Files{}
+	dec := xml.NewDecoder(fi)
+	if err = dec.Decode(ret); err != nil {
+		return err
+	}
+	// Ensure file modes are accessible
+	for _, f := range ret.File {
+		if err := f.initFileMode(); err != nil {
+			return err
+		}
+	}
+	p.Files = ret
+	return nil
 }
