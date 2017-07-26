@@ -91,6 +91,9 @@ func (p *Package) FindFile(path string) *zip.File {
 // ReadMetadata will read the `metadata.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadMetadata() error {
+	if p.Meta != nil {
+		return nil
+	}
 	metaFile := p.FindFile("metadata.xml")
 	if metaFile == nil {
 		return ErrEopkgCorrupted
@@ -121,6 +124,9 @@ func (p *Package) ReadMetadata() error {
 // ReadFiles will read the `files.xml` file within the archive and
 // deserialize it into something accessible within the .eopkg container.
 func (p *Package) ReadFiles() error {
+	if p.Files != nil {
+		return nil
+	}
 	files := p.FindFile("files.xml")
 	if files == nil {
 		return ErrEopkgCorrupted
@@ -143,4 +149,12 @@ func (p *Package) ReadFiles() error {
 	}
 	p.Files = ret
 	return nil
+}
+
+// ReadAll will read both the metadata + files xml files
+func (p *Package) ReadAll() error {
+	if err := p.ReadMetadata(); err != nil {
+		return err
+	}
+	return p.ReadFiles()
 }
