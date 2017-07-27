@@ -30,10 +30,9 @@ import (
 // DeltaProducer is responsible for taking two eopkg packages and spitting out
 // a delta package for them, containing only the new files.
 type DeltaProducer struct {
-	old        *ArchiveReader
-	new        *ArchiveReader
-	targetName string
-	diffMap    map[string]int
+	old     *ArchiveReader
+	new     *ArchiveReader
+	diffMap map[string]int
 }
 
 var (
@@ -67,9 +66,6 @@ func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 	if !IsDeltaPossible(&ret.old.pkg.Meta.Package, &ret.new.pkg.Meta.Package) {
 		return nil, ErrMismatchedDelta
 	}
-
-	// Our eventual name
-	ret.targetName = ComputeDeltaName(&ret.old.pkg.Meta.Package, &ret.new.pkg.Meta.Package)
 
 	return ret, nil
 }
@@ -251,35 +247,44 @@ func (d *DeltaProducer) pushInstallBall(zipFile *zip.Writer, xzFileName string) 
 }
 
 // Commit will attempt to produce a delta between the 2 eopkg files
-func (d *DeltaProducer) Commit() error {
+// This will be performed in temporary storage so must then be copied into
+// the final resting location, and unlinked, before it can be used.
+func (d *DeltaProducer) Commit() (string, error) {
 	xzFileName, err := d.produceInstallBall()
 	var zipFileName string
 	defer func() {
 		if xzFileName != "" {
 			os.Remove(xzFileName)
 		}
+		// If we're successful, we don't delete this
 		if zipFileName != "" {
 			os.Remove(zipFileName)
 		}
 	}()
 	if err != nil {
-		return err
+		return "", err
 	}
 	out, err := ioutil.TempFile("", "ferryd-delta-eopkg")
 	if err != nil {
-		return err
+		return "", err
 	}
 	zipFileName = out.Name()
 	zip := zip.NewWriter(out)
 	if err = d.copyZipPartial(zip); err != nil {
-		return err
+		return "", err
 	}
 
 	// Now copy our install.tar.xz into the mix
 	if err = d.pushInstallBall(zip, xzFileName); err != nil {
-		return err
+		return "", err
 	}
 
-	// TODO: Make this new .delta.eopkg file accessible somewhere
-	return zip.Close()
+	ret := "" + zipFileName
+
+	if err := zip.Close(); err != nil {
+		return "", err
+	}
+
+	zipFileName = ""
+	return ret, nil
 }

@@ -17,6 +17,7 @@
 package libeopkg
 
 import (
+	"os"
 	"testing"
 )
 
@@ -32,7 +33,25 @@ func TestBasicDelta(t *testing.T) {
 		t.Fatalf("Failed to create delta producer for existing pkgs: %v", err)
 	}
 	defer producer.Close()
-	if err = producer.Commit(); err != nil {
+	path, err := producer.Commit()
+	if err != nil {
 		t.Fatalf("Failed to produce delta packages: %v", err)
 	}
+	defer os.Remove(path)
+
+	pkg, err := Open(path)
+	if err != nil {
+		t.Fatalf("Failed to open our delta package: %v", err)
+	}
+	defer pkg.Close()
+	if err = pkg.ReadAll(); err != nil {
+		t.Fatalf("Failed to read metadata on delta: %v", err)
+	}
+	if pkg.Meta.Package.Name != "nano" {
+		t.Fatalf("Invalid delta name: %s", pkg.Meta.Package.Name)
+	}
+	if pkg.Meta.Package.GetRelease() != 76 {
+		t.Fatalf("Invalid release number in delta: %d", pkg.Meta.Package.GetRelease())
+	}
+
 }
