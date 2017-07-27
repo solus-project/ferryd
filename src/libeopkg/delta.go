@@ -17,14 +17,20 @@
 package libeopkg
 
 import (
+	"archive/tar"
 	"errors"
+	"github.com/solus-project/xzed"
+	"io"
+	"io/ioutil"
+	"os"
 )
 
 // DeltaProducer is responsible for taking two eopkg packages and spitting out
 // a delta package for them, containing only the new files.
 type DeltaProducer struct {
-	old *ArchiveReader
-	new *ArchiveReader
+	old        *ArchiveReader
+	new        *ArchiveReader
+	targetName string
 }
 
 var (
@@ -57,6 +63,9 @@ func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 		return nil, ErrMismatchedDelta
 	}
 
+	// Our eventual name
+	ret.targetName = ComputeDeltaName(&ret.old.pkg.Meta.Package, &ret.new.pkg.Meta.Package)
+
 	return ret, nil
 }
 
@@ -87,9 +96,16 @@ func (d *DeltaProducer) filesToMap(r *ArchiveReader) (ret map[string][]*File) {
 
 // Commit will attempt to produce a delta between the 2 eopkg files
 func (d *DeltaProducer) Commit() error {
+	var (
+		installXZ *os.File
+		xzw       *xzed.Writer
+		tw        *tar.Writer
+		header    *tar.Header
+		err       error
+	)
+
 	hashOldFiles := d.filesToMap(d.old)
 	hashNewFiles := d.filesToMap(d.new)
-
 	diffMap := make(map[string]int)
 
 	// Note this is very simple and works just like the existing eopkg functionality
@@ -104,7 +120,57 @@ func (d *DeltaProducer) Commit() error {
 		}
 	}
 
-	// TODO: Create a new temporary install.tar.xz, and copy all data from the
-	// original install.tar.xz into it. Then wrap an eopkg around it
+	// Make sure we clean up properly!
+	defer func() {
+		if tw != nil {
+			tw.Close()
+		}
+		if xzw != nil {
+			xzw.Close()
+		}
+		if installXZ != nil {
+			os.Remove(installXZ.Name())
+		}
+	}()
+
+	// Open up an XZ-wrapped tarfile
+	installXZ, err = ioutil.TempFile("", "ferryd-installtarxz")
+	if err != nil {
+		return err
+	}
+	xzw, err = xzed.NewWriter(installXZ)
+	if err != nil {
+		return err
+	}
+	tw = tar.NewWriter(xzw)
+
+	for {
+		header, err = d.old.tarfile.Next()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+				break
+			}
+			return err
+		}
+		// Skip anything not in the diff map
+		if _, ok := diffMap[header.Name]; !ok {
+			continue
+		}
+		if err = tw.WriteHeader(header); err != nil {
+			return err
+		}
+		if header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA {
+			if _, err = io.Copy(tw, d.old.tarfile); err != nil {
+				return err
+			}
+		}
+	}
+
+	tw.Flush()
+	tw.Close()
+	xzw.Close()
+
+	// TODO: Now wrap an eopkg around it
 	return ErrMismatchedDelta
 }
