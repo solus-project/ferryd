@@ -31,6 +31,7 @@ type DeltaProducer struct {
 	old        *ArchiveReader
 	new        *ArchiveReader
 	targetName string
+	diffMap    map[string]int
 }
 
 var (
@@ -43,7 +44,9 @@ var (
 // It is very important that the old and new packages are in the correct order!
 func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 	var err error
-	ret := &DeltaProducer{}
+	ret := &DeltaProducer{
+		diffMap: make(map[string]int),
+	}
 	defer func() {
 		if err != nil {
 			ret.Close()
@@ -94,19 +97,19 @@ func (d *DeltaProducer) filesToMap(r *ArchiveReader) (ret map[string][]*File) {
 	return ret
 }
 
-// Commit will attempt to produce a delta between the 2 eopkg files
-func (d *DeltaProducer) Commit() error {
+// The bulk of the work will happen here as we attempt to produce the main
+// install.tar.xz tarball which will be used in the final .eopkg file
+func (d *DeltaProducer) produceInstallBall() (string, error) {
 	var (
 		installXZ *os.File
 		xzw       *xzed.Writer
 		tw        *tar.Writer
-		header    *tar.Header
 		err       error
+		filename  string
 	)
 
 	hashOldFiles := d.filesToMap(d.old)
 	hashNewFiles := d.filesToMap(d.new)
-	diffMap := make(map[string]int)
 
 	// Note this is very simple and works just like the existing eopkg functionality
 	// which is purely hash-diff based. eopkg will look for relocations on applying
@@ -116,7 +119,7 @@ func (d *DeltaProducer) Commit() error {
 			continue
 		}
 		for _, p := range s {
-			diffMap[p.Path] = 1
+			d.diffMap[p.Path] = 1
 		}
 	}
 
@@ -128,24 +131,37 @@ func (d *DeltaProducer) Commit() error {
 		if xzw != nil {
 			xzw.Close()
 		}
-		if installXZ != nil {
-			os.Remove(installXZ.Name())
-		}
 	}()
 
 	// Open up an XZ-wrapped tarfile
 	installXZ, err = ioutil.TempFile("", "ferryd-installtarxz")
 	if err != nil {
-		return err
+		return "", err
 	}
+	filename = installXZ.Name()
 	xzw, err = xzed.NewWriter(installXZ)
 	if err != nil {
-		return err
+		return filename, err
 	}
 	tw = tar.NewWriter(xzw)
 
+	if err = d.copyInstallPartial(tw); err != nil {
+		return filename, err
+	}
+
+	tw.Flush()
+	tw.Close()
+	xzw.Close()
+
+	return filename, nil
+}
+
+// copyInstallPartial will iterate over the contents of the existing install.tar.xz
+// for the new package, and only include the files that aren't hash-matched in the
+// old files.xml
+func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 	for {
-		header, err = d.old.tarfile.Next()
+		header, err := d.old.tarfile.Next()
 		if err != nil {
 			if err == io.EOF {
 				err = nil
@@ -154,7 +170,7 @@ func (d *DeltaProducer) Commit() error {
 			return err
 		}
 		// Skip anything not in the diff map
-		if _, ok := diffMap[header.Name]; !ok {
+		if _, ok := d.diffMap[header.Name]; !ok {
 			continue
 		}
 		if err = tw.WriteHeader(header); err != nil {
@@ -166,11 +182,19 @@ func (d *DeltaProducer) Commit() error {
 			}
 		}
 	}
+	return nil
+}
 
-	tw.Flush()
-	tw.Close()
-	xzw.Close()
-
-	// TODO: Now wrap an eopkg around it
+// Commit will attempt to produce a delta between the 2 eopkg files
+func (d *DeltaProducer) Commit() error {
+	xzFileName, err := d.produceInstallBall()
+	defer func() {
+		if xzFileName != "" {
+			os.Remove(xzFileName)
+		}
+	}()
+	if err != nil {
+		return err
+	}
 	return ErrMismatchedDelta
 }
