@@ -18,7 +18,7 @@ package libeopkg
 
 import (
 	"archive/tar"
-	"io"
+	"github.com/solus-project/xzed"
 )
 
 // ArchiveReader is used to allow reading directly from an install.tar.xz
@@ -26,7 +26,7 @@ import (
 type ArchiveReader struct {
 	pkg     *Package
 	tarfile *tar.Reader
-	fi      io.ReadCloser
+	xz      *xzed.Reader
 }
 
 // NewArchiveReader will return a new install.tar.xz reader for the given package
@@ -50,10 +50,13 @@ func NewArchiveReader(pkg *Package) (*ArchiveReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.fi = fi
-
-	// TODO: Stick xzed read here, because its not going to parse right now!
-	r.tarfile = tar.NewReader(fi)
+	xz, err := xzed.NewReader(fi)
+	if err != nil {
+		fi.Close()
+		return nil, err
+	}
+	r.xz = xz
+	r.tarfile = tar.NewReader(r.xz)
 	return r, nil
 }
 
@@ -62,6 +65,6 @@ func (a *ArchiveReader) Close() {
 	if a.tarfile == nil {
 		return
 	}
-	a.fi.Close()
+	a.xz.Close()
 	a.tarfile = nil
 }
