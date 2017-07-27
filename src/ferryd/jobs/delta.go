@@ -21,7 +21,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"libeopkg"
-	"path/filepath"
 	"sort"
 )
 
@@ -78,11 +77,20 @@ func (d *DeltaPackageJob) Perform(manager *core.Manager) error {
 
 	for i := 0; i < len(pkgs)-1; i++ {
 		old := pkgs[i]
+		if err := manager.CreateDelta(d.repoID, old, tip); err != nil {
+			log.WithFields(log.Fields{
+				"old":   old.GetID(),
+				"new":   tip.GetID(),
+				"error": err,
+				"repo":  d.repoID,
+			}).Error("Error producing delta package")
+			return err
+		}
 		log.WithFields(log.Fields{
-			"old":  filepath.Base(old.PackageURI),
-			"new":  filepath.Base(tip.PackageURI),
+			"old":  old.GetID(),
+			"new":  tip.GetID(),
 			"repo": d.repoID,
-		}).Info("Producing delta package")
+		}).Info("Successfully producing delta package")
 	}
 
 	return nil
