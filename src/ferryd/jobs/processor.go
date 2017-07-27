@@ -251,8 +251,8 @@ func (j *Processor) PushJob(task Runnable) *Job {
 
 // StartJob will actually set the job up for execution
 func (j *Processor) StartJob(job *Job) {
-	j.mut.Lock()
-	defer j.mut.Unlock()
+	j.mut.RLock()
+	defer j.mut.RUnlock()
 
 	if j.closed {
 		return
