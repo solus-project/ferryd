@@ -290,3 +290,32 @@ func (r *Repository) GetPackages(tx *bolt.Tx, pool *Pool, pkgName string) ([]*li
 
 	return pkgs, nil
 }
+
+// CreateDelta will create deltas for the given packages within this repository
+func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPackage) error {
+	if !libeopkg.IsDeltaPossible(oldPkg, newPkg) {
+		return libeopkg.ErrMismatchedDelta
+	}
+	fileName := libeopkg.ComputeDeltaName(oldPkg, newPkg)
+	fullPath := filepath.Join("lol", fileName)
+
+	// This guy exists, no point in trying to rebuild it
+	if PathExists(fullPath) {
+		return nil
+	}
+
+	oldPath := filepath.Join(r.path, oldPkg.PackageURI)
+	newPath := filepath.Join(r.path, newPkg.PackageURI)
+
+	fmt.Printf(" * Forming delta %s\n", fullPath)
+
+	if err := ProduceDelta(oldPath, newPath, fullPath); err != nil {
+		// TODO: Mark it permanently as bork
+		if err == libeopkg.ErrDeltaPointless {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}

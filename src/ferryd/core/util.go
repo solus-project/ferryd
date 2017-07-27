@@ -194,6 +194,7 @@ func ProduceDelta(oldPackage, newPackage, targetPath string) error {
 	if err != nil {
 		return err
 	}
+	defer del.Close()
 	path, err := del.Commit()
 	if err != nil {
 		return err
