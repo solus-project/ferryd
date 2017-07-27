@@ -224,6 +224,11 @@ func (j *Processor) pushJobInternal(task Runnable) *Job {
 	j.mut.Lock()
 	defer j.mut.Unlock()
 
+	// We're closed, sorry.
+	if j.closed {
+		return job
+	}
+
 	j.jobTable[job.id] = job
 
 	return job
@@ -248,6 +253,10 @@ func (j *Processor) PushJob(task Runnable) *Job {
 func (j *Processor) StartJob(job *Job) {
 	j.mut.Lock()
 	defer j.mut.Unlock()
+
+	if j.closed {
+		return
+	}
 
 	// Stick the jobs in the queue now
 	if job.task.IsSequential() {
