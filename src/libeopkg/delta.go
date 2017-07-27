@@ -35,7 +35,7 @@ var (
 
 // NewDeltaProducer will return a new delta producer for the given input packages
 // It is very important that the old and new packages are in the correct order!
-func NewDeltaProducer(pkgOld *Package, pkgNew *Package) (*DeltaProducer, error) {
+func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 	var err error
 	ret := &DeltaProducer{}
 	defer func() {
@@ -43,17 +43,17 @@ func NewDeltaProducer(pkgOld *Package, pkgNew *Package) (*DeltaProducer, error) 
 			ret.Close()
 		}
 	}()
-	ret.old, err = NewArchiveReader(pkgOld)
+	ret.old, err = NewArchiveReaderFromFilename(pkgOld)
 	if err != nil {
 		return nil, err
 	}
 
-	ret.new, err = NewArchiveReader(pkgNew)
+	ret.new, err = NewArchiveReaderFromFilename(pkgNew)
 	if err != nil {
 		return nil, err
 	}
 
-	if !IsDeltaPossible(&pkgOld.Meta.Package, &pkgNew.Meta.Package) {
+	if !IsDeltaPossible(&ret.old.pkg.Meta.Package, &ret.new.pkg.Meta.Package) {
 		return nil, ErrMismatchedDelta
 	}
 
@@ -70,4 +70,41 @@ func (d *DeltaProducer) Close() {
 		d.new.Close()
 		d.new = nil
 	}
+}
+
+// filesToMap is a helper that will let us uniquely index hash to file-set
+func (d *DeltaProducer) filesToMap(r *ArchiveReader) (ret map[string][]*File) {
+	ret = make(map[string][]*File)
+	for _, f := range r.pkg.Files.File {
+		if _, ok := ret[f.Hash]; !ok {
+			ret[f.Hash] = ([]*File{f})
+		} else {
+			ret[f.Hash] = append(ret[f.Hash], f)
+		}
+	}
+	return ret
+}
+
+// Commit will attempt to produce a delta between the 2 eopkg files
+func (d *DeltaProducer) Commit() error {
+	hashOldFiles := d.filesToMap(d.old)
+	hashNewFiles := d.filesToMap(d.new)
+
+	diffMap := make(map[string]int)
+
+	// Note this is very simple and works just like the existing eopkg functionality
+	// which is purely hash-diff based. eopkg will look for relocations on applying
+	// the update so that files get "reused"
+	for h, s := range hashNewFiles {
+		if _, ok := hashOldFiles[h]; ok {
+			continue
+		}
+		for _, p := range s {
+			diffMap[p.Path] = 1
+		}
+	}
+
+	// TODO: Create a new temporary install.tar.xz, and copy all data from the
+	// original install.tar.xz into it. Then wrap an eopkg around it
+	return ErrMismatchedDelta
 }

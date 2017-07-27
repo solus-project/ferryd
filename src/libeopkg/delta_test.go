@@ -25,3 +25,14 @@ const (
 	deltaOldPkg = "testdata/delta/nano-2.8.5-75-1-x86_64.eopkg"
 	deltaNewPkg = "testdata/delta/nano-2.8.6-76-1-x86_64.eopkg"
 )
+
+func TestBasicDelta(t *testing.T) {
+	producer, err := NewDeltaProducer(deltaOldPkg, deltaNewPkg)
+	if err != nil {
+		t.Fatalf("Failed to create delta producer for existing pkgs: %v", err)
+	}
+	defer producer.Close()
+	if err = producer.Commit(); err != nil {
+		t.Fatalf("Failed to produce delta packages: %v", err)
+	}
+}

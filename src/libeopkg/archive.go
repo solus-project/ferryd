@@ -29,6 +29,16 @@ type ArchiveReader struct {
 	xz      *xzed.Reader
 }
 
+// NewArchiveReaderFromFilename is a utility helper to construct new readers
+// for a filename, and save some boilerplate work
+func NewArchiveReaderFromFilename(filename string) (*ArchiveReader, error) {
+	pkg, err := Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewArchiveReader(pkg)
+}
+
 // NewArchiveReader will return a new install.tar.xz reader for the given package
 func NewArchiveReader(pkg *Package) (*ArchiveReader, error) {
 	r := &ArchiveReader{
