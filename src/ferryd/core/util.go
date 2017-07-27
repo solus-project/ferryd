@@ -24,6 +24,7 @@ import (
 	"github.com/solus-project/xzed"
 	"io"
 	"io/ioutil"
+	"libeopkg"
 	"os"
 	"path/filepath"
 )
@@ -184,4 +185,21 @@ func PathExists(path string) bool {
 		return true
 	}
 	return false
+}
+
+// ProduceDelta will attempt to batch the delta production between the
+// two listed file paths and then copy it into the final targetPath
+func ProduceDelta(oldPackage, newPackage, targetPath string) error {
+	del, err := libeopkg.NewDeltaProducer(oldPackage, newPackage)
+	if err != nil {
+		return err
+	}
+	path, err := del.Commit()
+	if err != nil {
+		return err
+	}
+	// Always nuke the tmpfile
+	defer os.Remove(path)
+
+	return CopyFile(path, targetPath)
 }
