@@ -18,11 +18,13 @@ package libeopkg
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"errors"
 	"github.com/solus-project/xzed"
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 // DeltaProducer is responsible for taking two eopkg packages and spitting out
@@ -182,19 +184,102 @@ func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 			}
 		}
 	}
+	return tw.Flush()
+}
+
+// copyZipPartial will iterate the central zip directory and skip only the
+// install.tar.xz files, whilst copying everything else into the new zip
+func (d *DeltaProducer) copyZipPartial(zw *zip.Writer) error {
+	for _, zipFile := range d.new.pkg.zipFile.File {
+		// Skip any kind of install.tar internally
+		if strings.HasPrefix(zipFile.Name, "install.tar") {
+			continue
+		}
+
+		iop, err := zipFile.Open()
+		if err != nil {
+			return err
+		}
+		defer iop.Close()
+
+		zwh := &zip.FileHeader{}
+		*zwh = zipFile.FileHeader
+
+		// Copy the File member across (it implements FileHeader)
+		w, err := zw.CreateHeader(zwh)
+		if err != nil {
+			return err
+		}
+		if _, err = io.Copy(w, iop); err != nil {
+			return err
+		}
+		iop.Close() // be really sure we close it..
+	}
 	return nil
+}
+
+func (d *DeltaProducer) pushInstallBall(zipFile *zip.Writer, xzFileName string) error {
+	f, err := os.Open(xzFileName)
+	if err != nil {
+		return err
+	}
+	// Stat for header
+	fst, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fh, err := zip.FileInfoHeader(fst)
+	if err != nil {
+		return err
+	}
+
+	// Ensure it's always the right name.
+	fh.Name = "install.tar.xz"
+
+	w, err := zipFile.CreateHeader(fh)
+	if err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(w, f); err != nil {
+		return err
+	}
+
+	return zipFile.Flush()
 }
 
 // Commit will attempt to produce a delta between the 2 eopkg files
 func (d *DeltaProducer) Commit() error {
 	xzFileName, err := d.produceInstallBall()
+	var zipFileName string
 	defer func() {
 		if xzFileName != "" {
 			os.Remove(xzFileName)
+		}
+		if zipFileName != "" {
+			os.Remove(zipFileName)
 		}
 	}()
 	if err != nil {
 		return err
 	}
-	return ErrMismatchedDelta
+	out, err := ioutil.TempFile("", "ferryd-delta-eopkg")
+	if err != nil {
+		return err
+	}
+	zipFileName = out.Name()
+	zip := zip.NewWriter(out)
+	if err = d.copyZipPartial(zip); err != nil {
+		return err
+	}
+
+	// Now copy our install.tar.xz into the mix
+	if err = d.pushInstallBall(zip, xzFileName); err != nil {
+		return err
+	}
+
+	// TODO: Make this new .delta.eopkg file accessible somewhere
+	return zip.Close()
 }
