@@ -152,6 +152,11 @@ type MetaPackage struct {
 	Source Source // Duplicate source to satisfy indexing
 }
 
+// GetID will return the package ID for ferryd
+func (m *MetaPackage) GetID() string {
+	return filepath.Base(m.PackageURI)
+}
+
 // GetRelease is a helpful wrapper to return the package's current release
 func (m *MetaPackage) GetRelease() int {
 	return m.History[0].Release
