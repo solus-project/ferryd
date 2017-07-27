@@ -39,6 +39,10 @@ var (
 	// ErrMismatchedDelta is returned when the input packages should never be delta'd,
 	// i.e. they're unrelated
 	ErrMismatchedDelta = errors.New("Delta is not possible between the input packages")
+
+	// ErrDeltaPointless is returned when it is quite literally pointless to bother making
+	// a delta package, due to the packages having exactly the same content.
+	ErrDeltaPointless = errors.New("File set is the same, no point in creating delta")
 )
 
 // NewDeltaProducer will return a new delta producer for the given input packages
@@ -112,13 +116,26 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 	// Note this is very simple and works just like the existing eopkg functionality
 	// which is purely hash-diff based. eopkg will look for relocations on applying
 	// the update so that files get "reused"
+	//
+	// Special Note: Key "" denotes a directory which is basically empty, so we must
+	// always include these in the delta
 	for h, s := range hashNewFiles {
-		if _, ok := hashOldFiles[h]; ok {
+		if _, ok := hashOldFiles[h]; ok && h != "" {
 			continue
 		}
 		for _, p := range s {
-			d.diffMap[p.Path] = 1
+			d.diffMap[strings.TrimSuffix(p.Path, "/")] = 1
 		}
+	}
+
+	// All the same files
+	if len(d.diffMap) == len(d.new.pkg.Files.File) {
+		return "", ErrDeltaPointless
+	}
+
+	// No install.tar.xz to write as we have no different files
+	if len(d.diffMap) == 0 {
+		return "", nil
 	}
 
 	// Make sure we clean up properly!
@@ -167,10 +184,15 @@ func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 			}
 			return err
 		}
+
+		// Ensure that we compare things in the same way
+		checkName := strings.TrimSuffix(header.Name, "/")
+
 		// Skip anything not in the diff map
-		if _, ok := d.diffMap[header.Name]; !ok {
+		if _, ok := d.diffMap[checkName]; !ok {
 			continue
 		}
+
 		if err = tw.WriteHeader(header); err != nil {
 			return err
 		}
@@ -215,6 +237,10 @@ func (d *DeltaProducer) copyZipPartial(zw *zip.Writer) error {
 }
 
 func (d *DeltaProducer) pushInstallBall(zipFile *zip.Writer, xzFileName string) error {
+	// No install.tar.xz to write as we have no different files
+	if len(d.diffMap) == 0 {
+		return nil
+	}
 	f, err := os.Open(xzFileName)
 	if err != nil {
 		return err
