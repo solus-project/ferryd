@@ -18,9 +18,6 @@ package libeopkg
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 )
 
 // DISCLAIMER: This stuff is just supporting the existing eopkg stuff.
@@ -48,40 +45,4 @@ func IsDeltaPossible(oldPackage, newPackage *MetaPackage) bool {
 		oldPackage.Name == newPackage.Name &&
 		oldPackage.DistributionRelease == newPackage.DistributionRelease &&
 		oldPackage.Architecture == newPackage.Architecture
-}
-
-// ProduceDelta will take two input packages and attempt to cook a delta package for
-// them. This may fail due to the differences being two large
-func ProduceDelta(oldPackage *MetaPackage, newPackage *MetaPackage, baseDir, deltaPath string) error {
-	oldPackagePath := filepath.Join(baseDir, oldPackage.PackageURI)
-	newPackagePath := filepath.Join(baseDir, newPackage.PackageURI)
-
-	deltaDir := filepath.Dir(deltaPath)
-
-	// eopkg is inefficient in generating delta packages, and will first extract the
-	// newest package. The delta is then reproduced from the exploded new package, which
-	// may result in permission violations (i.e. not being able to restore setuid
-	// Consequently we pipe the call via fakeroot to "fix" this.
-	cmd := []string{
-		"fakeroot", "eopkg", "delta",
-		oldPackagePath, newPackagePath,
-		"-t", newPackagePath,
-		"-o", deltaDir,
-	}
-	c := exec.Command(cmd[0], cmd[1:]...)
-	c.Dir = deltaDir
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	if err := c.Run(); err != nil {
-		return err
-	}
-
-	// eopkg might decide to be a prat and not error even if the delta wasn't
-	// generated, so we'll check after that the path even exists.
-	if _, err := os.Stat(deltaPath); err != nil {
-		return err
-	}
-
-	// In theory, have a .delta.eopkg now
-	return nil
 }
