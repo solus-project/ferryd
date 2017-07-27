@@ -176,7 +176,7 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 // old files.xml
 func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 	for {
-		header, err := d.old.tarfile.Next()
+		header, err := d.new.tarfile.Next()
 		if err != nil {
 			if err == io.EOF {
 				err = nil
@@ -197,7 +197,7 @@ func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 			return err
 		}
 		if header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA {
-			if _, err = io.Copy(tw, d.old.tarfile); err != nil {
+			if _, err = io.Copy(tw, d.new.tarfile); err != nil {
 				return err
 			}
 		}
