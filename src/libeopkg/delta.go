@@ -30,7 +30,7 @@ import (
 // DeltaProducer is responsible for taking two eopkg packages and spitting out
 // a delta package for them, containing only the new files.
 type DeltaProducer struct {
-	old     *ArchiveReader
+	old     *Package
 	new     *ArchiveReader
 	diffMap map[string]int
 }
@@ -57,8 +57,12 @@ func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 			ret.Close()
 		}
 	}()
-	ret.old, err = NewArchiveReaderFromFilename(pkgOld)
+	ret.old, err = Open(pkgOld)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = ret.old.ReadAll(); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +71,7 @@ func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 		return nil, err
 	}
 
-	if !IsDeltaPossible(&ret.old.pkg.Meta.Package, &ret.new.pkg.Meta.Package) {
+	if !IsDeltaPossible(&ret.old.Meta.Package, &ret.new.pkg.Meta.Package) {
 		return nil, ErrMismatchedDelta
 	}
 
@@ -87,9 +91,9 @@ func (d *DeltaProducer) Close() {
 }
 
 // filesToMap is a helper that will let us uniquely index hash to file-set
-func (d *DeltaProducer) filesToMap(r *ArchiveReader) (ret map[string][]*File) {
+func (d *DeltaProducer) filesToMap(p *Package) (ret map[string][]*File) {
 	ret = make(map[string][]*File)
-	for _, f := range r.pkg.Files.File {
+	for _, f := range p.Files.File {
 		if _, ok := ret[f.Hash]; !ok {
 			ret[f.Hash] = ([]*File{f})
 		} else {
@@ -111,7 +115,7 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 	)
 
 	hashOldFiles := d.filesToMap(d.old)
-	hashNewFiles := d.filesToMap(d.new)
+	hashNewFiles := d.filesToMap(d.new.pkg)
 
 	// Note this is very simple and works just like the existing eopkg functionality
 	// which is purely hash-diff based. eopkg will look for relocations on applying
