@@ -18,6 +18,8 @@ package libeopkg
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 )
 
 // DISCLAIMER: This stuff is just supporting the existing eopkg stuff.
@@ -45,4 +47,39 @@ func IsDeltaPossible(oldPackage, newPackage *MetaPackage) bool {
 		oldPackage.Name == newPackage.Name &&
 		oldPackage.DistributionRelease == newPackage.DistributionRelease &&
 		oldPackage.Architecture == newPackage.Architecture
+}
+
+// XzFile is a simple wrapper around the xz utility to compress the input
+// file. This will be performed in place and leave a ".xz" suffixed file in
+// place
+// Keep original determines whether we'll keep the original file
+func XzFile(inputPath string, keepOriginal bool) error {
+	cmd := []string{
+		"xz",
+		"-6",
+		"-T", "2",
+		inputPath,
+	}
+	if keepOriginal {
+		cmd = append(cmd, "-k")
+	}
+	c := exec.Command(cmd[0], cmd[1:]...)
+	c.Stderr = os.Stderr
+	return c.Run()
+}
+
+// UnxzFile will decompress the input XZ file and leave a new file in place
+// without the .xz suffix
+func UnxzFile(inputPath string, keepOriginal bool) error {
+	cmd := []string{
+		"unxz",
+		"-T", "2",
+		inputPath,
+	}
+	if keepOriginal {
+		cmd = append(cmd, "-k")
+	}
+	c := exec.Command(cmd[0], cmd[1:]...)
+	c.Stderr = os.Stderr
+	return c.Run()
 }

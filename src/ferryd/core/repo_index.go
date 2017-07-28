@@ -267,12 +267,12 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 	}
 
 	// Write our XZ index out
-	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.xz.new")
+	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.new.xz")
 	indexPathXzFinal := filepath.Join(r.path, "eopkg-index.xml.xz")
 	outPaths = append(outPaths, indexPathXz)
 	finalPaths = append(finalPaths, indexPathXzFinal)
 
-	if errAbort = WriteXz(indexPath, indexPathXz); errAbort != nil {
+	if errAbort = libeopkg.XzFile(indexPath, true); errAbort != nil {
 		return errAbort
 	}
 
