@@ -125,12 +125,21 @@ func (j *Processor) executeJob(job *Job) {
 		}
 	}
 
+	j.popJob(job)
+
 	if err != nil {
 		j.reportError(job, err)
 		return
 	}
 
 	job.status = StatusSuccess
+}
+
+// popJob will remove the job from the internal state processor
+func (j *Processor) popJob(job *Job) {
+	j.mut.Lock()
+	defer j.mut.Unlock()
+	delete(j.jobTable, job.id)
 }
 
 // processSequentialQueue is responsible for dealing with the sequential queue
