@@ -19,6 +19,8 @@ package libeopkg
 import (
 	"archive/zip"
 	"encoding/xml"
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -157,4 +159,30 @@ func (p *Package) ReadAll() error {
 		return err
 	}
 	return p.ReadFiles()
+}
+
+// ExtractTarball will fully extract install.tar.xz to the destination
+// direction + install.tar suffix
+func (p *Package) ExtractTarball(directory string) error {
+	xzName := filepath.Join(directory, "install.tar.xz")
+
+	tarball := p.FindFile("install.tar.xz")
+	if tarball == nil {
+		return ErrEopkgCorrupted
+	}
+
+	fi, err := tarball.Open()
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	outF, err := os.Create(xzName)
+	if err != nil {
+		return err
+	}
+	defer outF.Close()
+	if _, err = io.Copy(outF, fi); err != nil {
+		return err
+	}
+	return UnxzFile(xzName, false)
 }
