@@ -309,7 +309,8 @@ func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPacka
 
 	fmt.Printf(" * Forming delta %s\n", fullPath)
 
-	if err := ProduceDelta(oldPath, newPath, fullPath); err != nil {
+	// TODO: actually do something not insane here
+	if err := ProduceDelta("TEMPORARY", oldPath, newPath, fullPath); err != nil {
 		// TODO: Mark it permanently as bork
 		if err == libeopkg.ErrDeltaPointless {
 			return nil

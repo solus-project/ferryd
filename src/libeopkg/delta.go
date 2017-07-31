@@ -20,10 +20,10 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"errors"
-	"github.com/solus-project/xzed"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -31,7 +31,8 @@ import (
 // a delta package for them, containing only the new files.
 type DeltaProducer struct {
 	old     *Package
-	new     *ArchiveReader
+	new     *Package
+	baseDir string
 	diffMap map[string]int
 }
 
@@ -47,7 +48,7 @@ var (
 
 // NewDeltaProducer will return a new delta producer for the given input packages
 // It is very important that the old and new packages are in the correct order!
-func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
+func NewDeltaProducer(baseDir string, pkgOld string, pkgNew string) (*DeltaProducer, error) {
 	var err error
 	ret := &DeltaProducer{
 		diffMap: make(map[string]int),
@@ -66,20 +67,39 @@ func NewDeltaProducer(pkgOld string, pkgNew string) (*DeltaProducer, error) {
 		return nil, err
 	}
 
-	ret.new, err = NewArchiveReaderFromFilename(pkgNew)
+	ret.new, err = Open(pkgNew)
 	if err != nil {
 		return nil, err
 	}
 
-	if !IsDeltaPossible(&ret.old.Meta.Package, &ret.new.pkg.Meta.Package) {
+	if err = ret.new.ReadAll(); err != nil {
+		return nil, err
+	}
+
+	if !IsDeltaPossible(&ret.old.Meta.Package, &ret.new.Meta.Package) {
 		return nil, ErrMismatchedDelta
+	}
+
+	// Form a unique directory entry
+	dirName := fmt.Sprintf("%s-%s-%s-%d-%d",
+		ret.new.Meta.Package.Name,
+		ret.new.Meta.Package.GetVersion(),
+		ret.new.Meta.Package.Architecture,
+		ret.old.Meta.Package.GetRelease(),
+		ret.new.Meta.Package.GetRelease())
+
+	ret.baseDir = filepath.Join(baseDir, dirName)
+
+	// Make sure base directory actually exists
+	if err = os.MkdirAll(ret.baseDir, 00755); err != nil {
+		return nil, err
 	}
 
 	return ret, nil
 }
 
 // Close the DeltaProducer
-func (d *DeltaProducer) Close() {
+func (d *DeltaProducer) Close() error {
 	if d.old != nil {
 		d.old.Close()
 		d.old = nil
@@ -88,6 +108,11 @@ func (d *DeltaProducer) Close() {
 		d.new.Close()
 		d.new = nil
 	}
+	// Ensure we always nuke the work directory we used
+	if d.baseDir != "" {
+		return os.RemoveAll(d.baseDir)
+	}
+	return nil
 }
 
 // filesToMap is a helper that will let us uniquely index hash to file-set
@@ -107,15 +132,13 @@ func (d *DeltaProducer) filesToMap(p *Package) (ret map[string][]*File) {
 // install.tar.xz tarball which will be used in the final .eopkg file
 func (d *DeltaProducer) produceInstallBall() (string, error) {
 	var (
-		installXZ *os.File
-		xzw       *xzed.Writer
-		tw        *tar.Writer
-		err       error
-		filename  string
+		tw       *tar.Writer
+		err      error
+		filename string
 	)
 
 	hashOldFiles := d.filesToMap(d.old)
-	hashNewFiles := d.filesToMap(d.new.pkg)
+	hashNewFiles := d.filesToMap(d.new)
 
 	// Note this is very simple and works just like the existing eopkg functionality
 	// which is purely hash-diff based. eopkg will look for relocations on applying
@@ -133,7 +156,7 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 	}
 
 	// All the same files
-	if len(d.diffMap) == len(d.new.pkg.Files.File) {
+	if len(d.diffMap) == len(d.new.Files.File) {
 		return "", ErrDeltaPointless
 	}
 
@@ -147,22 +170,15 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 		if tw != nil {
 			tw.Close()
 		}
-		if xzw != nil {
-			xzw.Close()
-		}
 	}()
 
-	// Open up an XZ-wrapped tarfile
-	installXZ, err = ioutil.TempFile("", "ferryd-installtarxz")
+	// Open output file to write our tarfile.
+	installTar := filepath.Join(d.baseDir, "delta-eopkg.install.tar")
+	outF, err := os.Create(installTar)
 	if err != nil {
 		return "", err
 	}
-	filename = installXZ.Name()
-	xzw, err = xzed.NewWriter(installXZ)
-	if err != nil {
-		return filename, err
-	}
-	tw = tar.NewWriter(xzw)
+	tw = tar.NewWriter(outF)
 
 	if err = d.copyInstallPartial(tw); err != nil {
 		return filename, err
@@ -170,17 +186,33 @@ func (d *DeltaProducer) produceInstallBall() (string, error) {
 
 	tw.Flush()
 	tw.Close()
-	xzw.Close()
 
-	return filename, nil
+	if err = XzFile(installTar, false); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.xz", installTar), nil
 }
 
 // copyInstallPartial will iterate over the contents of the existing install.tar.xz
 // for the new package, and only include the files that aren't hash-matched in the
 // old files.xml
 func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
+
+	// Ensure we have tarball ready for use
+	if err := d.new.ExtractTarball(d.baseDir); err != nil {
+		return err
+	}
+
+	inpFile := filepath.Join(d.baseDir, "install.tar")
+	fi, err := os.Open(inpFile)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	tarfile := tar.NewReader(fi)
+
 	for {
-		header, err := d.new.tarfile.Next()
+		header, err := tarfile.Next()
 		if err != nil {
 			if err == io.EOF {
 				err = nil
@@ -201,7 +233,7 @@ func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 			return err
 		}
 		if header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA {
-			if _, err = io.Copy(tw, d.new.tarfile); err != nil {
+			if _, err = io.Copy(tw, tarfile); err != nil {
 				return err
 			}
 		}
@@ -212,7 +244,7 @@ func (d *DeltaProducer) copyInstallPartial(tw *tar.Writer) error {
 // copyZipPartial will iterate the central zip directory and skip only the
 // install.tar.xz files, whilst copying everything else into the new zip
 func (d *DeltaProducer) copyZipPartial(zw *zip.Writer) error {
-	for _, zipFile := range d.new.pkg.zipFile.File {
+	for _, zipFile := range d.new.zipFile.File {
 		// Skip any kind of install.tar internally
 		if strings.HasPrefix(zipFile.Name, "install.tar") {
 			continue
@@ -294,7 +326,8 @@ func (d *DeltaProducer) Commit() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	out, err := ioutil.TempFile("", "ferryd-delta-eopkg")
+	fpath := filepath.Join(d.baseDir, ComputeDeltaName(&d.old.Meta.Package, &d.new.Meta.Package))
+	out, err := os.Create(fpath)
 	if err != nil {
 		return "", err
 	}

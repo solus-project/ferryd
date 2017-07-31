@@ -28,7 +28,7 @@ const (
 )
 
 func TestBasicDelta(t *testing.T) {
-	producer, err := NewDeltaProducer(deltaOldPkg, deltaNewPkg)
+	producer, err := NewDeltaProducer("TESTING", deltaOldPkg, deltaNewPkg)
 	if err != nil {
 		t.Fatalf("Failed to create delta producer for existing pkgs: %v", err)
 	}

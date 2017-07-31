@@ -158,8 +158,8 @@ func PathExists(path string) bool {
 
 // ProduceDelta will attempt to batch the delta production between the
 // two listed file paths and then copy it into the final targetPath
-func ProduceDelta(oldPackage, newPackage, targetPath string) error {
-	del, err := libeopkg.NewDeltaProducer(oldPackage, newPackage)
+func ProduceDelta(tmpDir, oldPackage, newPackage, targetPath string) error {
+	del, err := libeopkg.NewDeltaProducer(tmpDir, oldPackage, newPackage)
 	if err != nil {
 		return err
 	}
@@ -168,8 +168,9 @@ func ProduceDelta(oldPackage, newPackage, targetPath string) error {
 	if err != nil {
 		return err
 	}
+
 	// Always nuke the tmpfile
 	defer os.Remove(path)
 
-	return CopyFile(path, targetPath)
+	return LinkOrCopyFile(path, targetPath, false)
 }
