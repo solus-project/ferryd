@@ -25,6 +25,22 @@ To reduce the cost of indexing a repository (many thousands of packages) a simpl
 
 `ferryd` should also support the automatic creation of `.delta.eopkg` delta packages to reduce the cost of update for users. While the existing `binman.py` implementation can do all these things, it is very limited, inefficient, and often misses delta opportunities.
 
+
+Usage (basic)
+-------------
+
+Start ferryd to monitor `ferryd.sock`:
+
+    ./bin/ferryd
+
+Create a repo:
+
+    ./bin/ferryctl create-repo testing
+
+Add packages:
+
+    ./bin/ferryctl import testing path/to/eopkgs
+
 License
 -------
 
