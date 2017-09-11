@@ -19,19 +19,21 @@ package jobs
 import (
 	"errors"
 	"github.com/boltdb/bolt"
-    "log"
+	"log"
 )
 
 var asyncJobs []byte
-var syncJobs  []byte
-var jobStore  []byte
+var syncJobs []byte
+var jobStore []byte
+
 // EmptyQueue occurs when trying to claim a job from an empty queue
 var EmptyQueue error
+
 func init() {
 	asyncJobs = []byte("AsynchronousJobs")
-	syncJobs  = []byte("SynchronousJobs")
-	jobStore  = []byte("JobStore")
-    EmptyQueue = errors.New("Queue is empty")
+	syncJobs = []byte("SynchronousJobs")
+	jobStore = []byte("JobStore")
+	EmptyQueue = errors.New("Queue is empty")
 }
 
 // JobStore handles the storage and manipulation of incomplete jobs
@@ -81,19 +83,19 @@ func (s *JobStore) ClaimAsyncJob() (id []byte, j JobEntry, err error) {
 	async := tx.Bucket(asyncJobs)
 	cursor := async.Cursor()
 	id, value := cursor.First()
-    var newJ []byte
+	var newJ []byte
 	for id != nil {
-		j , err= Deserialize(value)
-        if err != nil {
-            log.Fatal(err.Error())
-        }
+		j, err = Deserialize(value)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 		if !j.Claimed {
 			j.Claimed = true
-            newJ, err = j.Serialize()
-            if err != nil {
-                tx.Rollback()
-                return
-            }
+			newJ, err = j.Serialize()
+			if err != nil {
+				tx.Rollback()
+				return
+			}
 			err = async.Put(id, newJ)
 			if err != nil {
 				tx.Commit()
@@ -131,7 +133,7 @@ func (s *JobStore) RetireAsyncJob(id []byte) error {
 		return err
 	}
 	async := tx.Bucket(asyncJobs)
-    return async.Delete(id)
+	return async.Delete(id)
 }
 
 // RetireSyncJob removes a completed synchronous job

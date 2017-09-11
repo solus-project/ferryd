@@ -17,18 +17,26 @@
 package jobs
 
 import (
-    "bytes"
-    "encoding/gob"
+	"bytes"
+	"encoding/gob"
 )
 
 // JobType is a numerical representation of a kind of job
 type JobType uint8
 
 const (
+	// BulkAdd is a sequential job which will attempt to add all of the packages
 	BulkAdd JobType = iota
+	// CreateRepo is a sequential job which will attempt to create a new repo
 	CreateRepo
+	// Delta is a parallel job which will attempt the construction of deltas for
+	// a given package name + repo
 	Delta
+	// DeltaRepo is a sequential job which creates Delta jobs for every package in
+	// a repo
 	DeltaRepo
+	// TransitProcess is a sequential job that will process the incoming uploads
+	// directory, dealing with each .tram upload
 	TransitProcess
 )
 
@@ -36,24 +44,25 @@ const (
 type JobEntry struct {
 	Type    JobType
 	Claimed bool
-    Params  interface{}
+	Params  []string
 }
 
 // Serialize uses Gob encoding to convert a JobEntry to a byte slice
 func (j *JobEntry) Serialize() (result []byte, err error) {
-    buff := bytes.NewBuffer(make([]byte,0))
-    enc := gob.NewEncoder(buff)
-    err = enc.Encode(*j)
-    if err != nil {
-        return
-    }
-    result = buff.Bytes()
-    return
+	buff := bytes.NewBuffer(make([]byte, 0))
+	enc := gob.NewEncoder(buff)
+	err = enc.Encode(*j)
+	if err != nil {
+		return
+	}
+	result = buff.Bytes()
+	return
 }
 
+// Deserialize use Gob decoding to convert a byte slice to a JobEntry
 func Deserialize(serial []byte) (j JobEntry, err error) {
-    buff := bytes.NewBuffer(serial)
-    dec := gob.NewDecoder(buff)
-    err = dec.Decode(j)
-    return
+	buff := bytes.NewBuffer(serial)
+	dec := gob.NewDecoder(buff)
+	err = dec.Decode(j)
+	return
 }
