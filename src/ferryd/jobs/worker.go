@@ -32,12 +32,16 @@ type JobReaper func(j *JobEntry) error
 var (
 	// timeIndexes allow us to gradually increase our sleep duration
 	timeIndexes = []time.Duration{
+		time.Millisecond * 100,
 		time.Millisecond * 500,
 		time.Second * 1,
 		time.Second * 5,
 		time.Second * 10,
+		time.Second * 15,
 		time.Second * 20,
+		time.Second * 30,
 		time.Second * 40,
+		time.Second * 50,
 		time.Second * 60,
 	}
 )
