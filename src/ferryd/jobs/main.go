@@ -23,22 +23,27 @@ import (
 )
 
 // JobType is a numerical representation of a kind of job
-type JobType uint8
+type JobType string
 
 const (
+
 	// BulkAdd is a sequential job which will attempt to add all of the packages
-	BulkAdd JobType = iota
+	BulkAdd JobType = "BulkAdd"
+
 	// CreateRepo is a sequential job which will attempt to create a new repo
-	CreateRepo
+	CreateRepo = "CreateRepo"
+
 	// Delta is a parallel job which will attempt the construction of deltas for
 	// a given package name + repo
-	Delta
+	Delta = "Delta"
+
 	// DeltaRepo is a sequential job which creates Delta jobs for every package in
 	// a repo
-	DeltaRepo
+	DeltaRepo = "DeltaRepo"
+
 	// TransitProcess is a sequential job that will process the incoming uploads
 	// directory, dealing with each .tram upload
-	TransitProcess
+	TransitProcess = "TransitProcess"
 )
 
 // JobEntry is an entry in the JobQueue
