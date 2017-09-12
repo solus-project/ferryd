@@ -44,6 +44,7 @@ type Server struct {
 	socket  net.Listener
 
 	manager    *core.Manager     // heart of the story
+	store      *jobs.JobStore    // Storage for jobs processor
 	jproc      *jobs.Processor   // Allow scheduling jobs
 	watcher    *fsnotify.Watcher // Monitor incoming uploads
 	watchChan  chan bool         // Allow terminating the watcher
@@ -93,17 +94,26 @@ func (s *Server) Bind() error {
 		return e
 	}
 
+	baseDir := "./ferry"
+
 	// Create new Slip Manager for the "./ferry" repo
-	if err := os.MkdirAll("./ferry", 00755); err != nil {
+	if err := os.MkdirAll(baseDir, 00755); err != nil {
 		return err
 	}
-	m, e := core.NewManager("./ferry")
+	m, e := core.NewManager(baseDir)
 	if e != nil {
 		return e
 	}
 	s.manager = m
+
+	st, e := jobs.NewStore(m.DB())
+	if e != nil {
+		return e
+	}
+	s.store = st
+
 	// TODO: Expose setting for background job count
-	s.jproc = jobs.NewProcessor(s.manager, -1)
+	s.jproc = jobs.NewProcessor(s.manager, s.store, -1)
 
 	// Set up watching the manager's incoming directory
 	if err := s.InitWatcher(); err != nil {
@@ -151,6 +161,7 @@ func (s *Server) Close() {
 	}
 	s.StopWatching()
 	s.jproc.Close()
+	s.store.Close()
 	s.manager.Close()
 	s.running = false
 	s.srv.Shutdown(nil)

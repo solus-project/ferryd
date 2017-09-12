@@ -42,11 +42,16 @@ type JobStore struct {
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
-func NewStore(db *bolt.DB) (s *JobStore, err error) {
-	s = &JobStore{db}
-	err = s.setup()
-	return
+func NewStore(db *bolt.DB) (*JobStore, error) {
+	s := &JobStore{db}
+	if err := s.setup(); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
+
+// Close is currently a no-op placeholder for when JobStore has it's own db
+func (s *JobStore) Close() {}
 
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {

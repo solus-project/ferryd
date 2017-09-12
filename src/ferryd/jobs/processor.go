@@ -38,7 +38,7 @@ type Processor struct {
 // NewProcessor will return a new Processor with the specified number
 // of jobs. Note that "njobs" only refers to the number of *background jobs*,
 // the majority of operations will run sequentially
-func NewProcessor(m *core.Manager, njobs int) *Processor {
+func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 	if njobs < 0 {
 		njobs = runtime.NumCPU()
 	}
@@ -47,6 +47,7 @@ func NewProcessor(m *core.Manager, njobs int) *Processor {
 
 	ret := &Processor{
 		manager: m,
+		store:   store,
 		wg:      &sync.WaitGroup{},
 		closed:  false,
 		njobs:   njobs,
