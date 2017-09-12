@@ -29,9 +29,6 @@ var (
 	// BucketSyncJobs holds all sequential jobs
 	BucketSyncJobs = []byte("SynchronousJobs")
 
-	// BucketJobStore holds metadata for each job
-	BucketJobStore = []byte("JobStore")
-
 	// ErrEmptyQueue is returned to indicate a job is not available yet
 	ErrEmptyQueue = errors.New("Queue is empty")
 )
@@ -53,7 +50,6 @@ func (s *JobStore) setup() error {
 	buckets := [][]byte{
 		BucketAsyncJobs,
 		BucketSyncJobs,
-		BucketJobStore,
 	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		for _, b := range buckets {
