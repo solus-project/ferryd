@@ -74,10 +74,10 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		async := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
+		bucket := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
 		var newJ []byte
 
-		err := async.ForEach(func(id, value []byte) error {
+		err := bucket.ForEach(func(id, value []byte) error {
 			j, err := Deserialize(value)
 			if err != nil {
 				return err
@@ -92,7 +92,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 				}
 
 				// Put the new guy back in
-				if err = async.Put(id, newJ); err != nil {
+				if err = bucket.Put(id, newJ); err != nil {
 					return err
 				}
 
