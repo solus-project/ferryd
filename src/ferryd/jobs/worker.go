@@ -189,8 +189,9 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 // to execute it. Each Worker can only execute a single job at a time
 func (w *Worker) processJob(job *JobEntry) {
 	log.WithFields(log.Fields{
-		"id":    job.id,
-		"type":  job.Type,
-		"async": !w.sequential,
+		"id":     job.id,
+		"type":   job.Type,
+		"params": job.Params,
+		"async":  !w.sequential,
 	}).Info("Unable to actually process job yet")
 }
