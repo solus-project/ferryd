@@ -21,19 +21,19 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-var asyncJobs []byte
-var syncJobs []byte
-var jobStore []byte
+var (
+	// BucketAsyncJobs holds all asynchronous jobs
+	BucketAsyncJobs = []byte("AsynchronousJobs")
 
-// EmptyQueue occurs when trying to claim a job from an empty queue
-var EmptyQueue error
+	// BucketSyncJobs holds all sequential jobs
+	BucketSyncJobs = []byte("SynchronousJobs")
 
-func init() {
-	asyncJobs = []byte("AsynchronousJobs")
-	syncJobs = []byte("SynchronousJobs")
-	jobStore = []byte("JobStore")
-	EmptyQueue = errors.New("Queue is empty")
-}
+	// BucketJobStore holds metadata for each job
+	BucketJobStore = []byte("JobStore")
+
+	// ErrEmptyQueue is returned to indicate a job is not available yet
+	ErrEmptyQueue = errors.New("Queue is empty")
+)
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
@@ -50,9 +50,9 @@ func NewStore(db *bolt.DB) (s *JobStore, err error) {
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {
 	buckets := [][]byte{
-		jobStore,
-		syncJobs,
-		asyncJobs,
+		BucketAsyncJobs,
+		BucketSyncJobs,
+		BucketJobStore,
 	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		for _, b := range buckets {
@@ -70,7 +70,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		async := tx.Bucket(asyncJobs)
+		async := tx.Bucket(BucketAsyncJobs)
 		cursor := async.Cursor()
 		id, value := cursor.First()
 		var newJ []byte
@@ -100,7 +100,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 			id, value = cursor.Next()
 		}
 		// No available jobs to peek
-		return EmptyQueue
+		return ErrEmptyQueue
 	})
 
 	if err != nil {
@@ -115,10 +115,10 @@ func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.View(func(tx *bolt.Tx) error {
-		cursor := tx.Bucket(syncJobs).Cursor()
+		cursor := tx.Bucket(BucketSyncJobs).Cursor()
 		id, value := cursor.First()
 		if id == nil {
-			return EmptyQueue
+			return ErrEmptyQueue
 		}
 		j, e := Deserialize(value)
 		if e != nil {
@@ -140,13 +140,13 @@ func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(asyncJobs).Delete(j.id)
+		return tx.Bucket(BucketAsyncJobs).Delete(j.id)
 	})
 }
 
 // RetireSyncJob removes a completed synchronous job
 func (s *JobStore) RetireSyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(syncJobs).Delete(j.id)
+		return tx.Bucket(BucketSyncJobs).Delete(j.id)
 	})
 }
