@@ -19,7 +19,6 @@ package jobs
 import (
 	"errors"
 	"github.com/boltdb/bolt"
-	"log"
 )
 
 var asyncJobs []byte
@@ -67,74 +66,87 @@ func (s *JobStore) setup() error {
 }
 
 // ClaimAsyncJob gets the first available asynchronous job, if one exists
-func (s *JobStore) ClaimAsyncJob() (id []byte, j JobEntry, err error) {
-	tx, err := s.db.Begin(false)
+func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
+	var job *JobEntry
+
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		async := tx.Bucket(asyncJobs)
+		cursor := async.Cursor()
+		id, value := cursor.First()
+		var newJ []byte
+		for id != nil {
+			j, err := Deserialize(value)
+			if err != nil {
+				return err
+			}
+			if !j.Claimed {
+				j.Claimed = true
+
+				// Serialise the new guy
+				newJ, err = j.Serialize()
+				if err != nil {
+					return err
+				}
+
+				// Put the new guy back in
+				if err = async.Put(id, newJ); err != nil {
+					return err
+				}
+
+				// Got a usable job now.
+				job = j
+				return nil
+			}
+			id, value = cursor.Next()
+		}
+		// No available jobs to peek
+		return EmptyQueue
+	})
+
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	async := tx.Bucket(asyncJobs)
-	cursor := async.Cursor()
-	id, value := cursor.First()
-	var newJ []byte
-	for id != nil {
-		j, err = Deserialize(value)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		if !j.Claimed {
-			j.Claimed = true
-			newJ, err = j.Serialize()
-			if err != nil {
-				tx.Rollback()
-				return
-			}
-			err = async.Put(id, newJ)
-			if err != nil {
-				tx.Commit()
-				return
-			}
-		}
-		id, value = cursor.Next()
-	}
-	tx.Rollback()
-	return
+	return job, nil
 }
 
 // ClaimSyncJob gets the first available synchronous job, if one exists
-func (s *JobStore) ClaimSyncJob() (id []byte, j JobEntry, err error) {
-	tx, err := s.db.Begin(false)
+func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
+	var job *JobEntry
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		cursor := tx.Bucket(syncJobs).Cursor()
+		id, value := cursor.First()
+		if id == nil {
+			return EmptyQueue
+		}
+		j, e := Deserialize(value)
+		if e != nil {
+			return e
+		}
+		// Store private ID field
+		j.id = id
+		job = j
+		return nil
+	})
+
 	if err != nil {
-		return
+		return nil, err
 	}
-	cursor := tx.Bucket(syncJobs).Cursor()
-	id, value := cursor.First()
-	if id == nil {
-		err = EmptyQueue
-		tx.Commit()
-		return
-	}
-	j, err = Deserialize(value)
-	tx.Commit()
-	return
+
+	return job, nil
 }
 
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(id []byte) error {
-	tx, err := s.db.Begin(true)
-	if err != nil {
-		return err
-	}
-	async := tx.Bucket(asyncJobs)
-	return async.Delete(id)
+	return s.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(asyncJobs).Delete(id)
+	})
 }
 
 // RetireSyncJob removes a completed synchronous job
 func (s *JobStore) RetireSyncJob(id []byte) error {
-	tx, err := s.db.Begin(true)
-	if err != nil {
-		return err
-	}
-	sync := tx.Bucket(syncJobs)
-	return sync.Delete(id)
+	return s.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(syncJobs).Delete(id)
+	})
 }

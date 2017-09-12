@@ -42,6 +42,7 @@ const (
 
 // JobEntry is an entry in the JobQueue
 type JobEntry struct {
+	id      []byte // Unique ID for this job
 	Type    JobType
 	Claimed bool
 	Params  []string
@@ -49,9 +50,9 @@ type JobEntry struct {
 
 // Serialize uses Gob encoding to convert a JobEntry to a byte slice
 func (j *JobEntry) Serialize() (result []byte, err error) {
-	buff := bytes.NewBuffer(make([]byte, 0))
+	buff := &bytes.Buffer{}
 	enc := gob.NewEncoder(buff)
-	err = enc.Encode(*j)
+	err = enc.Encode(j)
 	if err != nil {
 		return
 	}
@@ -60,9 +61,10 @@ func (j *JobEntry) Serialize() (result []byte, err error) {
 }
 
 // Deserialize use Gob decoding to convert a byte slice to a JobEntry
-func Deserialize(serial []byte) (j JobEntry, err error) {
+func Deserialize(serial []byte) (*JobEntry, error) {
+	ret := &JobEntry{}
 	buff := bytes.NewBuffer(serial)
 	dec := gob.NewDecoder(buff)
-	err = dec.Decode(j)
-	return
+	err := dec.Decode(ret)
+	return ret, err
 }
