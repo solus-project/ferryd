@@ -19,7 +19,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"ferryd/jobs"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
@@ -81,7 +80,7 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository creation requested")
-	s.jproc.PushJob(jobs.NewCreateRepoJob(id))
+	// s.jproc.PushJob(jobs.NewCreateRepoJob(id))
 }
 
 // DeltaRepo will handle remote requests for repository deltaing
@@ -90,7 +89,7 @@ func (s *Server) DeltaRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository delta requested")
-	s.jproc.PushJob(jobs.NewDeltaRepoJob(id))
+	// s.jproc.PushJob(jobs.NewDeltaRepoJob(id))
 }
 
 // IndexRepo will handle remote requests for repository indexing
@@ -99,7 +98,7 @@ func (s *Server) IndexRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository indexing requested")
-	s.jproc.PushJob(jobs.NewIndexJob(id))
+	// s.jproc.PushJob(jobs.NewIndexJob(id))
 }
 
 // ImportPackages will bulk-import the packages in the request
@@ -118,5 +117,5 @@ func (s *Server) ImportPackages(w http.ResponseWriter, r *http.Request, p httpro
 		"npackages": len(req.Path),
 	}).Info("Repository bulk import requested")
 
-	s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
+	// s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
 }
