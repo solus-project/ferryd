@@ -108,7 +108,6 @@ func (w *Worker) Stop() {
 // Start will begin the main execution of this worker, and will continuously
 // poll for new jobs with an increasing increment (with a ceiling limit)
 func (w *Worker) Start() {
-	w.wg.Add(1)
 	defer w.wg.Done()
 
 	// Let's get our ticker initialised
