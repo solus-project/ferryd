@@ -98,6 +98,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 
 				// Got a usable job now.
 				job = j
+				job.id = id
 				return nil
 			}
 			return nil
