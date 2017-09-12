@@ -22,25 +22,40 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// NewCreateRepoJob will return a new JobEntry specific to repo generation
-func NewCreateRepoJob(repoID string) *JobEntry {
+// CreateRepoJobHandler is responsible for creating new repositories and should only
+// ever be used in sequential queues.
+type CreateRepoJobHandler struct {
+	repoID string
+}
+
+// NewCreateRepoJob will return a job suitable for adding to the job processor
+func NewCreateRepoJob(id string) *JobEntry {
 	return &JobEntry{
 		Type:   CreateRepo,
-		Params: []string{repoID},
+		Params: []string{id},
 	}
 }
 
-// CreateRepo will execute the CreateRepo function on the manager
-func (j *JobEntry) CreateRepo(manager *core.Manager) error {
-	repoID := j.Params[0]
-	if err := manager.CreateRepo(repoID); err != nil {
+// NewCreateRepoJobHandler will create a job handler for the input job and ensure it validates
+func NewCreateRepoJobHandler(j *JobEntry) (*CreateRepoJobHandler, error) {
+	if len(j.Params) != 1 {
+		return nil, fmt.Errorf("job has invalid parameters")
+	}
+	return &CreateRepoJobHandler{
+		repoID: j.Params[0],
+	}, nil
+}
+
+// Execute will construct a new repository if possible
+func (j *CreateRepoJobHandler) Execute(manager *core.Manager) error {
+	if err := manager.CreateRepo(j.repoID); err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{"repo": repoID}).Info("Created repository")
+	log.WithFields(log.Fields{"repo": j.repoID}).Info("Created repository")
 	return nil
 }
 
-// DescribeCreateRepo returns a description for the CreateRepo job
-func (j *JobEntry) DescribeCreateRepo() string {
-	return fmt.Sprintf("Create repository '%s'", j.Params[0])
+// Describe returns a human readable description for this job
+func (j *CreateRepoJobHandler) Describe() string {
+	return fmt.Sprintf("Create repository '%s'", j.repoID)
 }

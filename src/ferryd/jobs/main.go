@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
+	"ferryd/core"
+	"fmt"
 )
 
 // JobType is a numerical representation of a kind of job
@@ -45,6 +47,17 @@ const (
 	// directory, dealing with each .tram upload
 	TransitProcess = "TransitProcess"
 )
+
+// A JobHandler is created for each JobEntry, to provide specialised handling
+// of the job type
+type JobHandler interface {
+
+	// Execute will attempt to execute the given job
+	Execute(m *core.Manager) error
+
+	// Describe will return an appropriate description for the job
+	Describe() string
+}
 
 // JobEntry is an entry in the JobQueue
 type JobEntry struct {
@@ -78,4 +91,15 @@ func Deserialize(serial []byte) (*JobEntry, error) {
 // GetID gets the true numerical ID for this job entry
 func (j *JobEntry) GetID() uint64 {
 	return binary.BigEndian.Uint64(j.id)
+}
+
+// NewJobHandler will return a handler that is loaded only during the execution
+// of a previously serialised job
+func NewJobHandler(j *JobEntry) (JobHandler, error) {
+	switch j.Type {
+	case CreateRepo:
+		return NewCreateRepoJobHandler(j)
+	default:
+		return nil, fmt.Errorf("unknown job type '%s'", j.Type)
+	}
 }
