@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"ferryd/jobs"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
@@ -81,6 +82,14 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 		"id": id,
 	}).Info("Repository creation requested")
 	// s.jproc.PushJob(jobs.NewCreateRepoJob(id))
+
+	job := jobs.JobEntry{
+		Type: jobs.CreateRepo,
+		Params: []string{
+			id,
+		},
+	}
+	s.store.PushSequentialJob(&job)
 }
 
 // DeltaRepo will handle remote requests for repository deltaing
