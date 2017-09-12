@@ -24,10 +24,13 @@ import (
 
 var (
 	// BucketAsyncJobs holds all asynchronous jobs
-	BucketAsyncJobs = []byte("AsynchronousJobs")
+	BucketAsyncJobs = []byte("Async")
 
 	// BucketSyncJobs holds all sequential jobs
-	BucketSyncJobs = []byte("SynchronousJobs")
+	BucketSyncJobs = []byte("Sync")
+
+	// BucketRootJobs is the parent job bucket
+	BucketRootJobs = []byte("JobRoot")
 
 	// ErrEmptyQueue is returned to indicate a job is not available yet
 	ErrEmptyQueue = errors.New("Queue is empty")
@@ -52,8 +55,12 @@ func (s *JobStore) setup() error {
 		BucketSyncJobs,
 	}
 	return s.db.Update(func(tx *bolt.Tx) error {
+		rootBucket, err := tx.CreateBucketIfNotExists(BucketRootJobs)
+		if err != nil {
+			return err
+		}
 		for _, b := range buckets {
-			if _, err := tx.CreateBucketIfNotExists(b); err != nil {
+			if _, err := rootBucket.CreateBucketIfNotExists(b); err != nil {
 				return err
 			}
 			return nil
@@ -67,7 +74,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		async := tx.Bucket(BucketAsyncJobs)
+		async := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
 		cursor := async.Cursor()
 		id, value := cursor.First()
 		var newJ []byte
@@ -112,7 +119,7 @@ func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.View(func(tx *bolt.Tx) error {
-		cursor := tx.Bucket(BucketSyncJobs).Cursor()
+		cursor := tx.Bucket(BucketRootJobs).Bucket(BucketSyncJobs).Cursor()
 		id, value := cursor.First()
 		if id == nil {
 			return ErrEmptyQueue
@@ -137,14 +144,14 @@ func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketAsyncJobs).Delete(j.id)
+		return tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs).Delete(j.id)
 	})
 }
 
 // RetireSyncJob removes a completed synchronous job
 func (s *JobStore) RetireSyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketSyncJobs).Delete(j.id)
+		return tx.Bucket(BucketRootJobs).Bucket(BucketSyncJobs).Delete(j.id)
 	})
 }
 
@@ -154,7 +161,7 @@ func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
 	return s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketSyncJobs)
+		bucket := tx.Bucket(BucketRootJobs).Bucket(bk)
 		id, err := bucket.NextSequence()
 		if err != nil {
 			return err
