@@ -75,10 +75,9 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		async := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
-		cursor := async.Cursor()
-		id, value := cursor.First()
 		var newJ []byte
-		for id != nil {
+
+		err := async.ForEach(func(id, value []byte) error {
 			j, err := Deserialize(value)
 			if err != nil {
 				return err
@@ -101,8 +100,13 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 				job = j
 				return nil
 			}
-			id, value = cursor.Next()
+			return nil
+		})
+
+		if err != nil {
+			return err
 		}
+
 		// No available jobs to peek
 		return ErrEmptyQueue
 	})
