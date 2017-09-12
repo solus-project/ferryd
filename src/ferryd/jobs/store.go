@@ -26,8 +26,8 @@ var (
 	// BucketAsyncJobs holds all asynchronous jobs
 	BucketAsyncJobs = []byte("Async")
 
-	// BucketSyncJobs holds all sequential jobs
-	BucketSyncJobs = []byte("Sync")
+	// BucketSequentialJobs holds all sequential jobs
+	BucketSequentialJobs = []byte("Sync")
 
 	// BucketRootJobs is the parent job bucket
 	BucketRootJobs = []byte("JobRoot")
@@ -52,7 +52,7 @@ func NewStore(db *bolt.DB) (s *JobStore, err error) {
 func (s *JobStore) setup() error {
 	buckets := [][]byte{
 		BucketAsyncJobs,
-		BucketSyncJobs,
+		BucketSequentialJobs,
 	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		rootBucket, err := tx.CreateBucketIfNotExists(BucketRootJobs)
@@ -114,12 +114,12 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	return job, nil
 }
 
-// ClaimSyncJob gets the first available synchronous job, if one exists
-func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
+// ClaimSequentialJob gets the first available synchronous job, if one exists
+func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 	var job *JobEntry
 
 	err := s.db.View(func(tx *bolt.Tx) error {
-		cursor := tx.Bucket(BucketRootJobs).Bucket(BucketSyncJobs).Cursor()
+		cursor := tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Cursor()
 		id, value := cursor.First()
 		if id == nil {
 			return ErrEmptyQueue
@@ -148,10 +148,10 @@ func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	})
 }
 
-// RetireSyncJob removes a completed synchronous job
-func (s *JobStore) RetireSyncJob(j *JobEntry) error {
+// RetireSequentialJob removes a completed synchronous job
+func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketRootJobs).Bucket(BucketSyncJobs).Delete(j.id)
+		return tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Delete(j.id)
 	})
 }
 
@@ -177,9 +177,9 @@ func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	})
 }
 
-// PushSyncJob will enqueue a new sequential job
-func (s *JobStore) PushSyncJob(j *JobEntry) error {
-	return s.pushJobInternal(j, BucketSyncJobs)
+// PushSequentialJob will enqueue a new sequential job
+func (s *JobStore) PushSequentialJob(j *JobEntry) error {
+	return s.pushJobInternal(j, BucketSequentialJobs)
 }
 
 // PushAsyncJob will enqueue a new asynchronous job
