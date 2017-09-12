@@ -34,6 +34,9 @@ var (
 
 	// ErrEmptyQueue is returned to indicate a job is not available yet
 	ErrEmptyQueue = errors.New("Queue is empty")
+
+	// ErrBreakLoop is used only to break the foreach internally.
+	ErrBreakLoop = errors.New("loop breaker")
 )
 
 // JobStore handles the storage and manipulation of incomplete jobs
@@ -100,21 +103,20 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 				// Got a usable job now.
 				job = j
 				job.id = id
-				return nil
+				return ErrBreakLoop
 			}
 			return nil
 		})
 
-		if err != nil {
-			return err
-		}
-
-		// No available jobs to peek
-		return ErrEmptyQueue
+		return err
 	})
 
-	if err != nil {
+	if err != nil && err != ErrBreakLoop {
 		return nil, err
+	}
+
+	if job == nil {
+		return nil, ErrEmptyQueue
 	}
 
 	return job, nil
