@@ -87,3 +87,13 @@ func (j *Processor) Begin() {
 		go j.Start()
 	}
 }
+
+// PushJob will automatically determine which queue to push a job to and place
+// it there for immediate execution
+func (j *Processor) PushJob(job *JobEntry) {
+	if job.sequential {
+		j.store.PushSequentialJob(job)
+	} else {
+		j.store.PushAsyncJob(job)
+	}
+}

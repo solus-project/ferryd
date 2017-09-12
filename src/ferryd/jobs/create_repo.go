@@ -31,8 +31,9 @@ type CreateRepoJobHandler struct {
 // NewCreateRepoJob will return a job suitable for adding to the job processor
 func NewCreateRepoJob(id string) *JobEntry {
 	return &JobEntry{
-		Type:   CreateRepo,
-		Params: []string{id},
+		sequential: true,
+		Type:       CreateRepo,
+		Params:     []string{id},
 	}
 }
 

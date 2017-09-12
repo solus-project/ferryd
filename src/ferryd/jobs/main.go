@@ -61,10 +61,11 @@ type JobHandler interface {
 
 // JobEntry is an entry in the JobQueue
 type JobEntry struct {
-	id      []byte // Unique ID for this job
-	Type    JobType
-	Claimed bool
-	Params  []string
+	id         []byte // Unique ID for this job
+	sequential bool   // Private to the job implementation
+	Type       JobType
+	Claimed    bool
+	Params     []string
 }
 
 // Serialize uses Gob encoding to convert a JobEntry to a byte slice
