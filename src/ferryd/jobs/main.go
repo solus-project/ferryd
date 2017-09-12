@@ -101,6 +101,8 @@ func (j *JobEntry) GetID() uint64 {
 // of a previously serialised job
 func NewJobHandler(j *JobEntry) (JobHandler, error) {
 	switch j.Type {
+	case BulkAdd:
+		return NewBulkAddJobHandler(j)
 	case CreateRepo:
 		return NewCreateRepoJobHandler(j)
 	case IndexRepo:

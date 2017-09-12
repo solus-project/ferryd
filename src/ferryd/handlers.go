@@ -118,5 +118,5 @@ func (s *Server) ImportPackages(w http.ResponseWriter, r *http.Request, p httpro
 		"npackages": len(req.Path),
 	}).Info("Repository bulk import requested")
 
-	// s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
+	s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
 }
