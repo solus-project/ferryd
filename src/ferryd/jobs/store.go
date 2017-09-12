@@ -55,20 +55,16 @@ func (s *JobStore) Close() {}
 
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {
-	buckets := [][]byte{
-		BucketAsyncJobs,
-		BucketSequentialJobs,
-	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		rootBucket, err := tx.CreateBucketIfNotExists(BucketRootJobs)
 		if err != nil {
 			return err
 		}
-		for _, b := range buckets {
-			if _, err := rootBucket.CreateBucketIfNotExists(b); err != nil {
-				return err
-			}
-			return nil
+		if _, err = rootBucket.CreateBucketIfNotExists(BucketAsyncJobs); err != nil {
+			return err
+		}
+		if _, err = rootBucket.CreateBucketIfNotExists(BucketSequentialJobs); err != nil {
+			return err
 		}
 		return nil
 	})
