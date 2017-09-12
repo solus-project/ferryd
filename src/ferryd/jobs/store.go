@@ -50,27 +50,20 @@ func NewStore(db *bolt.DB) (s *JobStore, err error) {
 
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {
-	tx, err := s.db.Begin(true)
-	if err != nil {
-		return err
+	buckets := [][]byte{
+		jobStore,
+		syncJobs,
+		asyncJobs,
 	}
-	store, err := tx.CreateBucketIfNotExists(jobStore)
-	if err != nil {
-		goto FailSafe
-	}
-	_, err = store.CreateBucketIfNotExists(syncJobs)
-	if err != nil {
-		goto FailSafe
-	}
-	_, err = store.CreateBucketIfNotExists(asyncJobs)
-	if err != nil {
-		goto FailSafe
-	}
-	tx.Commit()
-	return nil
-FailSafe:
-	tx.Rollback()
-	return err
+	return s.db.Update(func(tx *bolt.Tx) error {
+		for _, b := range buckets {
+			if _, err := tx.CreateBucketIfNotExists(b); err != nil {
+				return err
+			}
+			return nil
+		}
+		return nil
+	})
 }
 
 // ClaimAsyncJob gets the first available asynchronous job, if one exists
