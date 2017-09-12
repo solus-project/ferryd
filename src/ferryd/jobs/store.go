@@ -17,6 +17,7 @@
 package jobs
 
 import (
+	"encoding/binary"
 	"errors"
 	"github.com/boltdb/bolt"
 )
@@ -149,4 +150,36 @@ func (s *JobStore) RetireSyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(BucketSyncJobs).Delete(j.id)
 	})
+}
+
+// pushJobInternal is identical between sync and async jobs, it
+// just needs to know which bucket to store the job in.
+func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
+	j.Claimed = false
+
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketSyncJobs)
+		id, err := bucket.NextSequence()
+		if err != nil {
+			return err
+		}
+		// Adapted from boltdb itob example code
+		j.id = make([]byte, 8)
+		binary.BigEndian.PutUint64(j.id, uint64(id))
+		blob, err := j.Serialize()
+		if err != nil {
+			return err
+		}
+		return bucket.Put(j.id, blob)
+	})
+}
+
+// PushSyncJob will enqueue a new sequential job
+func (s *JobStore) PushSyncJob(j *JobEntry) error {
+	return s.pushJobInternal(j, BucketSyncJobs)
+}
+
+// PushAsyncJob will enqueue a new asynchronous job
+func (s *JobStore) PushAsyncJob(j *JobEntry) error {
+	return s.pushJobInternal(j, BucketAsyncJobs)
 }
