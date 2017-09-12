@@ -175,7 +175,9 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 		return
 	}
 	w.timeIndex = newTimeIndex
-	w.ticker.Stop()
+	if w.ticker != nil {
+		w.ticker.Stop()
+	}
 	w.ticker = time.NewTicker(timeIndexes[w.timeIndex])
 	log.WithFields(log.Fields{
 		"async":    !w.sequential,
