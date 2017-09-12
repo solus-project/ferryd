@@ -43,6 +43,9 @@ const (
 	// a repo
 	DeltaRepo = "DeltaRepo"
 
+	// IndexRepo is a sequential job that requests the repository be re-indexed
+	IndexRepo = "IndexRepo"
+
 	// TransitProcess is a sequential job that will process the incoming uploads
 	// directory, dealing with each .tram upload
 	TransitProcess = "TransitProcess"
@@ -100,6 +103,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 	switch j.Type {
 	case CreateRepo:
 		return NewCreateRepoJobHandler(j)
+	case IndexRepo:
+		return NewIndexRepoJobHandler(j)
 	default:
 		return nil, fmt.Errorf("unknown job type '%s'", j.Type)
 	}

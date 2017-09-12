@@ -99,7 +99,7 @@ func (s *Server) IndexRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository indexing requested")
-	// s.jproc.PushJob(jobs.NewIndexJob(id))
+	s.jproc.PushJob(jobs.NewIndexRepoJob(id))
 }
 
 // ImportPackages will bulk-import the packages in the request
