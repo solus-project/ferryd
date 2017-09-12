@@ -21,6 +21,12 @@ import (
 	"time"
 )
 
+// JobFetcher will be provided by either the Async or Sequential claim functions
+type JobFetcher func() (*JobEntry, error)
+
+// JobReaper will be provided by either the Async or Sequential retire functions
+type JobReaper func(j *JobEntry) error
+
 var (
 	// timeIndexes allow us to gradually increase our sleep duration
 	timeIndexes = []time.Duration{
@@ -42,6 +48,9 @@ type Worker struct {
 	wg         *sync.WaitGroup
 	store      *JobStore
 	timeIndex  int // Increment time index to match timeIndexes, or wrap
+
+	fetcher JobFetcher // Fetch a new job
+	reaper  JobReaper  // Purge an old job
 }
 
 // newWorker is an internal method to initialise a worker for usage
@@ -59,8 +68,18 @@ func newWorker(store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
 		exit:       make(chan int, 1),
 		ticker:     nil, // Init this when we start up
 		store:      store,
-		timeIndex:  0,
+		timeIndex:  -1,
 	}
+
+	// Set up appropriate functions for dealing with jobs
+	if sequential {
+		w.fetcher = w.store.ClaimSequentialJob
+		w.reaper = w.store.RetireSequentialJob
+	} else {
+		w.fetcher = w.store.ClaimAsyncJob
+		w.reaper = w.store.RetireAsyncJob
+	}
+
 	return w
 }
 
@@ -83,4 +102,72 @@ func (w *Worker) Stop() {
 		w.ticker.Stop()
 		w.ticker = nil
 	}
+}
+
+// Start will begin the main execution of this worker, and will continuously
+// poll for new jobs with an increasing increment (with a ceiling limit)
+func (w *Worker) Start() {
+	w.wg.Add(1)
+	defer w.wg.Done()
+
+	// Let's get our ticker initialised
+	w.setTimeIndex(0)
+
+	for {
+		select {
+		case <-w.exit:
+			// Bail now, we've been told to go home
+			return
+
+		case <-w.ticker.C:
+			// Try to grab a job
+			job, err := w.fetcher()
+
+			// TODO: Report the error
+			if err != nil {
+				if err == ErrEmptyQueue {
+					// Bump the time index
+					w.setTimeIndex(w.timeIndex + 1)
+				}
+				continue
+			}
+
+			// Got a job, now process it
+			w.processJob(job)
+
+			// Mark the job as dealt with
+			err = w.reaper(job)
+
+			// We had a job, so we must reset the timeout period
+			w.setTimeIndex(0)
+
+			// TODO: Report failure in retiring the job
+			if err != nil {
+				continue
+			}
+
+			continue
+		}
+	}
+}
+
+// setTimeIndex will update the time index, and reset the ticker if needed
+// so that we increment the wait period. It will cap the time index to the
+// highest index available (60)
+func (w *Worker) setTimeIndex(newTimeIndex int) {
+	if newTimeIndex > len(timeIndexes) {
+		newTimeIndex = len(timeIndexes) - 1
+	}
+	// No sense resetting our ticker
+	if w.timeIndex == newTimeIndex {
+		return
+	}
+	w.timeIndex = newTimeIndex
+	w.ticker.Stop()
+	w.ticker = time.NewTicker(timeIndexes[w.timeIndex])
+}
+
+// processJob will actually examine the given job and figure out how
+// to execute it. Each Worker can only execute a single job at a time
+func (w *Worker) processJob(job *JobEntry) {
 }
