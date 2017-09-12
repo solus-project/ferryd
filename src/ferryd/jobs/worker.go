@@ -157,7 +157,7 @@ func (w *Worker) Start() {
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
-					"id":    job.id,
+					"id":    job.GetID(),
 					"type":  job.Type,
 					"async": !w.sequential,
 				}).Error("Error in retiring job")
@@ -205,7 +205,7 @@ func (w *Worker) processJob(job *JobEntry) {
 
 	if exec == nil {
 		log.WithFields(log.Fields{
-			"id":    job.id,
+			"id":    job.GetID(),
 			"type":  job.Type,
 			"async": !w.sequential,
 		}).Error("No known job handler, cannot continue with job")
@@ -215,7 +215,7 @@ func (w *Worker) processJob(job *JobEntry) {
 	// Try to execute it, report the error
 	if err := exec(w.manager); err != nil {
 		log.WithFields(log.Fields{
-			"id":    job.id,
+			"id":    job.GetID(),
 			"type":  job.Type,
 			"async": !w.sequential,
 			"error": err,
@@ -226,7 +226,7 @@ func (w *Worker) processJob(job *JobEntry) {
 	// Succeeded
 	// TODO: Consider a new Describe method
 	log.WithFields(log.Fields{
-		"id":     job.id,
+		"id":     job.GetID(),
 		"type":   job.Type,
 		"async":  !w.sequential,
 		"params": job.Params,
