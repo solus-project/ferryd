@@ -17,6 +17,7 @@
 package jobs
 
 import (
+	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -123,12 +124,20 @@ func (w *Worker) Start() {
 			// Try to grab a job
 			job, err := w.fetcher()
 
-			// TODO: Report the error
+			// Report the error
 			if err != nil {
 				if err == ErrEmptyQueue {
 					// Bump the time index
-					w.setTimeIndex(w.timeIndex + 1)
+					log.WithFields(log.Fields{
+						"async": !w.sequential,
+					}).Debug("Empty processing queue")
+				} else {
+					log.WithFields(log.Fields{
+						"error": err,
+						"async": !w.sequential,
+					}).Error("Failed to grab a work queue item")
 				}
+				w.setTimeIndex(w.timeIndex + 1)
 				continue
 			}
 
@@ -138,15 +147,18 @@ func (w *Worker) Start() {
 			// Mark the job as dealt with
 			err = w.reaper(job)
 
-			// We had a job, so we must reset the timeout period
-			w.setTimeIndex(0)
-
-			// TODO: Report failure in retiring the job
+			// Report failure in retiring the job
 			if err != nil {
-				continue
+				log.WithFields(log.Fields{
+					"error": err,
+					"id":    job.id,
+					"type":  job.Type,
+					"async": !w.sequential,
+				}).Error("Error in retiring job")
 			}
 
-			continue
+			// We had a job, so we must reset the timeout period
+			w.setTimeIndex(0)
 		}
 	}
 }
@@ -165,9 +177,18 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 	w.timeIndex = newTimeIndex
 	w.ticker.Stop()
 	w.ticker = time.NewTicker(timeIndexes[w.timeIndex])
+	log.WithFields(log.Fields{
+		"async":    !w.sequential,
+		"duration": timeIndexes[w.timeIndex],
+	}).Debug("Updated worker wait period")
 }
 
 // processJob will actually examine the given job and figure out how
 // to execute it. Each Worker can only execute a single job at a time
 func (w *Worker) processJob(job *JobEntry) {
+	log.WithFields(log.Fields{
+		"id":    job.id,
+		"type":  job.Type,
+		"async": !w.sequential,
+	}).Info("Unable to actually process job yet")
 }
