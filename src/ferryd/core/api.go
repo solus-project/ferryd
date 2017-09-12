@@ -33,7 +33,11 @@ func (m *Manager) CreateRepo(id string) error {
 		}
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// Index the newly created repo
+	return m.Index(id)
 }
 
 // GetRepo will grab the repository if it exists
