@@ -138,15 +138,15 @@ func (s *JobStore) ClaimSyncJob() (*JobEntry, error) {
 }
 
 // RetireAsyncJob removes a completed asynchronous job
-func (s *JobStore) RetireAsyncJob(id []byte) error {
+func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(asyncJobs).Delete(id)
+		return tx.Bucket(asyncJobs).Delete(j.id)
 	})
 }
 
 // RetireSyncJob removes a completed synchronous job
-func (s *JobStore) RetireSyncJob(id []byte) error {
+func (s *JobStore) RetireSyncJob(j *JobEntry) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(syncJobs).Delete(id)
+		return tx.Bucket(syncJobs).Delete(j.id)
 	})
 }
