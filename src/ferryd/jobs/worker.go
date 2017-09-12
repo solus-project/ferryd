@@ -32,6 +32,9 @@ type JobReaper func(j *JobEntry) error
 // JobExecutor is the main processing function
 type JobExecutor func(m *core.Manager) error
 
+// JobDescription is used to describe simple types
+type JobDescription func() string
+
 var (
 	// timeIndexes allow us to gradually increase our sleep duration
 	timeIndexes = []time.Duration{
@@ -195,40 +198,35 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 // to execute it. Each Worker can only execute a single job at a time
 func (w *Worker) processJob(job *JobEntry) {
 	var exec JobExecutor
+	var desc JobDescription
 
 	switch job.Type {
 	case CreateRepo:
-		exec = job.CreateRepoJob
+		exec = job.CreateRepo
+		desc = job.DescribeCreateRepo
 	default:
 		exec = nil
 	}
 
+	fields := log.Fields{
+		"id":          job.GetID(),
+		"type":        job.Type,
+		"async":       !w.sequential,
+		"description": desc(),
+	}
+
 	if exec == nil {
-		log.WithFields(log.Fields{
-			"id":    job.GetID(),
-			"type":  job.Type,
-			"async": !w.sequential,
-		}).Error("No known job handler, cannot continue with job")
+		log.WithFields(fields).Error("No known job handler, cannot continue with job")
 		return
 	}
 
 	// Try to execute it, report the error
 	if err := exec(w.manager); err != nil {
-		log.WithFields(log.Fields{
-			"id":    job.GetID(),
-			"type":  job.Type,
-			"async": !w.sequential,
-			"error": err,
-		}).Error("Job failed with error")
+		fields["error"] = err
+		log.WithFields(fields).Error("Job failed with error")
 		return
 	}
 
 	// Succeeded
-	// TODO: Consider a new Describe method
-	log.WithFields(log.Fields{
-		"id":     job.GetID(),
-		"type":   job.Type,
-		"async":  !w.sequential,
-		"params": job.Params,
-	}).Info("Job completed successfully")
+	log.WithFields(fields).Info("Job completed successfully")
 }

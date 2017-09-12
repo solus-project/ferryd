@@ -18,6 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,12 +30,17 @@ func NewCreateRepoJob(repoID string) *JobEntry {
 	}
 }
 
-// CreateRepoJob will execute the CreateRepo function on the manager
-func (j *JobEntry) CreateRepoJob(manager *core.Manager) error {
+// CreateRepo will execute the CreateRepo function on the manager
+func (j *JobEntry) CreateRepo(manager *core.Manager) error {
 	repoID := j.Params[0]
 	if err := manager.CreateRepo(repoID); err != nil {
 		return err
 	}
 	log.WithFields(log.Fields{"repo": repoID}).Info("Created repository")
 	return nil
+}
+
+// DescribeCreateRepo returns a description for the CreateRepo job
+func (j *JobEntry) DescribeCreateRepo() string {
+	return fmt.Sprintf("Create repository '%s'", j.Params[0])
 }
