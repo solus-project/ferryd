@@ -54,9 +54,9 @@ func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 	}
 
 	// Construct worker pool (TODO: Get the store from *somewhere* ..
-	ret.workers = append(ret.workers, NewWorkerSequential(ret.store, ret.wg))
+	ret.workers = append(ret.workers, NewWorkerSequential(ret.manager, ret.store, ret.wg))
 	for i := 0; i < njobs; i++ {
-		ret.workers = append(ret.workers, NewWorkerAsync(ret.store, ret.wg))
+		ret.workers = append(ret.workers, NewWorkerAsync(ret.manager, ret.store, ret.wg))
 	}
 
 	return ret

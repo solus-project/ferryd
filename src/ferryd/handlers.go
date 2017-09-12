@@ -81,15 +81,7 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository creation requested")
-	// s.jproc.PushJob(jobs.NewCreateRepoJob(id))
-
-	job := jobs.JobEntry{
-		Type: jobs.CreateRepo,
-		Params: []string{
-			id,
-		},
-	}
-	s.store.PushSequentialJob(&job)
+	s.store.PushSequentialJob(jobs.NewCreateRepoJob(id))
 }
 
 // DeltaRepo will handle remote requests for repository deltaing

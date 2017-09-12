@@ -17,6 +17,7 @@
 package jobs
 
 import (
+	"ferryd/core"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -27,6 +28,9 @@ type JobFetcher func() (*JobEntry, error)
 
 // JobReaper will be provided by either the Async or Sequential retire functions
 type JobReaper func(j *JobEntry) error
+
+// JobExecutor is the main processing function
+type JobExecutor func(m *core.Manager) error
 
 var (
 	// timeIndexes allow us to gradually increase our sleep duration
@@ -48,6 +52,7 @@ type Worker struct {
 	exit       chan int
 	ticker     *time.Ticker
 	wg         *sync.WaitGroup
+	manager    *core.Manager
 	store      *JobStore
 	timeIndex  int // Increment time index to match timeIndexes, or wrap
 
@@ -56,7 +61,7 @@ type Worker struct {
 }
 
 // newWorker is an internal method to initialise a worker for usage
-func newWorker(store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
+func newWorker(manager *core.Manager, store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
 	if store == nil {
 		panic("Constructed a Worker without a valid JobStore!")
 	}
@@ -69,6 +74,7 @@ func newWorker(store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
 		wg:         wg,
 		exit:       make(chan int, 1),
 		ticker:     nil, // Init this when we start up
+		manager:    manager,
 		store:      store,
 		timeIndex:  -1,
 	}
@@ -87,14 +93,14 @@ func newWorker(store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
 
 // NewWorkerAsync will return an asynchronous processing worker which will only
 // pull from the store's async job queue
-func NewWorkerAsync(store *JobStore, wg *sync.WaitGroup) *Worker {
-	return newWorker(store, wg, false)
+func NewWorkerAsync(manager *core.Manager, store *JobStore, wg *sync.WaitGroup) *Worker {
+	return newWorker(manager, store, wg, false)
 }
 
 // NewWorkerSequential will return a sequential worker operating on the main
 // sequential job loop
-func NewWorkerSequential(store *JobStore, wg *sync.WaitGroup) *Worker {
-	return newWorker(store, wg, true)
+func NewWorkerSequential(manager *core.Manager, store *JobStore, wg *sync.WaitGroup) *Worker {
+	return newWorker(manager, store, wg, true)
 }
 
 // Stop will demand that all new requests are no longer processed
@@ -188,10 +194,41 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 // processJob will actually examine the given job and figure out how
 // to execute it. Each Worker can only execute a single job at a time
 func (w *Worker) processJob(job *JobEntry) {
+	var exec JobExecutor
+
+	switch job.Type {
+	case CreateRepo:
+		exec = job.CreateRepoJob
+	default:
+		exec = nil
+	}
+
+	if exec == nil {
+		log.WithFields(log.Fields{
+			"id":    job.id,
+			"type":  job.Type,
+			"async": !w.sequential,
+		}).Error("No known job handler, cannot continue with job")
+		return
+	}
+
+	// Try to execute it, report the error
+	if err := exec(w.manager); err != nil {
+		log.WithFields(log.Fields{
+			"id":    job.id,
+			"type":  job.Type,
+			"async": !w.sequential,
+			"error": err,
+		}).Error("Job failed with error")
+		return
+	}
+
+	// Succeeded
+	// TODO: Consider a new Describe method
 	log.WithFields(log.Fields{
 		"id":     job.id,
 		"type":   job.Type,
-		"params": job.Params,
 		"async":  !w.sequential,
-	}).Info("Unable to actually process job yet")
+		"params": job.Params,
+	}).Info("Job completed successfully")
 }
