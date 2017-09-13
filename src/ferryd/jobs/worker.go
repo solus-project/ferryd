@@ -153,19 +153,6 @@ func (w *Worker) Start() {
 			// Got a job, now process it
 			w.processJob(job)
 
-			// Mark the job as dealt with
-			err = w.reaper(job)
-
-			// Report failure in retiring the job
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error": err,
-					"id":    job.GetID(),
-					"type":  job.Type,
-					"async": !w.sequential,
-				}).Error("Error in retiring job")
-			}
-
 			// We had a job, so we must reset the timeout period
 			w.setTimeIndex(0)
 		}
@@ -208,7 +195,7 @@ func (w *Worker) processJob(job *JobEntry) {
 	if err != nil {
 		fields["error"] = err
 		log.WithFields(fields).Error("No known job handler, cannot continue with job")
-		return
+		goto reaperFunc
 	}
 
 	// Safely have a handler now
@@ -218,9 +205,23 @@ func (w *Worker) processJob(job *JobEntry) {
 	if err := handler.Execute(w.processor, w.manager); err != nil {
 		fields["error"] = err
 		log.WithFields(fields).Error("Job failed with error")
-		return
+		goto reaperFunc
 	}
 
 	// Succeeded
 	log.WithFields(fields).Info("Job completed successfully")
+
+reaperFunc:
+	// Mark the job as dealt with
+	err = w.reaper(job)
+
+	// Report failure in retiring the job
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"id":    job.GetID(),
+			"type":  job.Type,
+			"async": !w.sequential,
+		}).Error("Error in retiring job")
+	}
 }
