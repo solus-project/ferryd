@@ -23,29 +23,34 @@ import (
 	"os"
 )
 
-// TransitProcessJob is a sequential job that will process the incoming uploads
-// directory, dealing with each .tram upload
-type TransitProcessJob struct {
+// TransitJobHandler is responsible for accepting new upload payloads in the repository
+type TransitJobHandler struct {
 	path     string
 	manifest *core.TransitManifest
 }
 
-// NewTransitProcessJob will create a new job for the given .tram path
-func NewTransitProcessJob(path string) *TransitProcessJob {
-	return &TransitProcessJob{path: path}
+// NewTransitJob will return a job suitable for adding to the job processor
+func NewTransitJob(path string) *JobEntry {
+	return &JobEntry{
+		sequential: true,
+		Type:       TransitProcess,
+		Params:     []string{path},
+	}
 }
 
-// Init is unused for this job
-func (t *TransitProcessJob) Init(jproc *Processor) {}
-
-// IsSequential will return true as we're going to need to index after
-func (t *TransitProcessJob) IsSequential() bool {
-	return true
+// NewTransitJobHandler will create a job handler for the input job and ensure it validates
+func NewTransitJobHandler(j *JobEntry) (*TransitJobHandler, error) {
+	if len(j.Params) != 1 {
+		return nil, fmt.Errorf("job has invalid parameters")
+	}
+	return &TransitJobHandler{
+		path: j.Params[0],
+	}, nil
 }
 
-// Perform will invoke the operation
-func (t *TransitProcessJob) Perform(manager *core.Manager) error {
-	tram, err := core.NewTransitManifest(t.path)
+// Execute will index the given repository if possible
+func (j *TransitJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+	tram, err := core.NewTransitManifest(j.path)
 	if err != nil {
 		return err
 	}
@@ -54,10 +59,10 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 		return err
 	}
 
-	t.manifest = tram
+	j.manifest = tram
 
 	// Sanity.
-	repo := t.manifest.Manifest.Target
+	repo := j.manifest.Manifest.Target
 	if _, err := manager.GetRepo(repo); err != nil {
 		return err
 	}
@@ -70,16 +75,16 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 
 	log.WithFields(log.Fields{
 		"target": repo,
-		"id":     t.manifest.ID(),
+		"id":     j.manifest.ID(),
 	}).Info("Successfully processed manifest upload")
 
 	// Append the manifest path because now we'll want to delete these
-	pkgs = append(pkgs, t.path)
+	pkgs = append(pkgs, j.path)
 	for _, p := range pkgs {
 		if err := os.Remove(p); err != nil {
 			log.WithFields(log.Fields{
 				"file":  p,
-				"id":    t.manifest.ID(),
+				"id":    j.manifest.ID(),
 				"error": err,
 			}).Error("Failed to remove manifest file upload")
 		}
@@ -87,11 +92,11 @@ func (t *TransitProcessJob) Perform(manager *core.Manager) error {
 	return nil
 }
 
-// Describe will explain the purpose of this job
-func (t *TransitProcessJob) Describe() string {
-	if t.manifest == nil {
-		return fmt.Sprintf("Process manifest '%s'", t.path)
+// Describe returns a human readable description for this job
+func (j *TransitJobHandler) Describe() string {
+	if j.manifest == nil {
+		return fmt.Sprintf("Process manifest '%s'", j.path)
 	}
 
-	return fmt.Sprintf("Process manifest '%s' for target '%s'", t.manifest.ID(), t.manifest.Manifest.Target)
+	return fmt.Sprintf("Process manifest '%s' for target '%s'", j.manifest.ID(), j.manifest.Manifest.Target)
 }

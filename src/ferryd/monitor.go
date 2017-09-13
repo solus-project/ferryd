@@ -18,6 +18,7 @@ package main
 
 import (
 	"ferryd/core"
+	"ferryd/jobs"
 	"github.com/radu-munteanu/fsnotify"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -88,5 +89,5 @@ func (s *Server) processTransitManifest(name string) {
 	log.WithFields(log.Fields{
 		"id": name,
 	}).Info("Received transit manifest upload")
-	// s.jproc.PushJob(jobs.NewTransitProcessJob(fullpath))
+	s.jproc.PushJob(jobs.NewTransitJob(fullpath))
 }
