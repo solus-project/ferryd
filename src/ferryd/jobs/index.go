@@ -48,7 +48,7 @@ func NewIndexRepoJobHandler(j *JobEntry) (*IndexRepoJobHandler, error) {
 }
 
 // Execute will index the given repository if possible
-func (j *IndexRepoJobHandler) Execute(manager *core.Manager) error {
+func (j *IndexRepoJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	if err := manager.Index(j.repoID); err != nil {
 		return err
 	}

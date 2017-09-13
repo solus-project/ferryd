@@ -56,7 +56,7 @@ const (
 type JobHandler interface {
 
 	// Execute will attempt to execute the given job
-	Execute(m *core.Manager) error
+	Execute(proc *Processor, m *core.Manager) error
 
 	// Describe will return an appropriate description for the job
 	Describe() string

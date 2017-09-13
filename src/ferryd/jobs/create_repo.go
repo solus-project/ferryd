@@ -48,7 +48,7 @@ func NewCreateRepoJobHandler(j *JobEntry) (*CreateRepoJobHandler, error) {
 }
 
 // Execute will construct a new repository if possible
-func (j *CreateRepoJobHandler) Execute(manager *core.Manager) error {
+func (j *CreateRepoJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	if err := manager.CreateRepo(j.repoID); err != nil {
 		return err
 	}

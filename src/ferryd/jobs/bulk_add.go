@@ -50,7 +50,7 @@ func NewBulkAddJobHandler(j *JobEntry) (*BulkAddJobHandler, error) {
 }
 
 // Execute will index the given repository if possible
-func (j *BulkAddJobHandler) Execute(manager *core.Manager) error {
+func (j *BulkAddJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	if err := manager.AddPackages(j.repoID, j.packagePaths); err != nil {
 		return err
 	}

@@ -55,28 +55,30 @@ type Worker struct {
 	wg         *sync.WaitGroup
 	manager    *core.Manager
 	store      *JobStore
-	timeIndex  int // Increment time index to match timeIndexes, or wrap
+	processor  *Processor
+
+	timeIndex int // Increment time index to match timeIndexes, or wrap
 
 	fetcher JobFetcher // Fetch a new job
 	reaper  JobReaper  // Purge an old job
 }
 
 // newWorker is an internal method to initialise a worker for usage
-func newWorker(manager *core.Manager, store *JobStore, wg *sync.WaitGroup, sequential bool) *Worker {
-	if store == nil {
+func newWorker(processor *Processor, sequential bool) *Worker {
+	if processor.store == nil {
 		panic("Constructed a Worker without a valid JobStore!")
 	}
-	if wg == nil {
+	if processor.wg == nil {
 		panic("Constructed a Worker without a valid WaitGroup!")
 	}
 
 	w := &Worker{
 		sequential: sequential,
-		wg:         wg,
+		wg:         processor.wg,
 		exit:       make(chan int, 1),
 		ticker:     nil, // Init this when we start up
-		manager:    manager,
-		store:      store,
+		manager:    processor.manager,
+		store:      processor.store,
 		timeIndex:  -1,
 	}
 
@@ -94,14 +96,14 @@ func newWorker(manager *core.Manager, store *JobStore, wg *sync.WaitGroup, seque
 
 // NewWorkerAsync will return an asynchronous processing worker which will only
 // pull from the store's async job queue
-func NewWorkerAsync(manager *core.Manager, store *JobStore, wg *sync.WaitGroup) *Worker {
-	return newWorker(manager, store, wg, false)
+func NewWorkerAsync(processor *Processor) *Worker {
+	return newWorker(processor, false)
 }
 
 // NewWorkerSequential will return a sequential worker operating on the main
 // sequential job loop
-func NewWorkerSequential(manager *core.Manager, store *JobStore, wg *sync.WaitGroup) *Worker {
-	return newWorker(manager, store, wg, true)
+func NewWorkerSequential(processor *Processor) *Worker {
+	return newWorker(processor, true)
 }
 
 // Stop will demand that all new requests are no longer processed
@@ -213,7 +215,7 @@ func (w *Worker) processJob(job *JobEntry) {
 	fields["description"] = handler.Describe()
 
 	// Try to execute it, report the error
-	if err := handler.Execute(w.manager); err != nil {
+	if err := handler.Execute(w.processor, w.manager); err != nil {
 		fields["error"] = err
 		log.WithFields(fields).Error("Job failed with error")
 		return
