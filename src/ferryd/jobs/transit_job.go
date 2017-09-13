@@ -81,6 +81,9 @@ func (j *TransitJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	// Append the manifest path because now we'll want to delete these
 	pkgs = append(pkgs, j.path)
 	for _, p := range pkgs {
+		if !core.PathExists(p) {
+			continue
+		}
 		if err := os.Remove(p); err != nil {
 			log.WithFields(log.Fields{
 				"file":  p,
