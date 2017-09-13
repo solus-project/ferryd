@@ -107,6 +107,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewCreateRepoJobHandler(j)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
+	case TransitProcess:
+		return NewTransitJobHandler(j)
 	default:
 		return nil, fmt.Errorf("unknown job type '%s'", j.Type)
 	}
