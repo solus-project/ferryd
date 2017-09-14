@@ -25,6 +25,23 @@ To reduce the cost of indexing a repository (many thousands of packages) a simpl
 
 `ferryd` should also support the automatic creation of `.delta.eopkg` delta packages to reduce the cost of update for users. While the existing `binman.py` implementation can do all these things, it is very limited, inefficient, and often misses delta opportunities.
 
+TODO
+----
+
+ - [ ] Restore delta operation for whole repo
+ - [ ] Restore delta op per package
+ - [ ] Fire off delta job for **each** new package in the transit manifest - parallel
+ - [ ] Get delta inclusion working
+ - [ ] Mark failed deltas
+ - [ ] Then have per-delta fire off sequential Index job for the entire repo (cheap enough)
+ - [ ] Add `clone` operation to clone one repo to another (optionally all or tip)
+ - [ ] Add `pull` operation to pull from one repo into another (missing and mismatched)
+ - [ ] Add delete operation to remove repo (unref cycle)
+ - [ ] Add trim commands
+ - [ ] Maybe add `trim` subcommand to nuke obsoletes ?
+ - [ ] Throw another shedload of data and test upload cycle/bump upload/delta/index
+ - [ ] Stats UI? i.e. ongoing jobs, recently completed, etc.
+
 
 Usage (basic)
 -------------
