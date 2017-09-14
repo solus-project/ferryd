@@ -79,8 +79,8 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
-		var newJ []byte
 
+		// Attempt to find relevant job, break when we have it + id
 		err := bucket.ForEach(func(id, value []byte) error {
 			j, err := Deserialize(value)
 			if err != nil {
@@ -88,18 +88,6 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 			}
 			if !j.Claimed {
 				j.Claimed = true
-
-				// Serialise the new guy
-				newJ, err = j.Serialize()
-				if err != nil {
-					return err
-				}
-
-				// Put the new guy back in
-				if err = bucket.Put(id, newJ); err != nil {
-					return err
-				}
-
 				// Got a usable job now.
 				job = j
 				job.id = make([]byte, len(id))
@@ -109,10 +97,21 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 			return nil
 		})
 
-		return err
+		if err != ErrBreakLoop {
+			return err
+		}
+
+		// Serialise the new guy
+		newJ, err := job.Serialize()
+		if err != nil {
+			return err
+		}
+
+		// Put the new guy back in
+		return bucket.Put(job.id, newJ)
 	})
 
-	if err != nil && err != ErrBreakLoop {
+	if err != nil {
 		return nil, err
 	}
 
