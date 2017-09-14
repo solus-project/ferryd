@@ -82,6 +82,9 @@ func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	sort.Sort(PackageSet(pkgs))
 	tip := pkgs[len(pkgs)-1]
 
+	// TODO: Record new deltas, invalidate old deltas
+	// TODO: Consider spawning an async for *each* individual delta eopkg which
+	// could speed things up considerably.
 	for i := 0; i < len(pkgs)-1; i++ {
 		old := pkgs[i]
 		if err := manager.CreateDelta(j.repoID, old, tip); err != nil {
