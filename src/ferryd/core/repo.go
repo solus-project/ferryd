@@ -312,17 +312,27 @@ func (r *Repository) GetPackages(tx *bolt.Tx, pool *Pool, pkgName string) ([]*li
 	return pkgs, nil
 }
 
-// CreateDelta will create deltas for the given packages within this repository
-func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPackage) error {
+// CreateDelta is responsible for trying to create a new delta package between
+// oldPkg and newPkg, with newPkg being the delta *to*.
+//
+// This function may fail to produce a delta because they're incompatible packages,
+// or because a delta between the two packages would be pointless (i.e. they're
+// either identical or 100% the same.)
+//
+// Lastly, this function will move the delta out of the build area into the
+// staging area if it successfully produces a delta. This does not mark a delta
+// attempt as "pointless", nor does it actually *include* the delta package
+// within the repository.
+func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPackage) (string, error) {
 	if !libeopkg.IsDeltaPossible(oldPkg, newPkg) {
-		return libeopkg.ErrMismatchedDelta
+		return "", libeopkg.ErrMismatchedDelta
 	}
 	fileName := libeopkg.ComputeDeltaName(oldPkg, newPkg)
 	fullPath := filepath.Join(r.deltaStagePath, fileName)
 
 	// This guy exists, no point in trying to rebuild it
 	if PathExists(fullPath) {
-		return nil
+		return fullPath, nil
 	}
 
 	oldPath := filepath.Join(r.path, oldPkg.PackageURI)
@@ -330,14 +340,9 @@ func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPacka
 
 	fmt.Printf(" * Forming delta %s\n", fullPath)
 
-	// TODO: actually do something not insane here
 	if err := ProduceDelta(r.deltaPath, oldPath, newPath, fullPath); err != nil {
-		// TODO: Mark it permanently as bork
-		if err == libeopkg.ErrDeltaPointless {
-			return nil
-		}
-		return err
+		return "", err
 	}
 
-	return nil
+	return fullPath, nil
 }

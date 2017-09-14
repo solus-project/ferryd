@@ -133,15 +133,20 @@ func (m *Manager) GetPackages(repoID, pkgName string) ([]*libeopkg.MetaPackage, 
 }
 
 // CreateDelta will attempt to create a new delta package between the old and new IDs
-func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackage) error {
+func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackage) (string, error) {
 	repo, err := m.GetRepo(repoID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return m.db.View(func(tx *bolt.Tx) error {
-		return repo.CreateDelta(tx, oldPkg, newPkg)
+	var assetPath string
+
+	err = m.db.View(func(tx *bolt.Tx) error {
+		assetPath, err = repo.CreateDelta(tx, oldPkg, newPkg)
+		return err
 	})
+
+	return assetPath, err
 }
 
 // GetPoolEntry will return the metadata for a pool entry with the given pkg ID

@@ -104,16 +104,31 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 	// could speed things up considerably.
 	for i := 0; i < len(pkgs)-1; i++ {
 		old := pkgs[i]
-		if err := manager.CreateDelta(j.repoID, old, tip); err != nil {
-			log.WithFields(log.Fields{
-				"old":   old.GetID(),
-				"new":   tip.GetID(),
-				"error": err,
-				"repo":  j.repoID,
-			}).Error("Error producing delta package")
-			return err
+		fields := log.Fields{
+			"old":  old.GetID(),
+			"new":  tip.GetID(),
+			"repo": j.repoID,
 		}
+
+		deltaPath, err := manager.CreateDelta(j.repoID, old, tip)
+		if err != nil {
+			fields["error"] = err
+			if err == libeopkg.ErrDeltaPointless {
+				log.WithFields(fields).Error("Delta not possible, MUST RECORD FAILURE")
+				continue
+			} else if err == libeopkg.ErrMismatchedDelta {
+				log.WithFields(fields).Error("Package delta candidates do not match")
+				continue
+			} else {
+				// Genuinely an issue now
+				log.WithFields(fields).Error("Error in delta production")
+				return err
+			}
+		}
+
+		// TODO: Actually insert the deltaPath as a sequential job!!
 		log.WithFields(log.Fields{
+			"path": deltaPath,
 			"old":  old.GetID(),
 			"new":  tip.GetID(),
 			"repo": j.repoID,
