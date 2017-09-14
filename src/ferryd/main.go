@@ -26,6 +26,9 @@ func init() {
 	form.FullTimestamp = true
 	form.TimestampFormat = "15:04:05"
 	log.SetFormatter(form)
+
+	// Temp
+	log.SetLevel(log.DebugLevel)
 }
 
 func mainLoop() {
