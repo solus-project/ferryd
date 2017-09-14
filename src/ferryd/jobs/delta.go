@@ -79,7 +79,7 @@ func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 		log.WithFields(log.Fields{
 			"repo":    j.repoID,
 			"package": j.packageName,
-		}).Info("No delta is possible")
+		}).Debug("No delta is possible")
 		return nil
 	}
 
