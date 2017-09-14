@@ -35,6 +35,9 @@ const (
 	// DeltaPathComponent is a temporary tree for creating delta packages
 	DeltaPathComponent = "deltaBuilds"
 
+	// DeltaStagePathComponent is where we put temporary deltas until merged
+	DeltaStagePathComponent = "deltaStaging"
+
 	// DatabaseBucketRepo is the name for the main repo toplevel bucket
 	DatabaseBucketRepo = "repo"
 
@@ -48,20 +51,22 @@ const (
 // The RepositoryManager maintains all repos within ferryd which are in
 // turn linked to the main pool
 type RepositoryManager struct {
-	repoBase   string
-	assetBase  string
-	deltaBase  string
-	transcoder *GobTranscoder
+	repoBase       string
+	assetBase      string
+	deltaBase      string
+	deltaStageBase string
+	transcoder     *GobTranscoder
 }
 
 // A Repository is a simplistic representation of a exported repository
 // within ferryd
 type Repository struct {
-	ID        string                 // Name of this repository (unique)
-	path      string                 // Where this is on disk
-	assetPath string                 // Where our assets are stored on disk
-	deltaPath string                 // Where we'll produce deltas
-	dist      *libeopkg.Distribution // Distribution
+	ID             string                 // Name of this repository (unique)
+	path           string                 // Where this is on disk
+	assetPath      string                 // Where our assets are stored on disk
+	deltaPath      string                 // Where we'll produce deltas
+	deltaStagePath string                 // Where we'll stage final deltas
+	dist           *libeopkg.Distribution // Distribution
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -78,6 +83,7 @@ func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
 	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
+	r.deltaStageBase = filepath.Join(ctx.BaseDir, DeltaStagePathComponent)
 	r.transcoder = NewGobTranscoder()
 	paths := []string{
 		r.repoBase,
@@ -106,10 +112,11 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 	return &Repository{
-		ID:        id,
-		path:      filepath.Join(r.repoBase, id),
-		assetPath: filepath.Join(r.assetBase, id),
-		deltaPath: filepath.Join(r.deltaBase, id),
+		ID:             id,
+		path:           filepath.Join(r.repoBase, id),
+		assetPath:      filepath.Join(r.assetBase, id),
+		deltaPath:      filepath.Join(r.deltaBase, id),
+		deltaStagePath: filepath.Join(r.deltaStageBase, id),
 	}, nil
 }
 
@@ -136,10 +143,12 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 	assetPath := filepath.Join(r.assetBase, id)
 	repoDir := filepath.Join(r.repoBase, id)
 	deltaPath := filepath.Join(r.deltaBase, id)
+	deltaStagePath := filepath.Join(r.deltaStageBase, id)
 	paths := []string{
 		assetPath,
 		repoDir,
 		deltaPath,
+		deltaStagePath,
 	}
 
 	// Create all required paths
@@ -150,10 +159,11 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 	}
 
 	return &Repository{
-		ID:        id,
-		path:      repoDir,
-		assetPath: assetPath,
-		deltaPath: deltaPath,
+		ID:             id,
+		path:           repoDir,
+		assetPath:      assetPath,
+		deltaPath:      deltaPath,
+		deltaStagePath: deltaStagePath,
 	}, nil
 }
 
@@ -308,7 +318,7 @@ func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPacka
 		return libeopkg.ErrMismatchedDelta
 	}
 	fileName := libeopkg.ComputeDeltaName(oldPkg, newPkg)
-	fullPath := filepath.Join("lol", fileName)
+	fullPath := filepath.Join(r.deltaStagePath, fileName)
 
 	// This guy exists, no point in trying to rebuild it
 	if PathExists(fullPath) {
