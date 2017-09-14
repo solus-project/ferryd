@@ -32,6 +32,9 @@ const (
 	// AssetPathComponent is where we'll find extra files like distribution.xml
 	AssetPathComponent = "assets"
 
+	// DeltaPathComponent is a temporary tree for creating delta packages
+	DeltaPathComponent = "deltaBuilds"
+
 	// DatabaseBucketRepo is the name for the main repo toplevel bucket
 	DatabaseBucketRepo = "repo"
 
@@ -47,6 +50,7 @@ const (
 type RepositoryManager struct {
 	repoBase   string
 	assetBase  string
+	deltaBase  string
 	transcoder *GobTranscoder
 }
 
@@ -56,6 +60,7 @@ type Repository struct {
 	ID        string                 // Name of this repository (unique)
 	path      string                 // Where this is on disk
 	assetPath string                 // Where our assets are stored on disk
+	deltaPath string                 // Where we'll produce deltas
 	dist      *libeopkg.Distribution // Distribution
 }
 
@@ -72,10 +77,12 @@ type RepoEntry struct {
 func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
+	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
 	r.transcoder = NewGobTranscoder()
 	paths := []string{
 		r.repoBase,
 		r.assetBase,
+		r.deltaBase,
 	}
 	// Ensure we have all paths
 	for _, p := range paths {
@@ -102,6 +109,7 @@ func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error)
 		ID:        id,
 		path:      filepath.Join(r.repoBase, id),
 		assetPath: filepath.Join(r.assetBase, id),
+		deltaPath: filepath.Join(r.deltaBase, id),
 	}, nil
 }
 
@@ -127,9 +135,11 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 
 	assetPath := filepath.Join(r.assetBase, id)
 	repoDir := filepath.Join(r.repoBase, id)
+	deltaPath := filepath.Join(r.deltaBase, id)
 	paths := []string{
 		assetPath,
 		repoDir,
+		deltaPath,
 	}
 
 	// Create all required paths
@@ -143,6 +153,7 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		ID:        id,
 		path:      repoDir,
 		assetPath: assetPath,
+		deltaPath: deltaPath,
 	}, nil
 }
 
@@ -310,7 +321,7 @@ func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPacka
 	fmt.Printf(" * Forming delta %s\n", fullPath)
 
 	// TODO: actually do something not insane here
-	if err := ProduceDelta("TEMPORARY", oldPath, newPath, fullPath); err != nil {
+	if err := ProduceDelta(r.deltaPath, oldPath, newPath, fullPath); err != nil {
 		// TODO: Mark it permanently as bork
 		if err == libeopkg.ErrDeltaPointless {
 			return nil
