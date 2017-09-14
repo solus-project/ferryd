@@ -21,6 +21,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"path/filepath"
 )
 
 // TransitJobHandler is responsible for accepting new upload payloads in the repository
@@ -49,7 +50,7 @@ func NewTransitJobHandler(j *JobEntry) (*TransitJobHandler, error) {
 }
 
 // Execute will index the given repository if possible
-func (j *TransitJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+func (j *TransitJobHandler) Execute(jproc *Processor, manager *core.Manager) error {
 	tram, err := core.NewTransitManifest(j.path)
 	if err != nil {
 		return err
@@ -80,6 +81,7 @@ func (j *TransitJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 
 	// Append the manifest path because now we'll want to delete these
 	pkgs = append(pkgs, j.path)
+
 	for _, p := range pkgs {
 		if !core.PathExists(p) {
 			continue
@@ -92,6 +94,20 @@ func (j *TransitJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 			}).Error("Failed to remove manifest file upload")
 		}
 	}
+
+	// At this point we should actually have valid pool entries so
+	// we'll grab their names, and schedule that they be re-deltad.
+	// It might be the case no delta is possible, but we'll let the
+	// DeltaJobHandler decide on that.
+	for _, pkg := range pkgs {
+		pkgID := filepath.Base(pkg)
+		p, ent := manager.GetPoolEntry(pkgID)
+		if ent != nil {
+			return err
+		}
+		jproc.PushJob(NewDeltaJob(repo, p.Name))
+	}
+
 	return nil
 }
 

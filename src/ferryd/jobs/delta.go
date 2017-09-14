@@ -76,6 +76,10 @@ func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 
 	// Need at least 2 packages for a delta op.
 	if len(pkgs) < 2 {
+		log.WithFields(log.Fields{
+			"repo":    j.repoID,
+			"package": j.packageName,
+		}).Info("No delta is possible")
 		return nil
 	}
 
