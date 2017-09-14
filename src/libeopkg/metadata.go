@@ -117,12 +117,12 @@ type MetaPackage struct {
 	// Brief description, one line, of the package functionality
 	Summary []struct {
 		Value string `xml:",cdata"`
-		Lang  string `xml:"lang,attr,omitempty"`
+		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
 	}
 	// A full fleshed description of the package
 	Description []struct {
 		Value string `xml:",cdata"`
-		Lang  string `xml:"lang,attr,omitempty"`
+		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
 	}
 	IsA                 string        `xml:"IsA,omitempty"`    // Legacy construct defining type
 	PartOf              string        `xml:"PartOf,omitempty"` // Which component the package belongs to
