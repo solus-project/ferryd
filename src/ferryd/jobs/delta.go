@@ -67,8 +67,9 @@ func NewDeltaJobHandler(j *JobEntry) (*DeltaJobHandler, error) {
 	}, nil
 }
 
-// Execute will delta the target package within the target repository.
-func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+// executeInternal is the common code shared in the delta jobs, and is
+// split out to save duplication.
+func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 	pkgs, err := manager.GetPackages(j.repoID, j.packageName)
 	if err != nil {
 		return err
@@ -108,6 +109,11 @@ func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	}
 
 	return nil
+}
+
+// Execute will delta the target package within the target repository.
+func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+	return j.executeInternal(manager)
 }
 
 // Describe returns a human readable description for this job
