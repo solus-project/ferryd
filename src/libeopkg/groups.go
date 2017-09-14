@@ -26,10 +26,7 @@ type Group struct {
 	Name string // ID of this group, i.e. "multimedia"
 
 	// Translated short name
-	LocalName []struct {
-		Value string `xml:",cdata"`
-		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
-	}
+	LocalName []LocalisedField
 
 	Icon string // Display icon for this Group
 }
@@ -50,6 +47,11 @@ func NewGroups(xmlfile string) (*Groups, error) {
 	dec := xml.NewDecoder(fi)
 	if err = dec.Decode(grp); err != nil {
 		return nil, err
+	}
+	// Ensure there are no empty Lang= fields
+	for i := range grp.Groups {
+		group := &grp.Groups[i]
+		FixMissingLocalLanguage(&group.LocalName)
 	}
 	return grp, nil
 }

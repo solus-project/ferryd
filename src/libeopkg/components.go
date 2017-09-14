@@ -26,22 +26,13 @@ type Component struct {
 	Name string // ID of this component, i.e. "system.base"
 
 	// Translated short name
-	LocalName []struct {
-		Value string `xml:",cdata"`
-		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
-	}
+	LocalName []LocalisedField
 
 	// Translated summary
-	Summary []struct {
-		Value string `xml:",cdata"`
-		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
-	}
+	Summary []LocalisedField
 
 	// Translated description
-	Description []struct {
-		Value string `xml:",cdata"`
-		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
-	}
+	Description []LocalisedField
 
 	Group      string // Which group this component belongs to
 	Maintainer struct {
@@ -66,6 +57,14 @@ func NewComponents(xmlfile string) (*Components, error) {
 	dec := xml.NewDecoder(fi)
 	if err = dec.Decode(components); err != nil {
 		return nil, err
+	}
+
+	// Ensure there are no empty Lang= fields
+	for i := range components.Components {
+		comp := &components.Components[i]
+		FixMissingLocalLanguage(&comp.LocalName)
+		FixMissingLocalLanguage(&comp.Summary)
+		FixMissingLocalLanguage(&comp.Description)
 	}
 	return components, nil
 }

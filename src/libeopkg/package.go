@@ -116,10 +116,12 @@ func (p *Package) ReadMetadata() error {
 		sum := &p.Meta.Package.Summary[i]
 		sum.Value = strings.TrimSpace(sum.Value)
 	}
+	FixMissingLocalLanguage(&p.Meta.Package.Summary)
 	for i := range p.Meta.Package.Description {
 		desc := &p.Meta.Package.Description[i]
 		desc.Value = strings.TrimSpace(desc.Value)
 	}
+	FixMissingLocalLanguage(&p.Meta.Package.Description)
 	return nil
 }
 

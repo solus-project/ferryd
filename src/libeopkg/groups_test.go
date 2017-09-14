@@ -50,8 +50,8 @@ func TestGroups(t *testing.T) {
 		t.Fatalf("Invalid number of LocalNames: %d", len(want.LocalName))
 	}
 
-	if want.LocalName[0].Lang != "" {
-		t.Fatalf("Should not have lang on first element: %s", want.LocalName[0].Lang)
+	if want.LocalName[0].Lang != "en" {
+		t.Fatalf("First element should be en by default: %s", want.LocalName[0].Lang)
 	}
 	if want.LocalName[22].Lang != "zh_CN" {
 		t.Fatalf("Wrong lang on last element: %s", want.LocalName[22].Lang)
