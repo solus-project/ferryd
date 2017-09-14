@@ -39,6 +39,10 @@ const (
 	// a given package name + repo
 	Delta = "Delta"
 
+	// DeltaIndex is created in response to transit manifest events, and will
+	// cause the repository to be reindexed after each delta job continues
+	DeltaIndex = "Delta+Index"
+
 	// DeltaRepo is a sequential job which creates Delta jobs for every package in
 	// a repo
 	DeltaRepo = "DeltaRepo"
@@ -106,7 +110,9 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 	case CreateRepo:
 		return NewCreateRepoJobHandler(j)
 	case Delta:
-		return NewDeltaJobHandler(j)
+		return NewDeltaJobHandler(j, false)
+	case DeltaIndex:
+		return NewDeltaJobHandler(j, true)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
 	case TransitProcess:

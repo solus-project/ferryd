@@ -45,6 +45,7 @@ func (p PackageSet) Swap(a, b int) {
 type DeltaJobHandler struct {
 	repoID      string
 	packageName string
+	indexRepo   bool
 }
 
 // NewDeltaJob will return a job suitable for adding to the job processor
@@ -56,14 +57,25 @@ func NewDeltaJob(repoID, packageID string) *JobEntry {
 	}
 }
 
+// NewDeltaIndexJob will return a new job for creating delta packages as well
+// as scheduling an index operation when complete.
+func NewDeltaIndexJob(repoID, packageID string) *JobEntry {
+	return &JobEntry{
+		sequential: false,
+		Type:       DeltaIndex,
+		Params:     []string{repoID, packageID},
+	}
+}
+
 // NewDeltaJobHandler will create a job handler for the input job and ensure it validates
-func NewDeltaJobHandler(j *JobEntry) (*DeltaJobHandler, error) {
+func NewDeltaJobHandler(j *JobEntry, indexRepo bool) (*DeltaJobHandler, error) {
 	if len(j.Params) != 2 {
 		return nil, fmt.Errorf("job has invalid parameters")
 	}
 	return &DeltaJobHandler{
 		repoID:      j.Params[0],
 		packageName: j.Params[1],
+		indexRepo:   indexRepo,
 	}, nil
 }
 
@@ -112,11 +124,24 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 }
 
 // Execute will delta the target package within the target repository.
-func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
-	return j.executeInternal(manager)
+func (j *DeltaJobHandler) Execute(jproc *Processor, manager *core.Manager) error {
+	err := j.executeInternal(manager)
+	if err != nil {
+		return err
+	}
+	if !j.indexRepo {
+		return nil
+	}
+	// TODO: Only index if we've actually CREATED deltas!!
+	// Ask that our repository now be reindexed because we've added deltas
+	jproc.PushJob(NewIndexRepoJob(j.repoID))
+	return nil
 }
 
 // Describe returns a human readable description for this job
 func (j *DeltaJobHandler) Describe() string {
+	if j.indexRepo {
+		return fmt.Sprintf("Delta package '%s' on '%s', then re-index", j.packageName, j.repoID)
+	}
 	return fmt.Sprintf("Delta package '%s' on '%s'", j.packageName, j.repoID)
 }
