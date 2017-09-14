@@ -28,8 +28,8 @@ To reduce the cost of indexing a repository (many thousands of packages) a simpl
 TODO
 ----
 
- - [ ] Restore delta operation for whole repo
  - [ ] Restore delta op per package
+ - [ ] Restore delta operation for whole repo
  - [ ] Fire off delta job for **each** new package in the transit manifest - parallel
  - [ ] Get delta inclusion working
  - [ ] Mark failed deltas
