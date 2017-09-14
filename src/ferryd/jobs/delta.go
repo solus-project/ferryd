@@ -39,35 +39,42 @@ func (p PackageSet) Swap(a, b int) {
 	p[a], p[b] = p[b], p[a]
 }
 
-// DeltaPackageJob is a parallel job which will attempt the construction of
-// deltas for a given package name + repo
-type DeltaPackageJob struct {
-	packageName string
+// DeltaJobHandler is responsible for indexing repositories and should only
+// ever be used in async queues. Deltas may take some time to produce and
+// shouldn't be allowed to block the sequential processing queue.
+type DeltaJobHandler struct {
 	repoID      string
+	packageName string
 }
 
-// NewDeltaPackageJob will create a new delta job for the given repo + package name
-func NewDeltaPackageJob(repoID, packageName string) *DeltaPackageJob {
-	return &DeltaPackageJob{repoID: repoID, packageName: packageName}
+// NewDeltaJob will return a job suitable for adding to the job processor
+func NewDeltaJob(repoID, packageID string) *JobEntry {
+	return &JobEntry{
+		sequential: false,
+		Type:       Delta,
+		Params:     []string{repoID, packageID},
+	}
 }
 
-// Init is unused for this job
-func (d *DeltaPackageJob) Init(jproc *Processor) {}
-
-// IsSequential will return false as we're happy to batch up multiple delta
-// operations provided they're parented with an indexing job
-func (d *DeltaPackageJob) IsSequential() bool {
-	return false
+// NewDeltaJobHandler will create a job handler for the input job and ensure it validates
+func NewDeltaJobHandler(j *JobEntry) (*DeltaJobHandler, error) {
+	if len(j.Params) != 2 {
+		return nil, fmt.Errorf("job has invalid parameters")
+	}
+	return &DeltaJobHandler{
+		repoID:      j.Params[0],
+		packageName: j.Params[1],
+	}, nil
 }
 
-// Perform will invoke the indexing operation
-func (d *DeltaPackageJob) Perform(manager *core.Manager) error {
-	pkgs, err := manager.GetPackages(d.repoID, d.packageName)
+// Execute will delta the target package within the target repository.
+func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+	pkgs, err := manager.GetPackages(j.repoID, j.packageName)
 	if err != nil {
 		return err
 	}
 
-	// Duh.
+	// Need at least 2 packages for a delta op.
 	if len(pkgs) < 2 {
 		return nil
 	}
@@ -77,26 +84,26 @@ func (d *DeltaPackageJob) Perform(manager *core.Manager) error {
 
 	for i := 0; i < len(pkgs)-1; i++ {
 		old := pkgs[i]
-		if err := manager.CreateDelta(d.repoID, old, tip); err != nil {
+		if err := manager.CreateDelta(j.repoID, old, tip); err != nil {
 			log.WithFields(log.Fields{
 				"old":   old.GetID(),
 				"new":   tip.GetID(),
 				"error": err,
-				"repo":  d.repoID,
+				"repo":  j.repoID,
 			}).Error("Error producing delta package")
 			return err
 		}
 		log.WithFields(log.Fields{
 			"old":  old.GetID(),
 			"new":  tip.GetID(),
-			"repo": d.repoID,
+			"repo": j.repoID,
 		}).Info("Successfully producing delta package")
 	}
 
 	return nil
 }
 
-// Describe will explain the purpose of this job
-func (d *DeltaPackageJob) Describe() string {
-	return fmt.Sprintf("Delta package '%s' on '%s'", d.packageName, d.repoID)
+// Describe returns a human readable description for this job
+func (j *DeltaJobHandler) Describe() string {
+	return fmt.Sprintf("Delta package '%s' on '%s'", j.packageName, j.repoID)
 }

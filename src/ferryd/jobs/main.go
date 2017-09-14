@@ -105,6 +105,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewBulkAddJobHandler(j)
 	case CreateRepo:
 		return NewCreateRepoJobHandler(j)
+	case Delta:
+		return NewDeltaJobHandler(j)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
 	case TransitProcess:
