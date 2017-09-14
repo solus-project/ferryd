@@ -34,6 +34,8 @@ TODO
  - [ ] Get delta inclusion working
  - [ ] Mark failed deltas
  - [ ] Then have per-delta fire off sequential Index job for the entire repo (cheap enough)
+ - [ ] Handle garbage collection of deltas when including new delta
+ - [ ] Handle garbage collection of all deltas when removing a package
  - [ ] Add `clone` operation to clone one repo to another (optionally all or tip)
  - [ ] Add `pull` operation to pull from one repo into another (missing and mismatched)
  - [ ] Add delete operation to remove repo (unref cycle)
@@ -41,6 +43,7 @@ TODO
  - [ ] Maybe add `trim` subcommand to nuke obsoletes ?
  - [ ] Throw another shedload of data and test upload cycle/bump upload/delta/index
  - [ ] Stats UI? i.e. ongoing jobs, recently completed, etc.
+ - [ ] Restore binman parity, allow removing package (by release number), copying a single package, group of packages, etc.
 
 
 Usage (basic)
