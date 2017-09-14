@@ -28,7 +28,7 @@ type Group struct {
 	// Translated short name
 	LocalName []struct {
 		Value string `xml:",cdata"`
-		Lang  string `xml:"lang,attr,omitempty"`
+		Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
 	}
 
 	Icon string // Display icon for this Group
