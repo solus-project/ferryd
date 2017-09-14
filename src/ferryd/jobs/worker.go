@@ -136,12 +136,7 @@ func (w *Worker) Start() {
 
 			// Report the error
 			if err != nil {
-				if err == ErrEmptyQueue {
-					// Bump the time index
-					log.WithFields(log.Fields{
-						"async": !w.sequential,
-					}).Debug("Empty processing queue")
-				} else {
+				if err != ErrEmptyQueue {
 					log.WithFields(log.Fields{
 						"error": err,
 						"async": !w.sequential,
@@ -189,10 +184,6 @@ func (w *Worker) setTimeIndex(newTimeIndex int) {
 		w.ticker.Stop()
 	}
 	w.ticker = time.NewTicker(timeIndexes[w.timeIndex])
-	log.WithFields(log.Fields{
-		"async":    !w.sequential,
-		"duration": timeIndexes[w.timeIndex],
-	}).Debug("Updated worker wait period")
 }
 
 // processJob will actually examine the given job and figure out how
