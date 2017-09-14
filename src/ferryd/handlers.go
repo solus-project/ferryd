@@ -90,7 +90,7 @@ func (s *Server) DeltaRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	log.WithFields(log.Fields{
 		"id": id,
 	}).Info("Repository delta requested")
-	// s.jproc.PushJob(jobs.NewDeltaRepoJob(id))
+	s.jproc.PushJob(jobs.NewDeltaRepoJob(id))
 }
 
 // IndexRepo will handle remote requests for repository indexing
