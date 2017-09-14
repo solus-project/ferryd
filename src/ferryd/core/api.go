@@ -19,6 +19,7 @@ package core
 import (
 	"github.com/boltdb/bolt"
 	"libeopkg"
+	"path/filepath"
 )
 
 // This file provides the public API functions which are used by ferryd
@@ -141,4 +142,26 @@ func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackag
 	return m.db.View(func(tx *bolt.Tx) error {
 		return repo.CreateDelta(tx, oldPkg, newPkg)
 	})
+}
+
+// GetPoolEntry will return the metadata for a pool entry with the given pkg ID
+func (m *Manager) GetPoolEntry(pkgID string) (*libeopkg.MetaPackage, error) {
+	var (
+		entry *PoolEntry
+		err   error
+	)
+
+	// Sanity.
+	id := filepath.Base(pkgID)
+
+	err = m.db.View(func(tx *bolt.Tx) error {
+		entry, err = m.pool.GetEntry(tx, id)
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return entry.Meta, nil
 }
