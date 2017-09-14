@@ -79,6 +79,7 @@ func newWorker(processor *Processor, sequential bool) *Worker {
 		ticker:     nil, // Init this when we start up
 		manager:    processor.manager,
 		store:      processor.store,
+		processor:  processor,
 		timeIndex:  -1,
 	}
 
