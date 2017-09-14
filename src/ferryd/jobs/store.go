@@ -102,7 +102,8 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 
 				// Got a usable job now.
 				job = j
-				job.id = id
+				job.id = make([]byte, len(id))
+				copy(job.id, id)
 				return ErrBreakLoop
 			}
 			return nil
@@ -137,8 +138,9 @@ func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 			return e
 		}
 		// Store private ID field
-		j.id = id
 		job = j
+		job.id = make([]byte, len(id))
+		copy(job.id, id)
 		return nil
 	})
 
