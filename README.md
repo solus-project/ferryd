@@ -8,7 +8,7 @@ ferryd
 `ferryd` aims to provide simple management of Solus repositories, with a git-like feel, and a rigid approach to caching, by pooling assets and hardlinking them into the appropriate place.
 
 
-**Note**: `ferryd` is currently a work in progress, and isn't an **immediate** Solus tooling goal.
+**Note**: `ferryd` is currently a work in progress, and is currently our highest priority work item.
 
 ferryd is a [Solus project](https://solus-project.com/).
 
