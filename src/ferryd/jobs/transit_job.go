@@ -105,7 +105,7 @@ func (j *TransitJobHandler) Execute(jproc *Processor, manager *core.Manager) err
 		if ent != nil {
 			return err
 		}
-		jproc.PushJob(NewDeltaJob(repo, p.Name))
+		jproc.PushJob(NewDeltaIndexJob(repo, p.Name))
 	}
 
 	return nil
