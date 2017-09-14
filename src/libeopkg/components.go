@@ -19,6 +19,7 @@ package libeopkg
 import (
 	"encoding/xml"
 	"os"
+	"sort"
 )
 
 // A Component as seen through the eyes of XML
@@ -46,6 +47,21 @@ type Components struct {
 	Components []Component `xml:"Components>Component"`
 }
 
+// ComponentSort allows us to quickly sort our components by name
+type ComponentSort []Component
+
+func (g ComponentSort) Len() int {
+	return len(g)
+}
+
+func (g ComponentSort) Less(a, b int) bool {
+	return g[a].Name < g[b].Name
+}
+
+func (g ComponentSort) Swap(a, b int) {
+	g[a], g[b] = g[b], g[a]
+}
+
 // NewComponents will load the Components data from the XML file
 func NewComponents(xmlfile string) (*Components, error) {
 	fi, err := os.Open(xmlfile)
@@ -58,6 +74,8 @@ func NewComponents(xmlfile string) (*Components, error) {
 	if err = dec.Decode(components); err != nil {
 		return nil, err
 	}
+
+	sort.Sort(ComponentSort(components.Components))
 
 	// Ensure there are no empty Lang= fields
 	for i := range components.Components {

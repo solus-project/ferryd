@@ -19,6 +19,7 @@ package libeopkg
 import (
 	"encoding/xml"
 	"os"
+	"sort"
 )
 
 // A Group as seen through the eyes of XML
@@ -36,6 +37,21 @@ type Groups struct {
 	Groups []Group `xml:"Groups>Group"`
 }
 
+// GroupSort allows us to quickly sort our groups by name
+type GroupSort []Group
+
+func (g GroupSort) Len() int {
+	return len(g)
+}
+
+func (g GroupSort) Less(a, b int) bool {
+	return g[a].Name < g[b].Name
+}
+
+func (g GroupSort) Swap(a, b int) {
+	g[a], g[b] = g[b], g[a]
+}
+
 // NewGroups will load the Groups data from the XML file
 func NewGroups(xmlfile string) (*Groups, error) {
 	fi, err := os.Open(xmlfile)
@@ -48,6 +64,7 @@ func NewGroups(xmlfile string) (*Groups, error) {
 	if err = dec.Decode(grp); err != nil {
 		return nil, err
 	}
+	sort.Sort(GroupSort(grp.Groups))
 	// Ensure there are no empty Lang= fields
 	for i := range grp.Groups {
 		group := &grp.Groups[i]
