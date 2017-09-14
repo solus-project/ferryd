@@ -147,6 +147,16 @@ func WriteSha1sum(inpPath, outPath string) error {
 	return ioutil.WriteFile(outPath, []byte(hash), 00644)
 }
 
+// WriteSha256sum will take the sha256sum of the input path and then dump it to
+// the given output path
+func WriteSha256sum(inpPath, outPath string) error {
+	hash, err := FileSha256sum(inpPath)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(outPath, []byte(hash), 00644)
+}
+
 // PathExists is a trivial helper to figure out if a path exists or not
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
