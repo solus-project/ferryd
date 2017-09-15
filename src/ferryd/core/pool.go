@@ -127,6 +127,20 @@ func (p *Pool) AddDelta(tx *bolt.Tx, pkg *libeopkg.Package, mapping *DeltaInform
 		return entry, p.putEntry(tx, entry)
 	}
 
+	// Validate these source/target packages *actually* exist
+	sourceEntry, err := p.GetEntry(tx, mapping.FromID)
+	if err != nil {
+		return nil, err
+	}
+	targetEntry, err := p.GetEntry(tx, mapping.ToID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now set the rest of the metadata before storing
+	mapping.ToRelease = targetEntry.Meta.GetRelease()
+	mapping.FromRelease = sourceEntry.Meta.GetRelease()
+
 	return p.addPackageInternal(tx, pkg, copyDisk, mapping)
 }
 

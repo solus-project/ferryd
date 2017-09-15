@@ -195,6 +195,21 @@ func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 	return rootBucket.Put([]byte(entry.Name), enc)
 }
 
+// AddDelta will first open and read the .delta.eopkg, before passing it back off to AddLocalDelta
+func (r *Repository) AddDelta(tx *bolt.Tx, pool *Pool, filename string, mapping *DeltaInformation) error {
+	pkg, err := libeopkg.Open(filename)
+	if err != nil {
+		return err
+	}
+
+	defer pkg.Close()
+	if err = pkg.ReadMetadata(); err != nil {
+		return err
+	}
+
+	return r.AddLocalDelta(tx, pool, pkg, mapping)
+}
+
 // AddLocalDelta will attempt to add the delta to this repository, if possible
 // All ref'd deltas are retained, but not necessarily emitted unless they're
 // valid for the from-to relationship.

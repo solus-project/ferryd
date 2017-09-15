@@ -149,6 +149,19 @@ func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackag
 	return assetPath, err
 }
 
+// AddDelta will attempt to include the delta package specified by deltaPath into
+// the target repository
+func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) error {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return err
+	}
+
+	return m.db.Update(func(tx *bolt.Tx) error {
+		return repo.AddDelta(tx, m.pool, deltaPath, mapping)
+	})
+}
+
 // GetPoolEntry will return the metadata for a pool entry with the given pkg ID
 func (m *Manager) GetPoolEntry(pkgID string) (*libeopkg.MetaPackage, error) {
 	var (
