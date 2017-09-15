@@ -81,7 +81,7 @@ func NewDeltaJobHandler(j *JobEntry, indexRepo bool) (*DeltaJobHandler, error) {
 
 // executeInternal is the common code shared in the delta jobs, and is
 // split out to save duplication.
-func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
+func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manager) error {
 	pkgs, err := manager.GetPackages(j.repoID, j.packageName)
 	if err != nil {
 		return err
@@ -126,13 +126,17 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 			}
 		}
 
-		// TODO: Actually insert the deltaPath as a sequential job!!
 		log.WithFields(log.Fields{
 			"path": deltaPath,
 			"old":  old.GetID(),
 			"new":  tip.GetID(),
 			"repo": j.repoID,
 		}).Info("Successfully producing delta package")
+
+		// Note if we push an index job, it's also on the sequential queue so it
+		// still won't actually run until after we've included the deltas from our
+		// own job run.
+		jproc.PushJob(NewIncludeDeltaJob(j.repoID, old.GetID(), tip.GetID(), deltaPath))
 	}
 
 	return nil
@@ -140,7 +144,7 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 
 // Execute will delta the target package within the target repository.
 func (j *DeltaJobHandler) Execute(jproc *Processor, manager *core.Manager) error {
-	err := j.executeInternal(manager)
+	err := j.executeInternal(jproc, manager)
 	if err != nil {
 		return err
 	}
