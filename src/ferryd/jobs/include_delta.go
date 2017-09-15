@@ -19,6 +19,7 @@ package jobs
 import (
 	"ferryd/core"
 	"fmt"
+	"os"
 )
 
 // IncludeDeltaJobHandler is responsible for indexing repositories and should only
@@ -60,8 +61,13 @@ func (j *IncludeDeltaJobHandler) Execute(_ *Processor, manager *core.Manager) er
 		ToID:   j.targetID,
 	}
 
-	// TODO: Delete the deltaPath if the add is successful!
-	return manager.AddDelta(j.repoID, j.deltaPath, mapping)
+	// Try to insert the delta
+	if err := manager.AddDelta(j.repoID, j.deltaPath, mapping); err != nil {
+		return err
+	}
+
+	// Delete the deltaPath if the add is successful
+	return os.Remove(j.deltaPath)
 }
 
 // Describe returns a human readable description for this job
