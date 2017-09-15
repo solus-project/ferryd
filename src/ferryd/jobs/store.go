@@ -126,7 +126,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 	var job *JobEntry
 
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
 		cursor := tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Cursor()
 		id, value := cursor.First()
 		if id == nil {
