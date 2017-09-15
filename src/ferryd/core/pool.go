@@ -35,6 +35,13 @@ const (
 	PoolSchemaVersion = "1.0"
 )
 
+// DeltaInformation is included in pool entries if they're actually a delta
+// package and not a normal package
+type DeltaInformation struct {
+	FromRelease int // The source release for this delta
+	ToRelease   int // The target release for this delta
+}
+
 // A PoolEntry is the main storage unit within ferryd.
 // Each entry contains the full data for a given eopkg file, as well as the
 // reference count.
@@ -47,6 +54,7 @@ type PoolEntry struct {
 	Name          string                // Name&ID of the pool entry
 	RefCount      uint64                // How many instances of this file exist right now
 	Meta          *libeopkg.MetaPackage // The eopkg metadata
+	Delta         *DeltaInformation     // May actually be nil if not a delta
 }
 
 // A Pool is used to manage and deduplicate resources between multiple resources,
@@ -104,10 +112,39 @@ func (p *Pool) GetPackagePoolPath(pkg *libeopkg.Package) string {
 	return pkgTarget
 }
 
-// AddPackage will determine where the new eopkg goes, and whether we need
-// to actually push it on disk, or simply bump the ref count. Any file
-// passed to us is believed to be under our ownership now.
-func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolEntry, error) {
+// AddDelta will add a delta package to the pool if doesn't exist, otherwise
+// it will increase the refcount for the package.
+//
+// tipID refers to the pool entry name for the *target* package so that we
+// can obtain the relevant release number for it.
+//
+// This is a very loose wrapper around AddPackage, but will add some delta
+// information too. Note that a delta package is still a package in its own
+// right, its just installed and handled differently (lacking files, etc.)
+func (p *Pool) AddDelta(tx *bolt.Tx, pkg *libeopkg.Package, tipID string, copyDisk bool) (*PoolEntry, error) {
+	// Check if this is just a simple case of bumping the refcount
+	if entry, err := p.GetEntry(tx, pkg.ID); err == nil {
+		entry.RefCount++
+		return entry, p.putEntry(tx, entry)
+	}
+
+	// We need the target package's release number, basically.
+	targetPackage, err := p.GetEntry(tx, tipID)
+	if err != nil {
+		return nil, err
+	}
+
+	mapping := &DeltaInformation{
+		FromRelease: pkg.Meta.Package.GetRelease(),
+		ToRelease:   targetPackage.Meta.GetRelease(),
+	}
+
+	return p.addPackageInternal(tx, pkg, copyDisk, mapping)
+}
+
+// addPackageInternal used by both AddDelta and AddPackage for the main bulk of
+// the work
+func (p *Pool) addPackageInternal(tx *bolt.Tx, pkg *libeopkg.Package, copyDisk bool, delta *DeltaInformation) (*PoolEntry, error) {
 	// Check if this is just a simple case of bumping the refcount
 	if entry, err := p.GetEntry(tx, pkg.ID); err == nil {
 		entry.RefCount++
@@ -127,7 +164,7 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 		return nil, err
 	}
 	// Try to hard link the file into place
-	if err := LinkOrCopyFile(pkg.Path, pkgTarget, copy); err != nil {
+	if err := LinkOrCopyFile(pkg.Path, pkgTarget, copyDisk); err != nil {
 		return nil, err
 	}
 	sha, err := FileSha1sum(pkg.Path)
@@ -145,7 +182,9 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 		Name:          pkg.ID,
 		RefCount:      1,
 		Meta:          &pkg.Meta.Package,
+		Delta:         delta, // Might be nil, thats OK
 	}
+
 	if err := p.putEntry(tx, entry); err != nil {
 		// Just clean out what we did because we can't write it into the DB
 		// Error isn't important, really.
@@ -154,6 +193,13 @@ func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolE
 		return nil, err
 	}
 	return entry, nil
+}
+
+// AddPackage will determine where the new eopkg goes, and whether we need
+// to actually push it on disk, or simply bump the ref count. Any file
+// passed to us is believed to be under our ownership now.
+func (p *Pool) AddPackage(tx *bolt.Tx, pkg *libeopkg.Package, copy bool) (*PoolEntry, error) {
+	return p.addPackageInternal(tx, pkg, copy, nil)
 }
 
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise
