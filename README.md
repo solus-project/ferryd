@@ -32,14 +32,14 @@ TODO
  - [x] Restore delta operation for whole repo
  - [x] Fire off delta job for **each** new package in the transit manifest - parallel
  - [x] Get delta inclusion working
- - [ ] Mark failed deltas
+ - [x] Mark failed deltas
  - [x] Then have per-delta fire off sequential Index job for the entire repo (cheap enough)
  - [ ] Handle garbage collection of deltas when including new delta
  - [ ] Handle garbage collection of all deltas when removing a package
  - [ ] Add `clone` operation to clone one repo to another (optionally all or tip)
  - [ ] Add `pull` operation to pull from one repo into another (missing and mismatched)
  - [ ] Add delete operation to remove repo (unref cycle)
- - [ ] Add trim commands
+ - [ ] Add `trim` commands
  - [ ] Maybe add `trim` subcommand to nuke obsoletes ?
  - [ ] Throw another shedload of data and test upload cycle/bump upload/delta/index
  - [ ] Stats UI? i.e. ongoing jobs, recently completed, etc.
