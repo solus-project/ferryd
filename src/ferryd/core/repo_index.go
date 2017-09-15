@@ -115,7 +115,50 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 	return nil
 }
 
-func (r *Repository) emitIndexPackage(pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
+// pushDeltaPackages will insert all applicable (usable) delta packages from
+// our repository into the emitted index
+func (r *Repository) pushDeltaPackages(tx *bolt.Tx, pool *Pool, entry *PoolEntry) error {
+	// Get our local entry
+	repoEntry, err := r.GetEntry(tx, entry.Meta.Name)
+	if err != nil {
+		return err
+	}
+
+	var deltas []libeopkg.Delta
+
+	// Find all delta IDs
+	for _, id := range repoEntry.Deltas {
+		poolEnt, err := pool.GetEntry(tx, id)
+		if err != nil {
+			return err
+		}
+		if poolEnt.Delta == nil {
+			return fmt.Errorf("invalid delta record, corruption: %s", id)
+		}
+
+		// Basically the ToRelease must be for this release
+		if poolEnt.Delta.ToRelease != entry.Meta.GetRelease() {
+			continue
+		}
+
+		// Insert delta and clone the pool entry meta for it
+		deltas = append(deltas, libeopkg.Delta{
+			ReleaseFrom: poolEnt.Delta.FromRelease,
+			PackageURI:  poolEnt.Meta.PackageURI,
+			PackageSize: poolEnt.Meta.PackageSize,
+			PackageHash: poolEnt.Meta.PackageHash,
+		})
+	}
+
+	// TODO: Sort deltas
+	if deltas != nil && len(deltas) > 0 {
+		entry.Meta.DeltaPackages = &deltas
+	}
+
+	return nil
+}
+
+func (r *Repository) emitIndexPackage(tx *bolt.Tx, pool *Pool, pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
@@ -147,6 +190,12 @@ func (r *Repository) emitIndexPackage(pkg string, encoder *xml.Encoder, entry *P
 			}
 		}
 	}
+
+	// Shove in the delta packages now
+	if err := r.pushDeltaPackages(tx, pool, entry); err != nil {
+		return err
+	}
+
 	return encoder.EncodeElement(entry.Meta, elem)
 }
 
@@ -192,7 +241,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 		if err != nil {
 			return err
 		}
-		if err = r.emitIndexPackage(pkg, encoder, entry); err != nil {
+		if err = r.emitIndexPackage(tx, pool, pkg, encoder, entry); err != nil {
 			return err
 		}
 	}
