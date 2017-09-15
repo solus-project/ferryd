@@ -76,6 +76,7 @@ type RepoEntry struct {
 	Name          string   // Base package name
 	Available     []string // The available packages for this package name (eopkg IDs)
 	Published     string   // The "tip" version of this package (eopkg ID)
+	Deltas        []string // Delta packages known for this package.
 }
 
 // Init will create our initial working paths and DB bucket
@@ -192,6 +193,50 @@ func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
 	}
 
 	return rootBucket.Put([]byte(entry.Name), enc)
+}
+
+// AddLocalDelta will attempt to add the delta to this repository, if possible
+// All ref'd deltas are retained, but not necessarily emitted unless they're
+// valid for the from-to relationship.
+func (r *Repository) AddLocalDelta(tx *bolt.Tx, pool *Pool, pkg *libeopkg.Package, mapping *DeltaInformation) error {
+	// Find our local package entry for the delta package first
+	entry, err := r.GetEntry(tx, pkg.Meta.Package.Name)
+	if err != nil {
+		return err
+	}
+
+	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+
+	// Check we don't know about this delta already
+	for _, id := range entry.Deltas {
+		if id == pkg.ID {
+			fmt.Printf("Skipping already included delta %s\n", id)
+			return nil
+		}
+	}
+
+	// Insert this deltas ID to this package map
+	entry.Deltas = append(entry.Deltas, pkg.ID)
+	sort.Strings(entry.Deltas)
+
+	// Construct root dirs
+	if err := os.MkdirAll(pkgDir, 00755); err != nil {
+		return err
+	}
+
+	// Grab the pool reference for this package
+	if _, err = pool.AddDelta(tx, pkg, mapping, false); err != nil {
+		return err
+	}
+
+	// Ensure the eopkg file is linked inside our own tree
+	source := pool.GetPackagePoolPath(pkg)
+	if err = LinkOrCopyFile(source, pkgTarget, false); err != nil {
+		return err
+	}
+
+	return r.putEntry(tx, entry)
 }
 
 // AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository

@@ -38,8 +38,10 @@ const (
 // DeltaInformation is included in pool entries if they're actually a delta
 // package and not a normal package
 type DeltaInformation struct {
-	FromRelease int // The source release for this delta
-	ToRelease   int // The target release for this delta
+	FromRelease int    // The source release for this delta
+	FromID      string // ID for the source package
+	ToRelease   int    // The target release for this delta
+	ToID        string // ID for the target package
 }
 
 // A PoolEntry is the main storage unit within ferryd.
@@ -115,28 +117,14 @@ func (p *Pool) GetPackagePoolPath(pkg *libeopkg.Package) string {
 // AddDelta will add a delta package to the pool if doesn't exist, otherwise
 // it will increase the refcount for the package.
 //
-// tipID refers to the pool entry name for the *target* package so that we
-// can obtain the relevant release number for it.
-//
 // This is a very loose wrapper around AddPackage, but will add some delta
 // information too. Note that a delta package is still a package in its own
 // right, its just installed and handled differently (lacking files, etc.)
-func (p *Pool) AddDelta(tx *bolt.Tx, pkg *libeopkg.Package, tipID string, copyDisk bool) (*PoolEntry, error) {
+func (p *Pool) AddDelta(tx *bolt.Tx, pkg *libeopkg.Package, mapping *DeltaInformation, copyDisk bool) (*PoolEntry, error) {
 	// Check if this is just a simple case of bumping the refcount
 	if entry, err := p.GetEntry(tx, pkg.ID); err == nil {
 		entry.RefCount++
 		return entry, p.putEntry(tx, entry)
-	}
-
-	// We need the target package's release number, basically.
-	targetPackage, err := p.GetEntry(tx, tipID)
-	if err != nil {
-		return nil, err
-	}
-
-	mapping := &DeltaInformation{
-		FromRelease: pkg.Meta.Package.GetRelease(),
-		ToRelease:   targetPackage.Meta.GetRelease(),
 	}
 
 	return p.addPackageInternal(tx, pkg, copyDisk, mapping)
