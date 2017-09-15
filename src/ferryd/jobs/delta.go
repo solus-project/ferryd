@@ -99,7 +99,7 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 	sort.Sort(PackageSet(pkgs))
 	tip := pkgs[len(pkgs)-1]
 
-	// TODO: Record new deltas, invalidate old deltas
+	// TODO: Invalidate old deltas
 	// TODO: Consider spawning an async for *each* individual delta eopkg which
 	// could speed things up considerably.
 	for i := 0; i < len(pkgs)-1; i++ {
@@ -110,11 +110,28 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 			"repo": j.repoID,
 		}
 
+		deltaID := libeopkg.ComputeDeltaName(old, tip)
+		failed, err := manager.GetDeltaFailed(deltaID)
+		if err != nil {
+			return err
+		}
+
+		// Don't need to report that it failed, we know this from history
+		if failed {
+			continue
+		}
+
 		deltaPath, err := manager.CreateDelta(j.repoID, old, tip)
 		if err != nil {
 			fields["error"] = err
 			if err == libeopkg.ErrDeltaPointless {
-				log.WithFields(fields).Error("Delta not possible, MUST RECORD FAILURE")
+				// Non-fatal, ask the manager to record this delta as a no-go
+				log.WithFields(fields).Info("Delta not possible, marked permanently")
+				if err := manager.MarkDeltaFailed(deltaID); err != nil {
+					fields["error"] = err
+					log.WithFields(fields).Error("Failed to mark delta failure")
+					return err
+				}
 				continue
 			} else if err == libeopkg.ErrMismatchedDelta {
 				log.WithFields(fields).Error("Package delta candidates do not match")

@@ -162,6 +162,28 @@ func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) 
 	})
 }
 
+// MarkDeltaFailed will permanently record the delta package as failing so we do
+// not attempt to recreate it (expensive)
+func (m *Manager) MarkDeltaFailed(deltaID string) error {
+	return m.db.Update(func(tx *bolt.Tx) error {
+		return m.pool.MarkDeltaFailed(tx, deltaID)
+	})
+}
+
+// GetDeltaFailed will determine via the pool transaction whether a delta has
+// previously failed.
+func (m *Manager) GetDeltaFailed(deltaID string) (bool, error) {
+	var (
+		failed bool
+		err    error
+	)
+	e2 := m.db.View(func(tx *bolt.Tx) error {
+		failed, err = m.pool.GetDeltaFailed(tx, deltaID)
+		return err
+	})
+	return failed, e2
+}
+
 // GetPoolEntry will return the metadata for a pool entry with the given pkg ID
 func (m *Manager) GetPoolEntry(pkgID string) (*libeopkg.MetaPackage, error) {
 	var (

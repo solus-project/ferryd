@@ -241,3 +241,15 @@ func (p *Pool) UnrefEntry(tx *bolt.Tx, id string) error {
 	b := tx.Bucket([]byte(DatabaseBucketPool))
 	return b.Delete([]byte(id))
 }
+
+// MarkDeltaFailed will insert a record indicating that it is not possible
+// to actually produce a given delta ID
+func (p *Pool) MarkDeltaFailed(tx *bolt.Tx, id string) error {
+	return libeopkg.ErrNotYetImplemented
+}
+
+// GetDeltaFailed will determine if generation of this delta ID has actually
+// failed in the past, skipping a potentially expensive delta examination.
+func (p *Pool) GetDeltaFailed(tx *bolt.Tx, id string) (bool, error) {
+	return false, libeopkg.ErrNotYetImplemented
+}
