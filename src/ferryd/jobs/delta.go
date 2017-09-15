@@ -46,6 +46,7 @@ type DeltaJobHandler struct {
 	repoID      string
 	packageName string
 	indexRepo   bool
+	nDeltas     int // Track how many deltas we actually produce
 }
 
 // NewDeltaJob will return a job suitable for adding to the job processor
@@ -76,6 +77,7 @@ func NewDeltaJobHandler(j *JobEntry, indexRepo bool) (*DeltaJobHandler, error) {
 		repoID:      j.Params[0],
 		packageName: j.Params[1],
 		indexRepo:   indexRepo,
+		nDeltas:     0,
 	}, nil
 }
 
@@ -149,6 +151,8 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 			}
 		}
 
+		j.nDeltas++
+
 		log.WithFields(log.Fields{
 			"path": deltaPath,
 			"old":  old.GetID(),
@@ -174,9 +178,11 @@ func (j *DeltaJobHandler) Execute(jproc *Processor, manager *core.Manager) error
 	if !j.indexRepo {
 		return nil
 	}
-	// TODO: Only index if we've actually CREATED deltas!!
-	// Ask that our repository now be reindexed because we've added deltas
-	jproc.PushJob(NewIndexRepoJob(j.repoID))
+	// Ask that our repository now be reindexed because we've added deltas but
+	// only if we've successfully produced some delta packages
+	if j.nDeltas > 0 {
+		jproc.PushJob(NewIndexRepoJob(j.repoID))
+	}
 	return nil
 }
 
