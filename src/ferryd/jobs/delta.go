@@ -125,9 +125,15 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 		if err != nil {
 			fields["error"] = err
 			if err == libeopkg.ErrDeltaPointless {
+				failInfo := &core.DeltaInformation{
+					FromID:      old.GetID(),
+					ToID:        tip.GetID(),
+					FromRelease: old.GetRelease(),
+					ToRelease:   tip.GetRelease(),
+				}
 				// Non-fatal, ask the manager to record this delta as a no-go
 				log.WithFields(fields).Info("Delta not possible, marked permanently")
-				if err := manager.MarkDeltaFailed(deltaID); err != nil {
+				if err := manager.MarkDeltaFailed(deltaID, failInfo); err != nil {
 					fields["error"] = err
 					log.WithFields(fields).Error("Failed to mark delta failure")
 					return err

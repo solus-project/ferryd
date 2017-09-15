@@ -28,6 +28,9 @@ const (
 	// DatabaseBucketPool is the identifier for the pool main bucket
 	DatabaseBucketPool = "pool"
 
+	// DatabaseBucketDeltaSkip is the identifier for the pool's "failed delta" entries
+	DatabaseBucketDeltaSkip = "deltaSkip"
+
 	// PoolPathComponent is the storage directory for all of our main files
 	PoolPathComponent = "pool"
 
@@ -42,6 +45,14 @@ type DeltaInformation struct {
 	FromID      string // ID for the source package
 	ToRelease   int    // The target release for this delta
 	ToID        string // ID for the target package
+}
+
+// A DeltaSkipEntry is used to record skipped deltas from some kind of generation
+// failure
+type DeltaSkipEntry struct {
+	SchemaVersion string // Version used when this skip entry was created
+	Name          string
+	Delta         DeltaInformation
 }
 
 // A PoolEntry is the main storage unit within ferryd.
@@ -73,7 +84,10 @@ func (p *Pool) Init(ctx *Context, tx *bolt.Tx) error {
 	if err := os.MkdirAll(p.poolDir, 00755); err != nil {
 		return err
 	}
-	_, err := tx.CreateBucketIfNotExists([]byte(DatabaseBucketPool))
+	if _, err := tx.CreateBucketIfNotExists([]byte(DatabaseBucketPool)); err != nil {
+		return err
+	}
+	_, err := tx.CreateBucketIfNotExists([]byte(DatabaseBucketDeltaSkip))
 	return err
 }
 
@@ -98,6 +112,32 @@ func (p *Pool) GetEntry(tx *bolt.Tx, id string) (*PoolEntry, error) {
 // Private method to re-put the entry into the DB
 func (p *Pool) putEntry(tx *bolt.Tx, entry *PoolEntry) error {
 	rootBucket := tx.Bucket([]byte(DatabaseBucketPool))
+	code := NewGobEncoderLight()
+	enc, err := code.EncodeType(entry)
+	if err != nil {
+		return err
+	}
+	return rootBucket.Put([]byte(entry.Name), enc)
+}
+
+// GetSkipEntry will return the delta-skip entry for the given ID
+func (p *Pool) GetSkipEntry(tx *bolt.Tx, id string) (*DeltaSkipEntry, error) {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketDeltaSkip))
+	v := rootBucket.Get([]byte(id))
+	if v == nil {
+		return nil, fmt.Errorf("Unknown delta entry: %s", id)
+	}
+	entry := &DeltaSkipEntry{}
+	dec := NewGobDecoderLight()
+	if err := dec.DecodeType(v, entry); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// Private method to re-put the entry into the DB
+func (p *Pool) putSkipEntry(tx *bolt.Tx, entry *DeltaSkipEntry) error {
+	rootBucket := tx.Bucket([]byte(DatabaseBucketDeltaSkip))
 	code := NewGobEncoderLight()
 	enc, err := code.EncodeType(entry)
 	if err != nil {
@@ -244,12 +284,31 @@ func (p *Pool) UnrefEntry(tx *bolt.Tx, id string) error {
 
 // MarkDeltaFailed will insert a record indicating that it is not possible
 // to actually produce a given delta ID
-func (p *Pool) MarkDeltaFailed(tx *bolt.Tx, id string) error {
-	return libeopkg.ErrNotYetImplemented
+func (p *Pool) MarkDeltaFailed(tx *bolt.Tx, id string, delta *DeltaInformation) error {
+	// Already recorded? Skip again..
+	if _, err := p.GetSkipEntry(tx, id); err == nil {
+		return nil
+	}
+
+	skip := &DeltaSkipEntry{
+		SchemaVersion: PoolSchemaVersion,
+		Name:          id,
+		Delta: DeltaInformation{
+			FromID:      delta.FromID,
+			ToID:        delta.ToID,
+			FromRelease: delta.FromRelease,
+			ToRelease:   delta.ToRelease,
+		},
+	}
+	return p.putSkipEntry(tx, skip)
 }
 
 // GetDeltaFailed will determine if generation of this delta ID has actually
 // failed in the past, skipping a potentially expensive delta examination.
-func (p *Pool) GetDeltaFailed(tx *bolt.Tx, id string) (bool, error) {
-	return false, libeopkg.ErrNotYetImplemented
+func (p *Pool) GetDeltaFailed(tx *bolt.Tx, id string) bool {
+	skip, err := p.GetSkipEntry(tx, id)
+	if err == nil && skip != nil {
+		return true
+	}
+	return false
 }
