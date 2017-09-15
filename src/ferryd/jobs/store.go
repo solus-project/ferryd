@@ -19,6 +19,7 @@ package jobs
 import (
 	"encoding/binary"
 	"errors"
+	"ferryd/core"
 	"github.com/boltdb/bolt"
 	"sync"
 )
@@ -47,19 +48,40 @@ type JobStore struct {
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
-func NewStore(db *bolt.DB) (*JobStore, error) {
+func NewStore(path string) (*JobStore, error) {
+	ctx, err := core.NewContext(path)
+
+	// Open the database if we can
+	// TODO: Add a timeout for locks
+	db, err := bolt.Open(ctx.JobDbPath, 00600, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &JobStore{
 		db:     db,
 		jobMut: &sync.Mutex{},
 	}
+
 	if err := s.setup(); err != nil {
+		defer s.Close()
 		return nil, err
 	}
 	return s, nil
 }
 
-// Close is currently a no-op placeholder for when JobStore has it's own db
-func (s *JobStore) Close() {}
+// Close will clean up our private job database
+func (s *JobStore) Close() {
+	s.jobMut.Lock()
+	defer s.jobMut.Unlock()
+
+	if s.db == nil {
+		return
+	}
+
+	s.db.Close()
+	s.db = nil
+}
 
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {

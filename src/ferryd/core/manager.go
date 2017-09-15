@@ -90,12 +90,6 @@ func (m *Manager) initComponents() error {
 	})
 }
 
-// DB is a TEMPORARY HACK to return the database to share it with the
-// JobStore
-func (m *Manager) DB() *bolt.DB {
-	return m.db
-}
-
 // Close will close and clean up any associated resources, such as the
 // underlying database.
 func (m *Manager) Close() {

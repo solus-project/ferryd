@@ -31,6 +31,9 @@ const (
 	// for the database file itself.
 	DatabasePathComponent = "ferry.db"
 
+	// JobDatabasePathComponent references our separate job database
+	JobDatabasePathComponent = "ferry_jobs.db"
+
 	// IncomingPathComponent is the base for all per-repo incoming directories
 	IncomingPathComponent = "incoming"
 
@@ -41,8 +44,9 @@ const (
 // The Context is shared between all of the components of ferryd to provide
 // working directories and such.
 type Context struct {
-	BaseDir string // Base directory of operations
-	DbPath  string // Path to the main database file
+	BaseDir   string // Base directory of operations
+	DbPath    string // Path to the main database file
+	JobDbPath string // Path to the job database file
 }
 
 // NewContext will construct a context from the given base directory for
@@ -58,8 +62,9 @@ func NewContext(root string) (*Context, error) {
 		return nil, err
 	}
 	return &Context{
-		BaseDir: basedir,
-		DbPath:  filepath.Join(basedir, DatabasePathComponent),
+		BaseDir:   basedir,
+		DbPath:    filepath.Join(basedir, DatabasePathComponent),
+		JobDbPath: filepath.Join(basedir, JobDatabasePathComponent),
 	}, nil
 }
 

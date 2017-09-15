@@ -106,7 +106,7 @@ func (s *Server) Bind() error {
 	}
 	s.manager = m
 
-	st, e := jobs.NewStore(m.DB())
+	st, e := jobs.NewStore(baseDir)
 	if e != nil {
 		return e
 	}
