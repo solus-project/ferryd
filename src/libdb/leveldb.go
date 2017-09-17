@@ -29,7 +29,7 @@ func newLevelDBHandle(storagePath string) (*levelDbHandle, error) {
 	// TODO: Set up options, support read-only, etc.
 	ldb, err := leveldb.OpenFile(storagePath, nil)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	return &levelDbHandle{
 		db: ldb,

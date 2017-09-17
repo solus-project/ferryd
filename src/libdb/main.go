@@ -17,7 +17,6 @@
 package libdb
 
 import (
-	"errors"
 	"sync"
 )
 
