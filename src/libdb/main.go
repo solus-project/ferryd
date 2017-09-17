@@ -51,6 +51,9 @@ type WriterView interface {
 // A ReadOnlyFunc is expected by the Database.View method
 type ReadOnlyFunc func(view ReadOnlyView) error
 
+// A WriterFunc is used for batch write (transactional) views
+type WriterFunc func(db Database) error
+
 // Database is the compound interface to the underlying database implementation
 type Database interface {
 	ReadOnlyView
@@ -61,6 +64,9 @@ type Database interface {
 
 	// Obtain a read-only view of the database
 	View(f ReadOnlyFunc) error
+
+	// Obtain a read-write view of the database in a transaction
+	Update(f WriterFunc) error
 
 	// Close the database (might no-op)
 	Close()

@@ -34,6 +34,7 @@ type levelDbHandle struct {
 	prefix      []byte
 	keyPrefix   []byte
 	db          *leveldb.DB
+	batch       *leveldb.Batch // Usually nil but set for write transactions
 }
 
 // levelDb is our concrete type
@@ -86,6 +87,10 @@ func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
 	by, err := tr.EncodeType(inObject)
 	if err != nil {
 		return err
+	}
+	if l.batch != nil {
+		l.batch.Put(l.getRealKey(id), by)
+		return nil
 	}
 	return l.db.Put(l.getRealKey(id), by, nil)
 }
@@ -140,4 +145,27 @@ func (l *levelDbHandle) Bucket(id []byte) Database {
 
 func (l *levelDbHandle) View(f ReadOnlyFunc) error {
 	return f(l)
+}
+
+// Update is a bit cheeky in that we create a clone of ourselves
+// to utilise a batch object, and then execute the passed function
+// within the context of that batch.
+//
+// If the function doesn't return an error, we'll allow the database
+// to try and write. Otherwise, we'll discard the entire batch and
+// return the functions error.
+func (l *levelDbHandle) Update(f WriterFunc) error {
+	clone := levelDbHandle{
+		db:          l.db,
+		prefix:      l.prefix,
+		keyPrefix:   l.keyPrefix,
+		prefixBytes: l.prefixBytes,
+		batch:       &leveldb.Batch{},
+	}
+	err := f(&clone)
+	if err != nil {
+		clone.batch.Reset()
+		return err
+	}
+	return clone.db.Write(clone.batch, nil)
 }
