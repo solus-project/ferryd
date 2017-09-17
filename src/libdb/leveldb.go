@@ -23,6 +23,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+var (
+	rootBucketPrefix = []byte("|rootBucket|-")
+	bucketPrefix     = []byte("|bucket|")
+)
+
 // levelDbHandle wraps leveldb up in private API
 type levelDbHandle struct {
 	prefixBytes *util.Range
@@ -45,8 +50,8 @@ func newLevelDBHandle(storagePath string) (*levelDb, error) {
 	}
 	handle := &levelDb{}
 	handle.db = ldb
-	handle.prefix = []byte("rootBucket")
-	handle.keyPrefix = []byte("rootBucket-")
+	handle.prefix = []byte("|rootBucket|")
+	handle.keyPrefix = []byte("|rootBucket|-")
 	handle.prefixBytes = util.BytesPrefix(handle.prefix)
 	handle.initClosable()
 	return handle, nil
@@ -73,6 +78,10 @@ func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
 }
 
 func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
+	if bytes.HasPrefix(id, bucketPrefix) || bytes.HasPrefix(id, rootBucketPrefix) {
+		return fmt.Errorf("key uses reserved bucket notation: %v", string(id))
+	}
+
 	tr := NewGobEncoderLight()
 	by, err := tr.EncodeType(inObject)
 	if err != nil {
@@ -116,9 +125,9 @@ func (l *levelDbHandle) Close() {}
 func (l *levelDbHandle) Bucket(id []byte) Database {
 	var newID []byte
 	if l.prefix != nil {
-		newID = []byte(fmt.Sprintf("bucket-%s-%s", string(l.prefix), id))
+		newID = []byte(fmt.Sprintf("%s-%s-%s", string(bucketPrefix), string(l.prefix), id))
 	} else {
-		newID = []byte(fmt.Sprintf("bucket-%s", id))
+		newID = []byte(fmt.Sprintf("%s-%s", string(bucketPrefix), id))
 	}
 	ret := &levelDbHandle{
 		db:          l.db,
