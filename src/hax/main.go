@@ -35,14 +35,29 @@ func writeTest() {
 	}
 	defer db.Close()
 
-	obj := MyObject{
+	objA := MyObject{
 		Name: "Bobby",
 		Age:  31,
 	}
-	if err := db.PutObject([]byte("ObjectA"), &obj); err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
-		return
+
+	objB := MyObject{
+		Name: "Johnny",
+		Age:  26,
 	}
+
+	db.Update(func(d libdb.Database) error {
+		if err := d.PutObject([]byte("ObjectA"), &objA); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
+			return err
+		}
+		if err := d.PutObject([]byte("ObjectB"), &objB); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
+			return err
+		}
+		return nil
+		// return fmt.Errorf("nope no write")
+	})
+
 }
 
 func readTest() {
@@ -51,15 +66,6 @@ func readTest() {
 		panic(err)
 	}
 	defer db.Close()
-
-	var obj MyObject
-
-	if err := db.GetObject([]byte("ObjectA"), &obj); err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't read object: %v\n", err)
-		return
-	}
-
-	fmt.Printf("Object: %v\n", obj)
 
 	db.View(func(r libdb.ReadOnlyView) error {
 		return r.ForEach(func(key, value []byte) error {
@@ -73,6 +79,14 @@ func readTest() {
 		})
 	})
 
+	var obj MyObject
+
+	if err := db.GetObject([]byte("ObjectA"), &obj); err != nil {
+		fmt.Fprintf(os.Stderr, "Couldn't read object: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Object: %v\n", obj)
 }
 
 func main() {
