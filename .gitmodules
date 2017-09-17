@@ -25,3 +25,6 @@
 [submodule "src/vendor/github.com/syndtr/goleveldb"]
 	path = src/vendor/github.com/syndtr/goleveldb
 	url = https://github.com/syndtr/goleveldb.git
+[submodule "src/vendor/github.com/golang/snappy"]
+	path = src/vendor/github.com/golang/snappy
+	url = https://github.com/golang/snappy.git
