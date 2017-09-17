@@ -28,11 +28,13 @@ type MyObject struct {
 	Age  int
 }
 
-func mainLoop() {
+func writeTest() {
 	db, err := libdb.Open("ldbTest")
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
+
 	obj := MyObject{
 		Name: "Bobby",
 		Age:  31,
@@ -41,9 +43,26 @@ func mainLoop() {
 		fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
 		return
 	}
+}
+
+func readTest() {
+	db, err := libdb.Open("ldbTest")
+	if err != nil {
+		panic(err)
+	}
 	defer db.Close()
+
+	var obj MyObject
+
+	if err := db.GetObject([]byte("ObjectA"), &obj); err != nil {
+		fmt.Fprintf(os.Stderr, "Couldn't read object: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Object: %v\n", obj)
 }
 
 func main() {
-	mainLoop()
+	writeTest()
+	readTest()
 }
