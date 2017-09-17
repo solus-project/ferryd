@@ -22,3 +22,6 @@
 [submodule "src/vendor/golang.org/sys"]
 	path = src/vendor/golang.org/x/sys
 	url = https://github.com/golang/sys
+[submodule "src/vendor/github.com/syndtr/goleveldb"]
+	path = src/vendor/github.com/syndtr/goleveldb
+	url = https://github.com/syndtr/goleveldb.git
