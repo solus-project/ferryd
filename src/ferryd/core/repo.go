@@ -56,6 +56,8 @@ type RepositoryManager struct {
 	deltaBase      string
 	deltaStageBase string
 	transcoder     *GobTranscoder
+
+	repos map[string]*Repository // Cache all repositories.
 }
 
 // A Repository is a simplistic representation of a exported repository
@@ -86,6 +88,8 @@ func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
 	r.deltaStageBase = filepath.Join(ctx.BaseDir, DeltaStagePathComponent)
 	r.transcoder = NewGobTranscoder()
+	r.repos = make(map[string]*Repository)
+
 	paths := []string{
 		r.repoBase,
 		r.assetBase,
@@ -104,21 +108,63 @@ func (r *RepositoryManager) Init(ctx *Context, tx *bolt.Tx) error {
 // Close doesn't currently do anything
 func (r *RepositoryManager) Close() {}
 
-// GetRepo will attempt to get the named repo if it exists, otherwise
-// return an error. This is a transactional helper to make the API simpler
-func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error) {
-	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo))
-	repo := rootBucket.Bucket([]byte(id))
-	if repo == nil {
-		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
-	}
-	return &Repository{
+// bakeRepo hands the internal duped code between GetRepo/CreateRepo to ensure
+// they're always fully formed.
+//
+// This ensures the first time we GetRepo on an existing repo, we ensure that
+// we actually have all support paths too.
+func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
+	repository := &Repository{
 		ID:             id,
 		path:           filepath.Join(r.repoBase, id),
 		assetPath:      filepath.Join(r.assetBase, id),
 		deltaPath:      filepath.Join(r.deltaBase, id),
 		deltaStagePath: filepath.Join(r.deltaStageBase, id),
-	}, nil
+	}
+
+	paths := []string{
+		repository.path,
+		repository.assetPath,
+		repository.deltaPath,
+		repository.deltaStagePath,
+	}
+
+	// Create all required paths
+	for _, p := range paths {
+		if PathExists(p) {
+			continue
+		}
+		if err := os.MkdirAll(p, 00755); err != nil {
+			return nil, err
+		}
+	}
+
+	return repository, nil
+}
+
+// GetRepo will attempt to get the named repo if it exists, otherwise
+// return an error. This is a transactional helper to make the API simpler
+func (r *RepositoryManager) GetRepo(tx *bolt.Tx, id string) (*Repository, error) {
+	// Cache each repository.
+	if repo, ok := r.repos[id]; ok {
+		return repo, nil
+	}
+
+	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo))
+	repo := rootBucket.Bucket([]byte(id))
+	if repo == nil {
+		return nil, fmt.Errorf("The specified repository '%s' does not exist", id)
+	}
+
+	repository, err := r.bakeRepo(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache this guy for later
+	r.repos[id] = repository
+
+	return repository, nil
 }
 
 // CreateRepo will create a new repository (bucket) within the top level
@@ -141,31 +187,15 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 		return nil, err
 	}
 
-	assetPath := filepath.Join(r.assetBase, id)
-	repoDir := filepath.Join(r.repoBase, id)
-	deltaPath := filepath.Join(r.deltaBase, id)
-	deltaStagePath := filepath.Join(r.deltaStageBase, id)
-	paths := []string{
-		assetPath,
-		repoDir,
-		deltaPath,
-		deltaStagePath,
+	repository, err := r.bakeRepo(id)
+	if err != nil {
+		return nil, err
 	}
 
-	// Create all required paths
-	for _, p := range paths {
-		if err := os.MkdirAll(p, 00755); err != nil {
-			return nil, err
-		}
-	}
+	// Cache this guy for later
+	r.repos[id] = repository
 
-	return &Repository{
-		ID:             id,
-		path:           repoDir,
-		assetPath:      assetPath,
-		deltaPath:      deltaPath,
-		deltaStagePath: deltaStagePath,
-	}, nil
+	return repository, nil
 }
 
 // GetEntry will return the package entry for the given ID
