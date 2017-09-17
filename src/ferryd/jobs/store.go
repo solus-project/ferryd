@@ -30,9 +30,6 @@ var (
 	// BucketSequentialJobs holds all sequential jobs
 	BucketSequentialJobs = []byte("Sync")
 
-	// BucketRootJobs is the parent job bucket
-	BucketRootJobs = []byte("JobRoot")
-
 	// ErrEmptyQueue is returned to indicate a job is not available yet
 	ErrEmptyQueue = errors.New("Queue is empty")
 
@@ -42,7 +39,8 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	db *bolt.DB
+	syncDb  *bolt.DB
+	asyncDb *bolt.DB
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
@@ -51,14 +49,21 @@ func NewStore(path string) (*JobStore, error) {
 
 	// Open the database if we can
 	// TODO: Add a timeout for locks
-	db, err := bolt.Open(ctx.JobDbPath, 00600, nil)
+	syncDb, err := bolt.Open(ctx.JobDbPath, 00600, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &JobStore{
-		db: db,
+		syncDb: syncDb,
 	}
+
+	asyncDb, err := bolt.Open(ctx.PriorityJobDbPath, 00600, nil)
+	if err != nil {
+		defer s.Close()
+		return nil, err
+	}
+	s.asyncDb = asyncDb
 
 	if err := s.setup(); err != nil {
 		defer s.Close()
@@ -69,25 +74,29 @@ func NewStore(path string) (*JobStore, error) {
 
 // Close will clean up our private job database
 func (s *JobStore) Close() {
-	if s.db == nil {
-		return
+	if s.syncDb != nil {
+		s.syncDb.Close()
+		s.syncDb = nil
 	}
-
-	s.db.Close()
-	s.db = nil
+	if s.asyncDb != nil {
+		s.asyncDb.Close()
+		s.asyncDb = nil
+	}
 }
 
 // Setup makes sure that all the necessary buckets exist and have valid contents
 func (s *JobStore) setup() error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		rootBucket, err := tx.CreateBucketIfNotExists(BucketRootJobs)
-		if err != nil {
+	err := s.asyncDb.Update(func(tx *bolt.Tx) error {
+		if _, err := tx.CreateBucketIfNotExists(BucketAsyncJobs); err != nil {
 			return err
 		}
-		if _, err = rootBucket.CreateBucketIfNotExists(BucketAsyncJobs); err != nil {
-			return err
-		}
-		if _, err = rootBucket.CreateBucketIfNotExists(BucketSequentialJobs); err != nil {
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return s.syncDb.Update(func(tx *bolt.Tx) error {
+		if _, err := tx.CreateBucketIfNotExists(BucketSequentialJobs); err != nil {
 			return err
 		}
 		return nil
@@ -98,8 +107,8 @@ func (s *JobStore) setup() error {
 func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	var job *JobEntry
 
-	err := s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs)
+	err := s.asyncDb.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(BucketAsyncJobs)
 
 		// Attempt to find relevant job, break when we have it + id
 		err := bucket.ForEach(func(id, value []byte) error {
@@ -147,8 +156,8 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 	var job *JobEntry
 
-	err := s.db.Update(func(tx *bolt.Tx) error {
-		cursor := tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Cursor()
+	err := s.syncDb.Update(func(tx *bolt.Tx) error {
+		cursor := tx.Bucket(BucketSequentialJobs).Cursor()
 		id, value := cursor.First()
 		if id == nil {
 			return ErrEmptyQueue
@@ -173,25 +182,25 @@ func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs).Delete(j.id)
+	return s.asyncDb.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(BucketAsyncJobs).Delete(j.id)
 	})
 }
 
 // RetireSequentialJob removes a completed synchronous job
 func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Delete(j.id)
+	return s.syncDb.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(BucketSequentialJobs).Delete(j.id)
 	})
 }
 
 // pushJobInternal is identical between sync and async jobs, it
 // just needs to know which bucket to store the job in.
-func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
+func (s *JobStore) pushJobInternal(db *bolt.DB, j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
-	return s.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketRootJobs).Bucket(bk)
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bk)
 		id, err := bucket.NextSequence()
 		if err != nil {
 			return err
@@ -209,10 +218,10 @@ func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 
 // PushSequentialJob will enqueue a new sequential job
 func (s *JobStore) PushSequentialJob(j *JobEntry) error {
-	return s.pushJobInternal(j, BucketSequentialJobs)
+	return s.pushJobInternal(s.syncDb, j, BucketSequentialJobs)
 }
 
 // PushAsyncJob will enqueue a new asynchronous job
 func (s *JobStore) PushAsyncJob(j *JobEntry) error {
-	return s.pushJobInternal(j, BucketAsyncJobs)
+	return s.pushJobInternal(s.asyncDb, j, BucketAsyncJobs)
 }
