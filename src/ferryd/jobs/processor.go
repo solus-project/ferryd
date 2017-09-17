@@ -40,10 +40,16 @@ type Processor struct {
 // the majority of operations will run sequentially
 func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 	if njobs < 0 {
+		njobs = runtime.NumCPU() - 2
+	}
+
+	if njobs < 2 {
 		njobs = runtime.NumCPU()
 	}
 
-	fmt.Fprintf(os.Stderr, "Capped backgroundJobs to %d\n", njobs)
+	oldJobs := runtime.GOMAXPROCS(njobs + 5)
+
+	fmt.Fprintf(os.Stderr, "Capped backgroundJobs to %d, maxprocs(%d) = %d\n", njobs, oldJobs, njobs+5)
 
 	ret := &Processor{
 		manager: m,
