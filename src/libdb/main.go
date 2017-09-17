@@ -29,18 +29,8 @@ type Closable interface {
 	Close()
 }
 
-// Database is the opaque interface to the underlying database implementation
-type Database interface {
-
-	// Close the database (might no-op)
-	Close()
-
-	// Return a subset of the database for usage
-	Bucket(id []byte) Database
-
-	// Put an object into storage (unique key)
-	PutObject(id []byte, o interface{}) error
-
+// ReadOnlyView offers a read-only API for the database
+type ReadOnlyView interface {
 	// Get an object from storage
 	GetObject(id []byte, o interface{}) error
 
@@ -49,6 +39,31 @@ type Database interface {
 
 	// For every key value pair, run the given function
 	ForEach(f DbForeachFunc) error
+}
+
+// WriterView allows destructive write actions within the database
+type WriterView interface {
+
+	// Put an object into storage (unique key)
+	PutObject(id []byte, o interface{}) error
+}
+
+// A ReadOnlyFunc is expected by the Database.View method
+type ReadOnlyFunc func(view ReadOnlyView) error
+
+// Database is the compound interface to the underlying database implementation
+type Database interface {
+	ReadOnlyView
+	WriterView
+
+	// Return a subset of the database for usage
+	Bucket(id []byte) Database
+
+	// Obtain a read-only view of the database
+	View(f ReadOnlyFunc) error
+
+	// Close the database (might no-op)
+	Close()
 }
 
 // Private helper to add sync locks to the interfaces

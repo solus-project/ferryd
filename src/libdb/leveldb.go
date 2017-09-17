@@ -137,3 +137,7 @@ func (l *levelDbHandle) Bucket(id []byte) Database {
 	}
 	return ret
 }
+
+func (l *levelDbHandle) View(f ReadOnlyFunc) error {
+	return f(l)
+}
