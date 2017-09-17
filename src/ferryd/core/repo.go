@@ -454,3 +454,17 @@ func (r *Repository) CreateDelta(tx *bolt.Tx, oldPkg, newPkg *libeopkg.MetaPacka
 
 	return fullPath, nil
 }
+
+// HasDelta will work out if we actually have a delta already
+func (r *Repository) HasDelta(tx *bolt.Tx, pkgName, deltaPath string) (bool, error) {
+	entry, err := r.GetEntry(tx, pkgName)
+	if err != nil {
+		return false, err
+	}
+	for _, pkgDelta := range entry.Deltas {
+		if deltaPath == pkgDelta {
+			return true, nil
+		}
+	}
+	return false, nil
+}

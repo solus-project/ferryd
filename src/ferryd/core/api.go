@@ -149,6 +149,21 @@ func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackag
 	return assetPath, err
 }
 
+// HasDelta will query the repository to determine if it already has the
+// given delta
+func (m *Manager) HasDelta(repoID, pkgID, deltaPath string) (bool, error) {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return false, err
+	}
+	var hasDelta bool
+	err = m.db.View(func(tx *bolt.Tx) error {
+		hasDelta, err = repo.HasDelta(tx, pkgID, deltaPath)
+		return err
+	})
+	return hasDelta, err
+}
+
 // AddDelta will attempt to include the delta package specified by deltaPath into
 // the target repository
 func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) error {

@@ -124,6 +124,16 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 			continue
 		}
 
+		hasDelta, err := manager.HasDelta(j.repoID, j.packageName, deltaID)
+		if err != nil {
+			return err
+		}
+
+		// Package has this delta already? Continue.
+		if hasDelta {
+			continue
+		}
+
 		mapping := &core.DeltaInformation{
 			FromID:      old.GetID(),
 			ToID:        tip.GetID(),
