@@ -14,37 +14,21 @@
 // limitations under the License.
 //
 
-package core
+package libdb
 
 import (
 	"bytes"
 	"encoding/gob"
 	"io"
-	"sync"
 )
 
-// A GobTranscoder is a reusable encoder object which is designed to
-// wrap the Gob encoding API, in a simple fashion for ferryd, while
-// avoiding high usage costs.
-type GobTranscoder struct {
-	// Encoding
-	encoder    *gob.Encoder
-	outBytes   *bytes.Buffer
-	encoderMut *sync.Mutex
-
-	// Decoding
-	decoder    *gob.Decoder
-	inBytes    *bytes.Buffer
-	decoderMut *sync.Mutex
-}
-
-// GobEncoderLight is a lighter variant of the transcoder for encoding
+// GobEncoderLight is a helper for encoding gob
 type GobEncoderLight struct {
 	bytes   *bytes.Buffer
 	encoder *gob.Encoder
 }
 
-// GobDecoderLight is a lighter variant of the transcoder for decoding
+// GobDecoderLight is a helper for decoding gob
 type GobDecoderLight struct {
 	bytes   *bytes.Buffer
 	decoder *gob.Decoder
@@ -68,35 +52,6 @@ func NewGobDecoderLight() *GobDecoderLight {
 	return ret
 }
 
-// NewGobTranscoder will return a newly initialised transcoder to help
-// with the mundane encoding/decoding operations
-func NewGobTranscoder() *GobTranscoder {
-	ret := &GobTranscoder{
-		inBytes:    &bytes.Buffer{},
-		outBytes:   &bytes.Buffer{},
-		encoderMut: &sync.Mutex{},
-		decoderMut: &sync.Mutex{},
-	}
-	ret.encoder = gob.NewEncoder(ret.outBytes)
-	ret.decoder = gob.NewDecoder(ret.inBytes)
-	return ret
-}
-
-// EncodeType will convert give given pointer into a gob encoded
-// byte set, and return them
-func (g *GobTranscoder) EncodeType(t interface{}) ([]byte, error) {
-	g.encoderMut.Lock()
-	defer func() {
-		g.outBytes.Reset()
-		g.encoderMut.Unlock()
-	}()
-	err := g.encoder.Encode(t)
-	if err != nil {
-		return nil, err
-	}
-	return g.outBytes.Bytes(), nil
-}
-
 // EncodeType will convert give given pointer into a gob encoded
 // byte set, and return them
 func (g *GobEncoderLight) EncodeType(t interface{}) ([]byte, error) {
@@ -108,20 +63,6 @@ func (g *GobEncoderLight) EncodeType(t interface{}) ([]byte, error) {
 		return nil, err
 	}
 	return g.bytes.Bytes(), nil
-}
-
-// DecodeType will attempt to decode the buffer into the pointer outT
-func (g *GobTranscoder) DecodeType(buf []byte, outT interface{}) error {
-	g.decoderMut.Lock()
-	defer func() {
-		g.inBytes.Reset()
-		g.decoderMut.Unlock()
-	}()
-	reader := bytes.NewReader(buf)
-	if _, err := io.Copy(g.inBytes, reader); err != nil {
-		return err
-	}
-	return g.decoder.Decode(outT)
 }
 
 // DecodeType will attempt to decode the buffer into the pointer outT

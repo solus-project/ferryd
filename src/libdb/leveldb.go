@@ -52,5 +52,10 @@ func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
 }
 
 func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
-	return errors.New("Not yet implemented")
+	tr := NewGobEncoderLight()
+	by, err := tr.EncodeType(inObject)
+	if err != nil {
+		return err
+	}
+	return l.db.Put(id, by, nil)
 }
