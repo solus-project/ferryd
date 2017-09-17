@@ -20,11 +20,19 @@ import (
 	"sync"
 )
 
+// DbForeachFunc is used in the root (untyped buckets)
+type DbForeachFunc func(key, val []byte) error
+
+// DbForeachTypeFunc will
+type DbForeachTypeFunc func(key []byte, val interface{}) error
+
 // Database is the opaque interface to the underlying database implementation
 type Database interface {
 	Close() // Close handle to database
 	PutObject(id []byte, o interface{}) error
 	GetObject(id []byte, o interface{}) error
+	ForEach(f DbForeachFunc) error
+	ForEachType(outType interface{}, f DbForeachTypeFunc) error
 }
 
 // Private helper to add sync locks to the interfaces
