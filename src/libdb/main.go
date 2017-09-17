@@ -36,7 +36,21 @@ type databaseHandle interface {
 // Open will return an opaque representation of the underlying database
 // implementation suitable for usage within ferryd
 func Open(path string) (*Database, error) {
-	return nil, errors.New("Not yet implemented")
+	ret := &Database{
+		storagePath: path,
+		closeMut:    &sync.Mutex{},
+		closed:      false,
+	}
+
+	// Maybe support more storage mechanisms in future but meh for now we'll
+	// toy just with leveldb
+	handle, err := newLevelDBHandle(ret.storagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.handle = handle
+	return ret, nil
 }
 
 // Close the underlying storage
