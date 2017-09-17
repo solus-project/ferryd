@@ -267,6 +267,9 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 // Index will attempt to write the eopkg index out to disk
 // This only requires a read-only database view
 func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+	r.indexMut.Lock()
+	defer r.indexMut.Unlock()
+
 	// If something goes wrong we need to remove our broken files
 	var outPaths []string
 	var finalPaths []string

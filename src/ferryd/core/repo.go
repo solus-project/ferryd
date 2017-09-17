@@ -71,7 +71,8 @@ type Repository struct {
 	deltaStagePath string                 // Where we'll stage final deltas
 	dist           *libeopkg.Distribution // Distribution
 
-	mut *sync.RWMutex // Allow locking a repository for inserts and indexes
+	mut      *sync.RWMutex // Allow locking a repository for inserts and indexes
+	indexMut *sync.Mutex   // Indexing requires a special, separate lock
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -124,6 +125,7 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 		deltaPath:      filepath.Join(r.deltaBase, id),
 		deltaStagePath: filepath.Join(r.deltaStageBase, id),
 		mut:            &sync.RWMutex{},
+		indexMut:       &sync.Mutex{},
 	}
 
 	paths := []string{
