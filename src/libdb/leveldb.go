@@ -17,7 +17,6 @@
 package libdb
 
 import (
-	"errors"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -48,7 +47,16 @@ func (l *levelDbHandle) Close() {
 }
 
 func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
-	return errors.New("Not yet implemented")
+	tr := NewGobDecoderLight()
+	val, err := l.db.Get(id, nil)
+	if err != nil {
+		return err
+	}
+	if err = tr.DecodeType(val, outObject); err != nil {
+		outObject = nil
+		return err
+	}
+	return nil
 }
 
 func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
