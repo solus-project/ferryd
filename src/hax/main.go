@@ -17,13 +17,29 @@
 package main
 
 import (
+	"fmt"
 	"libdb"
+	"os"
 )
+
+// MyObject provided simply for serialisation tests
+type MyObject struct {
+	Name string
+	Age  int
+}
 
 func mainLoop() {
 	db, err := libdb.Open("ldbTest")
 	if err != nil {
 		panic(err)
+	}
+	obj := MyObject{
+		Name: "Bobby",
+		Age:  31,
+	}
+	if err := db.PutObject([]byte("ObjectA"), &obj); err != nil {
+		fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
+		return
 	}
 	defer db.Close()
 }
