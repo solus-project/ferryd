@@ -83,26 +83,3 @@ func (l *levelDbHandle) ForEach(f DbForeachFunc) error {
 	}
 	return iter.Error()
 }
-
-// ForEachType will expect the input type to match that of the input function,
-// attempting to convert it on each loop into a usable, already decoded object.
-func (l *levelDbHandle) ForEachType(inType interface{}, f DbForeachTypeFunc) error {
-	// No matching on prefixes..
-	iter := l.db.NewIterator(nil, nil)
-	defer iter.Release()
-
-	for iter.Next() {
-		key := iter.Key()
-		value := iter.Value()
-
-		dec := NewGobDecoderLight()
-		if err := dec.DecodeType(value, inType); err != nil {
-			return err
-		}
-
-		if err := f(key, dec); err != nil {
-			return err
-		}
-	}
-	return iter.Error()
-}
