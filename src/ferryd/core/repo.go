@@ -71,8 +71,7 @@ type Repository struct {
 	deltaStagePath string                 // Where we'll stage final deltas
 	dist           *libeopkg.Distribution // Distribution
 
-	mut      *sync.RWMutex // Allow locking a repository for inserts and indexes
-	indexMut *sync.Mutex   // Indexing requires a special, separate lock
+	indexMut *sync.Mutex // Indexing requires a special, separate lock
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -124,7 +123,6 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 		assetPath:      filepath.Join(r.assetBase, id),
 		deltaPath:      filepath.Join(r.deltaBase, id),
 		deltaStagePath: filepath.Join(r.deltaStageBase, id),
-		mut:            &sync.RWMutex{},
 		indexMut:       &sync.Mutex{},
 	}
 
@@ -206,9 +204,6 @@ func (r *RepositoryManager) CreateRepo(tx *bolt.Tx, id string) (*Repository, err
 
 // GetEntry will return the package entry for the given ID
 func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
-	r.mut.RLock()
-	defer r.mut.RUnlock()
-
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 	v := rootBucket.Get([]byte(id))
 	if v == nil {
@@ -224,9 +219,6 @@ func (r *Repository) GetEntry(tx *bolt.Tx, id string) (*RepoEntry, error) {
 
 // Private method to re-put the entry into the DB
 func (r *Repository) putEntry(tx *bolt.Tx, entry *RepoEntry) error {
-	r.mut.Lock()
-	defer r.mut.Unlock()
-
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 	code := NewGobEncoderLight()
 	enc, err := code.EncodeType(entry)
@@ -378,9 +370,6 @@ func (r *Repository) AddPackage(tx *bolt.Tx, pool *Pool, filename string) error 
 // within the DB. This doesn't account for obsolete names, which should in fact
 // be removed from the repo entirely.
 func (r *Repository) GetPackageNames(tx *bolt.Tx) ([]string, error) {
-	r.mut.RLock()
-	defer r.mut.RUnlock()
-
 	var pkgIds []string
 	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 
@@ -399,9 +388,6 @@ func (r *Repository) GetPackageNames(tx *bolt.Tx) ([]string, error) {
 
 // GetPackages will return all package objects for a given name
 func (r *Repository) GetPackages(tx *bolt.Tx, pool *Pool, pkgName string) ([]*libeopkg.MetaPackage, error) {
-	r.mut.RLock()
-	defer r.mut.RUnlock()
-
 	var pkgs []*libeopkg.MetaPackage
 
 	entry, err := r.GetEntry(tx, pkgName)
