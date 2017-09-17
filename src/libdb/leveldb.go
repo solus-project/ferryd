@@ -17,6 +17,7 @@
 package libdb
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -26,6 +27,7 @@ import (
 type levelDbHandle struct {
 	prefixBytes *util.Range
 	prefix      []byte
+	keyPrefix   []byte
 	db          *leveldb.DB
 }
 
@@ -43,7 +45,8 @@ func newLevelDBHandle(storagePath string) (*levelDb, error) {
 	}
 	handle := &levelDb{}
 	handle.db = ldb
-	handle.prefix = []byte("rootBucket-")
+	handle.prefix = []byte("rootBucket")
+	handle.keyPrefix = []byte("rootBucket-")
 	handle.prefixBytes = util.BytesPrefix(handle.prefix)
 	handle.initClosable()
 	return handle, nil
@@ -96,7 +99,11 @@ func (l *levelDbHandle) ForEach(f DbForeachFunc) error {
 		key := iter.Key()
 		value := iter.Value()
 
-		if err := f(key, value); err != nil {
+		// Pass a modified key that preserves bucket structure but is usable
+		// in debugging, etc.
+		newKey := bytes.TrimPrefix(key, l.keyPrefix)
+
+		if err := f(newKey, value); err != nil {
 			return err
 		}
 	}
@@ -116,6 +123,7 @@ func (l *levelDbHandle) Bucket(id []byte) Database {
 	ret := &levelDbHandle{
 		db:          l.db,
 		prefix:      newID,
+		keyPrefix:   []byte(fmt.Sprintf("%s-", string(newID))),
 		prefixBytes: util.BytesPrefix(newID),
 	}
 	return ret
