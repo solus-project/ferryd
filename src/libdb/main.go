@@ -23,11 +23,20 @@ import (
 // DbForeachFunc is used in the root (untyped buckets)
 type DbForeachFunc func(key, val []byte) error
 
+// A Closable is a handle or database that can be closed
+type Closable interface {
+	// Close the database
+	Close()
+}
+
 // Database is the opaque interface to the underlying database implementation
 type Database interface {
 
-	// Close the database
+	// Close the database (might no-op)
 	Close()
+
+	// Return a subset of the database for usage
+	Bucket(id []byte) Database
 
 	// Put an object into storage (unique key)
 	PutObject(id []byte, o interface{}) error

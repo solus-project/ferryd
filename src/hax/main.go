@@ -64,12 +64,12 @@ func readTest() {
 	db.ForEach(func(key, value []byte) error {
 		myObject := &MyObject{}
 		if err := db.Decode(value, myObject); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			return err
 		}
-		fmt.Printf("Enumerated object: %v\n", myObject)
+		fmt.Printf("Enumerated object: %v, %v\n", string(key), myObject)
 		return nil
 	})
-
 }
 
 func main() {

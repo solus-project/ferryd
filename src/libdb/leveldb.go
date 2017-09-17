@@ -17,37 +17,51 @@
 package libdb
 
 import (
+	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // levelDbHandle wraps leveldb up in private API
 type levelDbHandle struct {
-	closable
-	db *leveldb.DB
+	prefixBytes *util.Range
+	prefix      []byte
+	db          *leveldb.DB
 }
 
-func newLevelDBHandle(storagePath string) (*levelDbHandle, error) {
+// levelDb is our concrete type
+type levelDb struct {
+	levelDbHandle
+	closable
+}
+
+func newLevelDBHandle(storagePath string) (*levelDb, error) {
 	// TODO: Set up options, support read-only, etc.
 	ldb, err := leveldb.OpenFile(storagePath, nil)
 	if err != nil {
 		return nil, err
 	}
-	handle := &levelDbHandle{
-		db: ldb,
-	}
+	handle := &levelDb{}
+	handle.db = ldb
+	handle.prefix = []byte("rootBucket-")
+	handle.prefixBytes = util.BytesPrefix(handle.prefix)
 	handle.initClosable()
 	return handle, nil
 }
 
 // Close the existing levelDbHandle
-func (l *levelDbHandle) Close() {
+func (l *levelDb) Close() {
 	if l.close() {
 		l.db.Close()
 	}
 }
 
+func (l *levelDbHandle) getRealKey(id []byte) []byte {
+	return []byte(fmt.Sprintf("%s-%s", string(l.prefix), string(id)))
+}
+
 func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
-	val, err := l.db.Get(id, nil)
+	val, err := l.db.Get(l.getRealKey(id), nil)
 	if err != nil {
 		return err
 	}
@@ -61,7 +75,7 @@ func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
 	if err != nil {
 		return err
 	}
-	return l.db.Put(id, by, nil)
+	return l.db.Put(l.getRealKey(id), by, nil)
 }
 
 func (l *levelDbHandle) Decode(input []byte, o interface{}) error {
@@ -75,7 +89,7 @@ func (l *levelDbHandle) Decode(input []byte, o interface{}) error {
 
 func (l *levelDbHandle) ForEach(f DbForeachFunc) error {
 	// No matching on prefixes..
-	iter := l.db.NewIterator(nil, nil)
+	iter := l.db.NewIterator(l.prefixBytes, nil)
 	defer iter.Release()
 
 	for iter.Next() {
@@ -87,4 +101,22 @@ func (l *levelDbHandle) ForEach(f DbForeachFunc) error {
 		}
 	}
 	return iter.Error()
+}
+
+// Close is a no-op for our handle
+func (l *levelDbHandle) Close() {}
+
+func (l *levelDbHandle) Bucket(id []byte) Database {
+	var newID []byte
+	if l.prefix != nil {
+		newID = []byte(fmt.Sprintf("bucket-%s-%s", string(l.prefix), id))
+	} else {
+		newID = []byte(fmt.Sprintf("bucket-%s", id))
+	}
+	ret := &levelDbHandle{
+		db:          l.db,
+		prefix:      newID,
+		prefixBytes: util.BytesPrefix(newID),
+	}
+	return ret
 }
