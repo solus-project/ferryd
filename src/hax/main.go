@@ -60,6 +60,16 @@ func readTest() {
 	}
 
 	fmt.Printf("Object: %v\n", obj)
+
+	db.ForEach(func(key, value []byte) error {
+		myObject := &MyObject{}
+		if err := db.Decode(value, myObject); err != nil {
+			return err
+		}
+		fmt.Printf("Enumerated object: %v\n", myObject)
+		return nil
+	})
+
 }
 
 func main() {

@@ -47,16 +47,12 @@ func (l *levelDbHandle) Close() {
 }
 
 func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
-	tr := NewGobDecoderLight()
 	val, err := l.db.Get(id, nil)
 	if err != nil {
 		return err
 	}
-	if err = tr.DecodeType(val, outObject); err != nil {
-		outObject = nil
-		return err
-	}
-	return nil
+
+	return l.Decode(val, outObject)
 }
 
 func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
@@ -66,6 +62,15 @@ func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
 		return err
 	}
 	return l.db.Put(id, by, nil)
+}
+
+func (l *levelDbHandle) Decode(input []byte, o interface{}) error {
+	tr := NewGobDecoderLight()
+	if err := tr.DecodeType(input, o); err != nil {
+		o = nil
+		return err
+	}
+	return nil
 }
 
 func (l *levelDbHandle) ForEach(f DbForeachFunc) error {

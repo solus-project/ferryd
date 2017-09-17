@@ -25,9 +25,20 @@ type DbForeachFunc func(key, val []byte) error
 
 // Database is the opaque interface to the underlying database implementation
 type Database interface {
-	Close() // Close handle to database
+
+	// Close the database
+	Close()
+
+	// Put an object into storage (unique key)
 	PutObject(id []byte, o interface{}) error
+
+	// Get an object from storage
 	GetObject(id []byte, o interface{}) error
+
+	// Attempt to decode the input into the given output pointer
+	Decode(input []byte, o interface{}) error
+
+	// For every key value pair, run the given function
 	ForEach(f DbForeachFunc) error
 }
 
