@@ -21,7 +21,6 @@ import (
 	"errors"
 	"ferryd/core"
 	"github.com/boltdb/bolt"
-	"sync"
 )
 
 var (
@@ -43,8 +42,7 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	db     *bolt.DB
-	jobMut *sync.Mutex
+	db *bolt.DB
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
@@ -59,8 +57,7 @@ func NewStore(path string) (*JobStore, error) {
 	}
 
 	s := &JobStore{
-		db:     db,
-		jobMut: &sync.Mutex{},
+		db: db,
 	}
 
 	if err := s.setup(); err != nil {
@@ -72,9 +69,6 @@ func NewStore(path string) (*JobStore, error) {
 
 // Close will clean up our private job database
 func (s *JobStore) Close() {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	if s.db == nil {
 		return
 	}
@@ -102,9 +96,6 @@ func (s *JobStore) setup() error {
 
 // ClaimAsyncJob gets the first available asynchronous job, if one exists
 func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	var job *JobEntry
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -154,9 +145,6 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 
 // ClaimSequentialJob gets the first available synchronous job, if one exists
 func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	var job *JobEntry
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -185,9 +173,6 @@ func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	return s.db.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(BucketRootJobs).Bucket(BucketAsyncJobs).Delete(j.id)
 	})
@@ -195,9 +180,6 @@ func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 
 // RetireSequentialJob removes a completed synchronous job
 func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	return s.db.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(BucketRootJobs).Bucket(BucketSequentialJobs).Delete(j.id)
 	})
@@ -206,9 +188,6 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 // pushJobInternal is identical between sync and async jobs, it
 // just needs to know which bucket to store the job in.
 func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
-	s.jobMut.Lock()
-	defer s.jobMut.Unlock()
-
 	j.Claimed = false
 
 	return s.db.Update(func(tx *bolt.Tx) error {
