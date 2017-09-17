@@ -47,10 +47,6 @@ const (
 	// a repo
 	DeltaRepo = "DeltaRepo"
 
-	// IncludeDelta will cause the given delta package to be included into the
-	// final repo destination after it was asynchronously produced
-	IncludeDelta = "IncludeDelta"
-
 	// IndexRepo is a sequential job that requests the repository be re-indexed
 	IndexRepo = "IndexRepo"
 
@@ -119,8 +115,6 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewDeltaRepoJobHandler(j)
 	case DeltaIndex:
 		return NewDeltaJobHandler(j, true)
-	case IncludeDelta:
-		return NewIncludeDeltaJobHandler(j)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
 	case TransitProcess:

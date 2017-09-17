@@ -21,6 +21,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"libeopkg"
+	"os"
 	"sort"
 )
 
@@ -83,7 +84,7 @@ func NewDeltaJobHandler(j *JobEntry, indexRepo bool) (*DeltaJobHandler, error) {
 
 // executeInternal is the common code shared in the delta jobs, and is
 // split out to save duplication.
-func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manager) error {
+func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 	pkgs, err := manager.GetPackages(j.repoID, j.packageName)
 	if err != nil {
 		return err
@@ -123,19 +124,20 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 			continue
 		}
 
+		mapping := &core.DeltaInformation{
+			FromID:      old.GetID(),
+			ToID:        tip.GetID(),
+			FromRelease: old.GetRelease(),
+			ToRelease:   tip.GetRelease(),
+		}
+
 		deltaPath, err := manager.CreateDelta(j.repoID, old, tip)
 		if err != nil {
 			fields["error"] = err
 			if err == libeopkg.ErrDeltaPointless {
-				failInfo := &core.DeltaInformation{
-					FromID:      old.GetID(),
-					ToID:        tip.GetID(),
-					FromRelease: old.GetRelease(),
-					ToRelease:   tip.GetRelease(),
-				}
 				// Non-fatal, ask the manager to record this delta as a no-go
 				log.WithFields(fields).Info("Delta not possible, marked permanently")
-				if err := manager.MarkDeltaFailed(deltaID, failInfo); err != nil {
+				if err := manager.MarkDeltaFailed(deltaID, mapping); err != nil {
 					fields["error"] = err
 					log.WithFields(fields).Error("Failed to mark delta failure")
 					return err
@@ -153,25 +155,36 @@ func (j *DeltaJobHandler) executeInternal(jproc *Processor, manager *core.Manage
 
 		j.nDeltas++
 
-		log.WithFields(log.Fields{
-			"path": deltaPath,
-			"old":  old.GetID(),
-			"new":  tip.GetID(),
-			"repo": j.repoID,
-		}).Info("Successfully producing delta package")
+		fields["path"] = deltaPath
+		// Produced a delta!
+		log.WithFields(fields).Info("Successfully producing delta package")
 
-		// Note if we push an index job, it's also on the sequential queue so it
-		// still won't actually run until after we've included the deltas from our
-		// own job run.
-		jproc.PushJob(NewIncludeDeltaJob(j.repoID, old.GetID(), tip.GetID(), deltaPath))
+		// Let's get it included now.
+		if err = j.includeDelta(manager, mapping, deltaPath); err != nil {
+			fields["error"] = err
+			log.WithFields(fields).Error("Failed to include delta package")
+			return err
+		}
 	}
 
 	return nil
 }
 
+// includeDelta will wrap up the basic functionality to get a delta package
+// imported into a target repository.
+func (j *DeltaJobHandler) includeDelta(manager *core.Manager, mapping *core.DeltaInformation, deltaPath string) error {
+	// Try to insert the delta
+	if err := manager.AddDelta(j.repoID, deltaPath, mapping); err != nil {
+		return err
+	}
+
+	// Delete the deltaPath if the add is successful
+	return os.Remove(deltaPath)
+}
+
 // Execute will delta the target package within the target repository.
-func (j *DeltaJobHandler) Execute(jproc *Processor, manager *core.Manager) error {
-	err := j.executeInternal(jproc, manager)
+func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
+	err := j.executeInternal(manager)
 	if err != nil {
 		return err
 	}
@@ -180,9 +193,18 @@ func (j *DeltaJobHandler) Execute(jproc *Processor, manager *core.Manager) error
 	}
 	// Ask that our repository now be reindexed because we've added deltas but
 	// only if we've successfully produced some delta packages
-	if j.nDeltas > 0 {
-		jproc.PushJob(NewIndexRepoJob(j.repoID))
+	if j.nDeltas < 0 {
+		return nil
 	}
+
+	if err := manager.Index(j.repoID); err != nil {
+		log.WithFields(log.Fields{
+			"repo":  j.repoID,
+			"error": err,
+		}).Error("Failed to index repository")
+		return err
+	}
+
 	return nil
 }
 
