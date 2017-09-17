@@ -21,45 +21,36 @@ import (
 )
 
 // Database is the opaque interface to the underlying database implementation
-type Database struct {
-	storagePath string // Where we are on disk
-	closeMut    *sync.Mutex
-	closed      bool
-	handle      databaseHandle
+type Database interface {
+	Close() // Close handle to database
+	PutObject(id []byte, o interface{}) error
+	GetObject(id []byte, o interface{}) error
 }
 
-type databaseHandle interface {
-	Close() // Close handle to database
+// Private helper to add sync locks to the interfaces
+type closable struct {
+	closed bool
+	mut    *sync.Mutex
+}
+
+func (c *closable) initClosable() {
+	c.closed = false
+	c.mut = &sync.Mutex{}
+}
+
+func (c *closable) close() bool {
+	c.mut.Lock()
+	defer c.mut.Unlock()
+	if c.closed {
+		return false
+	}
+	c.closed = true
+	return true
 }
 
 // Open will return an opaque representation of the underlying database
 // implementation suitable for usage within ferryd
-func Open(path string) (*Database, error) {
-	ret := &Database{
-		storagePath: path,
-		closeMut:    &sync.Mutex{},
-		closed:      false,
-	}
-
-	// Maybe support more storage mechanisms in future but meh for now we'll
-	// toy just with leveldb
-	handle, err := newLevelDBHandle(ret.storagePath)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.handle = handle
-	return ret, nil
-}
-
-// Close the underlying storage
-func (d *Database) Close() {
-	d.closeMut.Lock()
-	defer d.closeMut.Unlock()
-
-	if d.closed {
-		return
-	}
-	d.handle.Close()
-	d.closed = true
+func Open(path string) (Database, error) {
+	// For now we're just using leveldb
+	return newLevelDBHandle(path)
 }

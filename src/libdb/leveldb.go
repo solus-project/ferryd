@@ -17,11 +17,13 @@
 package libdb
 
 import (
+	"errors"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // levelDbHandle wraps leveldb up in private API
 type levelDbHandle struct {
+	closable
 	db *leveldb.DB
 }
 
@@ -31,12 +33,24 @@ func newLevelDBHandle(storagePath string) (*levelDbHandle, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &levelDbHandle{
+	handle := &levelDbHandle{
 		db: ldb,
-	}, nil
+	}
+	handle.initClosable()
+	return handle, nil
 }
 
 // Close the existing levelDbHandle
 func (l *levelDbHandle) Close() {
-	l.db.Close()
+	if l.close() {
+		l.db.Close()
+	}
+}
+
+func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
+	return errors.New("Not yet implemented")
+}
+
+func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
+	return errors.New("Not yet implemented")
 }
