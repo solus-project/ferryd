@@ -21,7 +21,7 @@ import (
 )
 
 func mainLoop() {
-	db, err := libdb.Open("test")
+	db, err := libdb.Open("ldbTest")
 	if err != nil {
 		panic(err)
 	}
