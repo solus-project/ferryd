@@ -42,7 +42,7 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	db     libdb.Database
+	db     *libdb.Database
 	modMut *sync.Mutex
 }
 
@@ -94,7 +94,13 @@ func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
 
 	var job *JobEntry
 
-	err := s.db.Update(func(db libdb.Database) error {
+	con, err := s.db.Connection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+	err = con.Update(func(db libdb.DatabaseConnection) error {
 		bucket := db.Bucket(bucketID)
 
 		// Attempt to find relevant job, break when we have it + id
@@ -148,7 +154,13 @@ func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return s.db.Update(func(db libdb.Database) error {
+	con, err := s.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return con.Update(func(db libdb.DatabaseConnection) error {
 		return db.Bucket(BucketAsyncJobs).DeleteObject(j.id)
 	})
 }
@@ -158,12 +170,18 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return s.db.Update(func(db libdb.Database) error {
+	con, err := s.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return con.Update(func(db libdb.DatabaseConnection) error {
 		return db.Bucket(BucketSequentialJobs).DeleteObject(j.id)
 	})
 }
 
-func (s *JobStore) generateUUID() []byte {
+func (s *JobStore) generateUUID(con libdb.DatabaseConnection) []byte {
 	nTries := 0
 	for nTries < 10 {
 		u, err := uuid.NewRandom()
@@ -174,7 +192,7 @@ func (s *JobStore) generateUUID() []byte {
 		}
 		b := []byte(u.String())
 		// Skip used UUIDs..
-		if has, _ := s.db.HasObject(b); has {
+		if has, _ := con.HasObject(b); has {
 			nTries++
 			fmt.Fprintf(os.Stderr, "The end is nigh! Duplicate UUID: %v\n", b)
 			continue
@@ -190,12 +208,18 @@ func (s *JobStore) generateUUID() []byte {
 func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
-	j.id = s.generateUUID()
+	con, err := s.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	j.id = s.generateUUID(con)
 
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return s.db.Update(func(db libdb.Database) error {
+	return con.Update(func(db libdb.DatabaseConnection) error {
 		return db.Bucket(bk).PutObject(j.id, j)
 	})
 }

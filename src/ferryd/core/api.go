@@ -26,7 +26,12 @@ import (
 
 // CreateRepo will request the creation of a new repository
 func (m *Manager) CreateRepo(id string) error {
-	if _, err := m.repo.CreateRepo(m.db, id); err != nil {
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+	if _, err := m.repo.CreateRepo(con, id); err != nil {
 		return err
 	}
 	// Index the newly created repo
@@ -36,7 +41,12 @@ func (m *Manager) CreateRepo(id string) error {
 // GetRepo will grab the repository if it exists
 // Note that this is a read only operation
 func (m *Manager) GetRepo(id string) (*Repository, error) {
-	return m.repo.GetRepo(m.db, id)
+	con, err := m.db.Connection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+	return m.repo.GetRepo(con, id)
 }
 
 // AddPackages will attempt to add the named packages to the repository
@@ -46,8 +56,14 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		return err
 	}
 
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
 	for _, pkg := range packages {
-		if err := repo.AddPackage(m.db, m.pool, pkg); err != nil {
+		if err := repo.AddPackage(con, m.pool, pkg); err != nil {
 			return err
 		}
 	}
@@ -62,7 +78,13 @@ func (m *Manager) Index(repoID string) error {
 		return err
 	}
 
-	return repo.Index(m.db, m.pool)
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return repo.Index(con, m.pool)
 }
 
 // GetPackageNames will attempt to load all package names for the given
@@ -73,7 +95,13 @@ func (m *Manager) GetPackageNames(repoID string) ([]string, error) {
 		return nil, err
 	}
 
-	return repo.GetPackageNames(m.db)
+	con, err := m.db.Connection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+	return repo.GetPackageNames(con)
 }
 
 // GetPackages will return a set of packages for the package name within the
@@ -84,7 +112,13 @@ func (m *Manager) GetPackages(repoID, pkgName string) ([]*libeopkg.MetaPackage, 
 		return nil, err
 	}
 
-	return repo.GetPackages(m.db, m.pool, pkgName)
+	con, err := m.db.Connection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+	return repo.GetPackages(con, m.pool, pkgName)
 }
 
 // CreateDelta will attempt to create a new delta package between the old and new IDs
@@ -94,7 +128,13 @@ func (m *Manager) CreateDelta(repoID string, oldPkg, newPkg *libeopkg.MetaPackag
 		return "", err
 	}
 
-	return repo.CreateDelta(m.db, oldPkg, newPkg)
+	con, err := m.db.Connection()
+	if err != nil {
+		return "", err
+	}
+	defer con.Close()
+
+	return repo.CreateDelta(con, oldPkg, newPkg)
 }
 
 // HasDelta will query the repository to determine if it already has the
@@ -104,7 +144,14 @@ func (m *Manager) HasDelta(repoID, pkgID, deltaPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return repo.HasDelta(m.db, pkgID, deltaPath)
+
+	con, err := m.db.Connection()
+	if err != nil {
+		return false, err
+	}
+	defer con.Close()
+
+	return repo.HasDelta(con, pkgID, deltaPath)
 }
 
 // AddDelta will attempt to include the delta package specified by deltaPath into
@@ -115,24 +162,48 @@ func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) 
 		return err
 	}
 
-	return repo.AddDelta(m.db, m.pool, deltaPath, mapping)
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return repo.AddDelta(con, m.pool, deltaPath, mapping)
 }
 
 // MarkDeltaFailed will permanently record the delta package as failing so we do
 // not attempt to recreate it (expensive)
 func (m *Manager) MarkDeltaFailed(deltaID string, delta *DeltaInformation) error {
-	return m.pool.MarkDeltaFailed(m.db, deltaID, delta)
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return m.pool.MarkDeltaFailed(con, deltaID, delta)
 }
 
 // GetDeltaFailed will determine via the pool transaction whether a delta has
 // previously failed.
 func (m *Manager) GetDeltaFailed(deltaID string) bool {
-	return m.pool.GetDeltaFailed(m.db, deltaID)
+	con, err := m.db.Connection()
+	if err != nil {
+		return false
+	}
+	defer con.Close()
+
+	return m.pool.GetDeltaFailed(con, deltaID)
 }
 
 // GetPoolEntry will return the metadata for a pool entry with the given pkg ID
 func (m *Manager) GetPoolEntry(pkgID string) (*libeopkg.MetaPackage, error) {
-	entry, err := m.pool.GetEntry(m.db, filepath.Base(pkgID))
+	con, err := m.db.Connection()
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+	entry, err := m.pool.GetEntry(con, filepath.Base(pkgID))
 	if err != nil {
 		return nil, err
 	}
