@@ -134,6 +134,12 @@ func (c *Client) CreateRepo(id string) error {
 	return c.getBasicResponse(uri, &Response{})
 }
 
+// DeleteRepo will attempt to delete a remote repository
+func (c *Client) DeleteRepo(id string) error {
+	uri := c.formURI("/api/v1/delete_repo/" + id)
+	return c.getBasicResponse(uri, &Response{})
+}
+
 // DeltaRepo will attempt to reproduce deltas in the given repo
 func (c *Client) DeltaRepo(id string) error {
 	uri := c.formURI("/api/v1/delta_repo/" + id)

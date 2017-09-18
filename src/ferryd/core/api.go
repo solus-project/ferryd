@@ -38,6 +38,17 @@ func (m *Manager) CreateRepo(id string) error {
 	return m.Index(id)
 }
 
+// DeleteRepo exposes the API for repository deletion
+func (m *Manager) DeleteRepo(id string) error {
+	con, err := m.db.Connection()
+	if err != nil {
+		return err
+	}
+	defer con.Close()
+
+	return m.repo.DeleteRepo(con, id)
+}
+
 // GetRepo will grab the repository if it exists
 // Note that this is a read only operation
 func (m *Manager) GetRepo(id string) (*Repository, error) {

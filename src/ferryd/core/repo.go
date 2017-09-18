@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"libdb"
 	"libeopkg"
@@ -194,6 +195,11 @@ func (r *RepositoryManager) CreateRepo(db libdb.DatabaseConnection, id string) (
 	r.repos[id] = repository
 
 	return repository, nil
+}
+
+// DeleteRepo is not yet implemented
+func (r *RepositoryManager) DeleteRepo(db libdb.DatabaseConnection, id string) error {
+	return errors.New("not yet implemented")
 }
 
 // GetEntry will return the package entry for the given ID

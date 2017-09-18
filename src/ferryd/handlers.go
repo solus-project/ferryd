@@ -84,6 +84,15 @@ func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	s.jproc.PushJob(jobs.NewCreateRepoJob(id))
 }
 
+// DeleteRepo will handle remote requests for repository deletion
+func (s *Server) DeleteRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	log.WithFields(log.Fields{
+		"id": id,
+	}).Info("Repository creation requested")
+	s.jproc.PushJob(jobs.NewDeleteRepoJob(id))
+}
+
 // DeltaRepo will handle remote requests for repository deltaing
 func (s *Server) DeltaRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")

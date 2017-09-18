@@ -34,6 +34,9 @@ const (
 	// CreateRepo is a sequential job which will attempt to create a new repo
 	CreateRepo = "CreateRepo"
 
+	// DeleteRepo is a sequential job which will attempt to delete a repository
+	DeleteRepo = "DeleteRepo"
+
 	// Delta is a parallel job which will attempt the construction of deltas for
 	// a given package name + repo
 	Delta = "Delta"
