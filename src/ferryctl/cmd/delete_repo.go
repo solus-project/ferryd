@@ -25,7 +25,7 @@ import (
 
 var deleteRepoCmd = &cobra.Command{
 	Use:   "delete-repo",
-	Short: "delete an existnig repository",
+	Short: "delete an existing repository",
 	Long:  "Delete an existing repository in the ferryd instance",
 	Run:   deleteRepo,
 }
