@@ -172,7 +172,14 @@ func (s *JobStore) generateUUID() []byte {
 			fmt.Fprintf(os.Stderr, "UUID generation failure: %v\n", err)
 			continue
 		}
-		return []byte(u.String())
+		b := []byte(u.String())
+		// Skip used UUIDs..
+		if has, _ := s.db.HasObject(b); has {
+			nTries++
+			fmt.Fprintf(os.Stderr, "The end is nigh! Duplicate UUID: %v\n", b)
+			continue
+		}
+		return b
 	}
 	// Die here. We're fucked.
 	panic("uuid generation completely failed")
