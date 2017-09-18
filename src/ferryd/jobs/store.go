@@ -19,7 +19,10 @@ package jobs
 import (
 	"errors"
 	"ferryd/core"
+	"fmt"
+	"github.com/google/uuid"
 	"libdb"
+	"os"
 	"sync"
 )
 
@@ -161,8 +164,18 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 }
 
 func (s *JobStore) generateUUID() []byte {
-	panic("Not yet implemented")
-	return nil
+	nTries := 0
+	for nTries < 10 {
+		u, err := uuid.NewRandom()
+		if err != nil {
+			nTries++
+			fmt.Fprintf(os.Stderr, "UUID generation failure: %v\n", err)
+			continue
+		}
+		return []byte(u.String())
+	}
+	// Die here. We're fucked.
+	panic("uuid generation completely failed")
 }
 
 // pushJobInternal is identical between sync and async jobs, it

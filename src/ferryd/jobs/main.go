@@ -18,7 +18,6 @@ package jobs
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/gob"
 	"ferryd/core"
 	"fmt"
@@ -97,8 +96,8 @@ func Deserialize(serial []byte) (*JobEntry, error) {
 }
 
 // GetID gets the true numerical ID for this job entry
-func (j *JobEntry) GetID() uint64 {
-	return binary.BigEndian.Uint64(j.id)
+func (j *JobEntry) GetID() string {
+	return string(j.id)
 }
 
 // NewJobHandler will return a handler that is loaded only during the execution
