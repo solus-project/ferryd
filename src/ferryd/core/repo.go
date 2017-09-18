@@ -366,6 +366,7 @@ func (r *Repository) GetPackageNames(db libdb.Database) ([]string, error) {
 		pkgIds = append(pkgIds, entry.Name)
 		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}

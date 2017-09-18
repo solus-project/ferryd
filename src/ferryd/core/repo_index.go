@@ -117,9 +117,9 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 
 // pushDeltaPackages will insert all applicable (usable) delta packages from
 // our repository into the emitted index
-func (r *Repository) pushDeltaPackages(tx *bolt.Tx, pool *Pool, entry *PoolEntry) error {
+func (r *Repository) pushDeltaPackages(db libdb.Database, pool *Pool, entry *PoolEntry) error {
 	// Get our local entry
-	repoEntry, err := r.GetEntry(tx, entry.Meta.Name)
+	repoEntry, err := r.GetEntry(db, entry.Meta.Name)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (r *Repository) pushDeltaPackages(tx *bolt.Tx, pool *Pool, entry *PoolEntry
 
 	// Find all delta IDs
 	for _, id := range repoEntry.Deltas {
-		poolEnt, err := pool.GetEntry(tx, id)
+		poolEnt, err := pool.GetEntry(db, id)
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func (r *Repository) pushDeltaPackages(tx *bolt.Tx, pool *Pool, entry *PoolEntry
 	return nil
 }
 
-func (r *Repository) emitIndexPackage(tx *bolt.Tx, pool *Pool, pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
+func (r *Repository) emitIndexPackage(db libdb.Database, pool *Pool, pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
@@ -192,7 +192,7 @@ func (r *Repository) emitIndexPackage(tx *bolt.Tx, pool *Pool, pkg string, encod
 	}
 
 	// Shove in the delta packages now
-	if err := r.pushDeltaPackages(tx, pool, entry); err != nil {
+	if err := r.pushDeltaPackages(db, pool, entry); err != nil {
 		return err
 	}
 
@@ -201,23 +201,26 @@ func (r *Repository) emitIndexPackage(tx *bolt.Tx, pool *Pool, pkg string, encod
 
 // emitIndex does the heavy lifting of writing to the given file descriptor,
 // i.e. serialising the DB repo out to the index file
-func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
+func (r *Repository) emitIndex(db libdb.Database, pool *Pool, file *os.File) error {
 	var pkgIds []string
-	rootBucket := tx.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 
-	c := rootBucket.Cursor()
-	for k, v := c.First(); k != nil; k, v = c.Next() {
-		code := NewGobDecoderLight()
+	err := rootBucket.ForEach(func(k, v []byte) error {
 		entry := RepoEntry{}
-		if err := code.DecodeType(v, &entry); err != nil {
+		if err := rootBucket.Decode(v, &entry); err != nil {
 			return err
 		}
 
 		if r.dist != nil && r.dist.IsObsolete(entry.Name) {
-			continue
+			return nil
 		}
 
 		pkgIds = append(pkgIds, entry.Published)
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	// Ensure we'll emit in a sane order
@@ -237,11 +240,11 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 	}
 
 	for _, pkg := range pkgIds {
-		entry, err := pool.GetEntry(tx, pkg)
+		entry, err := pool.GetEntry(db, pkg)
 		if err != nil {
 			return err
 		}
-		if err = r.emitIndexPackage(tx, pool, pkg, encoder, entry); err != nil {
+		if err = r.emitIndexPackage(db, pool, pkg, encoder, entry); err != nil {
 			return err
 		}
 	}
@@ -266,7 +269,7 @@ func (r *Repository) emitIndex(tx *bolt.Tx, pool *Pool, file *os.File) error {
 
 // Index will attempt to write the eopkg index out to disk
 // This only requires a read-only database view
-func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
+func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	r.indexMut.Lock()
 	defer r.indexMut.Unlock()
 
@@ -301,7 +304,7 @@ func (r *Repository) Index(tx *bolt.Tx, pool *Pool) error {
 	}
 
 	// Write the index file
-	errAbort = r.emitIndex(tx, pool, f)
+	errAbort = r.emitIndex(db, pool, f)
 	f.Close()
 	if errAbort != nil {
 		return errAbort

@@ -42,7 +42,7 @@ func (m *Manager) GetRepo(id string) (*Repository, error) {
 
 // AddPackages will attempt to add the named packages to the repository
 func (m *Manager) AddPackages(repoID string, packages []string) error {
-	repo, err := m.GetRepo(repoID)
+	_, err := m.GetRepo(repoID)
 	if err != nil {
 		return err
 	}
