@@ -120,7 +120,6 @@ func (l *levelDbHandle) DeleteObject(id []byte) error {
 func (l *levelDbHandle) Decode(input []byte, o interface{}) error {
 	tr := NewGobDecoderLight()
 	if err := tr.DecodeType(input, o); err != nil {
-		o = nil
 		return err
 	}
 	return nil
