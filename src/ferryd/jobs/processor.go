@@ -40,7 +40,7 @@ type Processor struct {
 // the majority of operations will run sequentially
 func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 	if njobs < 0 {
-		njobs = runtime.NumCPU() - 2
+		njobs = runtime.NumCPU()
 	}
 
 	if njobs < 2 {
