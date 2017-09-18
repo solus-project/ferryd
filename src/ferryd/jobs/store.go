@@ -20,6 +20,7 @@ import (
 	"errors"
 	"ferryd/core"
 	"libdb"
+	"sync"
 )
 
 var (
@@ -38,7 +39,8 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	db libdb.Database
+	db     libdb.Database
+	modMut *sync.Mutex
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
@@ -52,7 +54,8 @@ func NewStore(path string) (*JobStore, error) {
 	}
 
 	s := &JobStore{
-		db: db,
+		db:     db,
+		modMut: &sync.Mutex{},
 	}
 
 	if err := s.setup(); err != nil {
@@ -83,6 +86,9 @@ func (s *JobStore) setup() error {
 // While more than one async job may be running at a time, we funnel job
 // claim/retire calls.
 func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
 	var job *JobEntry
 
 	err := s.db.Update(func(db libdb.Database) error {
@@ -136,6 +142,9 @@ func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
 	return s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketAsyncJobs).DeleteObject(j.id)
 	})
@@ -143,6 +152,9 @@ func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 
 // RetireSequentialJob removes a completed synchronous job
 func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
 	return s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketSequentialJobs).DeleteObject(j.id)
 	})
@@ -159,6 +171,9 @@ func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
 	j.id = s.generateUUID()
+
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
 
 	return s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(bk).PutObject(j.id, j)
