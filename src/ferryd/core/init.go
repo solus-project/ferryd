@@ -31,6 +31,9 @@ const (
 	// for the database file itself.
 	DatabasePathComponent = "ferry_db"
 
+	// JobDbPathComponent points ot the jobs database
+	JobDbPathComponent = "ferry_db_jobs"
+
 	// IncomingPathComponent is the base for all per-repo incoming directories
 	IncomingPathComponent = "incoming"
 
@@ -59,8 +62,9 @@ func NewContext(root string) (*Context, error) {
 		return nil, err
 	}
 	return &Context{
-		BaseDir: basedir,
-		DbPath:  filepath.Join(basedir, DatabasePathComponent),
+		BaseDir:   basedir,
+		DbPath:    filepath.Join(basedir, DatabasePathComponent),
+		JobDbPath: filepath.Join(basedir, JobDbPathComponent),
 	}, nil
 }
 
