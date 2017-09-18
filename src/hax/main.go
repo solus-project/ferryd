@@ -45,12 +45,19 @@ func writeTest() {
 		Age:  26,
 	}
 
+	objC := MyObject{
+		Name: "Don't write me!",
+		Age:  101,
+	}
+
+	bucket := []byte("Test Bucket")
+
 	db.Update(func(d libdb.Database) error {
-		if err := d.PutObject([]byte("ObjectA"), &objA); err != nil {
+		if err := d.Bucket(bucket).PutObject([]byte("ObjectA"), &objA); err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
 			return err
 		}
-		if err := d.PutObject([]byte("ObjectB"), &objB); err != nil {
+		if err := d.Bucket(bucket).PutObject([]byte("ObjectB"), &objB); err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
 			return err
 		}
@@ -58,6 +65,18 @@ func writeTest() {
 		// return fmt.Errorf("nope no write")
 	})
 
+	err = db.Update(func(d libdb.Database) error {
+		if err := d.Bucket(bucket).PutObject([]byte("ObjectC"), &objC); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
+			return err
+		}
+
+		return fmt.Errorf("ensuring object c is never written")
+	})
+
+	if err == nil {
+		panic("shouldn't have worked!")
+	}
 }
 
 func readTest() {
@@ -67,10 +86,12 @@ func readTest() {
 	}
 	defer db.Close()
 
-	db.View(func(r libdb.ReadOnlyView) error {
+	bucket := []byte("Test Bucket")
+
+	db.Bucket(bucket).View(func(r libdb.ReadOnlyView) error {
 		return r.ForEach(func(key, value []byte) error {
 			myObject := &MyObject{}
-			if err := db.Decode(value, myObject); err != nil {
+			if err := r.Decode(value, myObject); err != nil {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				return err
 			}
@@ -81,12 +102,16 @@ func readTest() {
 
 	var obj MyObject
 
-	if err := db.GetObject([]byte("ObjectA"), &obj); err != nil {
+	if err := db.Bucket(bucket).GetObject([]byte("ObjectA"), &obj); err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't read object: %v\n", err)
 		return
 	}
 
 	fmt.Printf("Object: %v\n", obj)
+
+	if err := db.Bucket(bucket).GetObject([]byte("ObjectC"), &obj); err == nil {
+		fmt.Fprintf(os.Stderr, "ObjectC should NOT exist!!\n")
+	}
 }
 
 func main() {

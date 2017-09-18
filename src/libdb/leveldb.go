@@ -139,6 +139,7 @@ func (l *levelDbHandle) Bucket(id []byte) Database {
 		prefix:      newID,
 		keyPrefix:   []byte(fmt.Sprintf("%s-", string(newID))),
 		prefixBytes: util.BytesPrefix(newID),
+		batch:       l.batch,
 	}
 	return ret
 }
