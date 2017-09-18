@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"libeopkg"
 	"path/filepath"
 )
@@ -26,7 +27,7 @@ import (
 
 // CreateRepo will request the creation of a new repository
 func (m *Manager) CreateRepo(id string) error {
-	if err := m.repo.CreateRepo(m.db, id); err != nil {
+	if _, err := m.repo.CreateRepo(m.db, id); err != nil {
 		return err
 	}
 	// Index the newly created repo
@@ -46,11 +47,13 @@ func (m *Manager) AddPackages(repoID string, packages []string) error {
 		return err
 	}
 
-	if err := repo.AddPackages(m.db, m.pool, packages); err != nil {
-		return err
-	}
+	return fmt.Errorf("not yet ported")
 
-	return m.Index(repoID)
+	//if err := repo.AddPackages(m.db, m.pool, packages); err != nil {
+	//	return err
+	//}
+
+	// return m.Index(repoID)
 }
 
 // Index will cause the repository's index to be reconstructed
@@ -124,7 +127,7 @@ func (m *Manager) MarkDeltaFailed(deltaID string, delta *DeltaInformation) error
 
 // GetDeltaFailed will determine via the pool transaction whether a delta has
 // previously failed.
-func (m *Manager) GetDeltaFailed(deltaID string) (bool, error) {
+func (m *Manager) GetDeltaFailed(deltaID string) bool {
 	return m.pool.GetDeltaFailed(m.db, deltaID)
 }
 
