@@ -114,13 +114,9 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 		}
 
 		deltaID := libeopkg.ComputeDeltaName(old, tip)
-		failed, err := manager.GetDeltaFailed(deltaID)
-		if err != nil {
-			return err
-		}
 
 		// Don't need to report that it failed, we know this from history
-		if failed {
+		if manager.GetDeltaFailed(deltaID) {
 			continue
 		}
 

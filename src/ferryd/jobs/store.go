@@ -17,7 +17,6 @@
 package jobs
 
 import (
-	"encoding/binary"
 	"errors"
 	"ferryd/core"
 	"libdb"
@@ -39,8 +38,7 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	syncDb  *bolt.DB
-	asyncDb *bolt.DB
+	db libdb.Database
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
@@ -48,22 +46,14 @@ func NewStore(path string) (*JobStore, error) {
 	ctx, err := core.NewContext(path)
 
 	// Open the database if we can
-	// TODO: Add a timeout for locks
-	syncDb, err := bolt.Open(ctx.JobDbPath, 00600, nil)
+	db, err := libdb.Open(ctx.JobDbPath)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &JobStore{
-		syncDb: syncDb,
+		db: db,
 	}
-
-	asyncDb, err := bolt.Open(ctx.PriorityJobDbPath, 00600, nil)
-	if err != nil {
-		defer s.Close()
-		return nil, err
-	}
-	s.asyncDb = asyncDb
 
 	if err := s.setup(); err != nil {
 		defer s.Close()
@@ -74,46 +64,34 @@ func NewStore(path string) (*JobStore, error) {
 
 // Close will clean up our private job database
 func (s *JobStore) Close() {
-	if s.syncDb != nil {
-		s.syncDb.Close()
-		s.syncDb = nil
-	}
-	if s.asyncDb != nil {
-		s.asyncDb.Close()
-		s.asyncDb = nil
+	if s.db != nil {
+		s.db.Close()
+		s.db = nil
 	}
 }
 
-// Setup makes sure that all the necessary buckets exist and have valid contents
+// Setup may be used at a later stage to purge old jobs on startup
 func (s *JobStore) setup() error {
-	err := s.asyncDb.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists(BucketAsyncJobs); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return s.syncDb.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists(BucketSequentialJobs); err != nil {
-			return err
-		}
-		return nil
-	})
+	return nil
 }
 
-// ClaimAsyncJob gets the first available asynchronous job, if one exists
-func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
+// claimJobInternal handles the similarity of the async/sync operations, grabbing
+// the first available job and stuffing it back in as a claimed job. Note that
+// in order to preserve order + sanity, we actually employ a mutex internally
+// to mutate the state of each job, and return them sequentially.
+//
+// While more than one async job may be running at a time, we funnel job
+// claim/retire calls.
+func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
 	var job *JobEntry
 
-	err := s.asyncDb.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(BucketAsyncJobs)
+	err := s.db.Update(func(db libdb.Database) error {
+		bucket := db.Bucket(bucketID)
 
 		// Attempt to find relevant job, break when we have it + id
 		err := bucket.ForEach(func(id, value []byte) error {
-			j, err := Deserialize(value)
-			if err != nil {
+			var j *JobEntry
+			if err := bucket.Decode(value, j); err != nil {
 				return err
 			}
 			if !j.Claimed {
@@ -132,13 +110,7 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 		}
 
 		// Serialise the new guy
-		newJ, err := job.Serialize()
-		if err != nil {
-			return err
-		}
-
-		// Put the new guy back in
-		return bucket.Put(job.id, newJ)
+		return bucket.PutObject(job.id, job)
 	})
 
 	if err != nil {
@@ -152,76 +124,53 @@ func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
 	return job, nil
 }
 
+// ClaimAsyncJob gets the first available asynchronous job, if one exists
+func (s *JobStore) ClaimAsyncJob() (*JobEntry, error) {
+	return s.claimJobInternal([]byte(BucketAsyncJobs))
+}
+
 // ClaimSequentialJob gets the first available synchronous job, if one exists
 func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
-	var job *JobEntry
-
-	err := s.syncDb.Update(func(tx *bolt.Tx) error {
-		cursor := tx.Bucket(BucketSequentialJobs).Cursor()
-		id, value := cursor.First()
-		if id == nil {
-			return ErrEmptyQueue
-		}
-		j, e := Deserialize(value)
-		if e != nil {
-			return e
-		}
-		// Store private ID field
-		job = j
-		job.id = make([]byte, len(id))
-		copy(job.id, id)
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return job, nil
+	return s.claimJobInternal([]byte(BucketSequentialJobs))
 }
 
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
-	return s.asyncDb.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketAsyncJobs).Delete(j.id)
+	return s.db.Update(func(db libdb.Database) error {
+		return db.Bucket(BucketAsyncJobs).DeleteObject(j.id)
 	})
 }
 
 // RetireSequentialJob removes a completed synchronous job
 func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
-	return s.syncDb.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket(BucketSequentialJobs).Delete(j.id)
+	return s.db.Update(func(db libdb.Database) error {
+		return db.Bucket(BucketSequentialJobs).DeleteObject(j.id)
 	})
+}
+
+func (s *JobStore) generateUUID() []byte {
+	panic("Not yet implemented")
+	return nil
 }
 
 // pushJobInternal is identical between sync and async jobs, it
 // just needs to know which bucket to store the job in.
-func (s *JobStore) pushJobInternal(db *bolt.DB, j *JobEntry, bk []byte) error {
+func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
-	return db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bk)
-		id, err := bucket.NextSequence()
-		if err != nil {
-			return err
-		}
-		// Adapted from boltdb itob example code
-		j.id = make([]byte, 8)
-		binary.BigEndian.PutUint64(j.id, uint64(id))
-		blob, err := j.Serialize()
-		if err != nil {
-			return err
-		}
-		return bucket.Put(j.id, blob)
+	j.id = s.generateUUID()
+
+	return s.db.Update(func(db libdb.Database) error {
+		return db.Bucket(bk).PutObject(j.id, j)
 	})
 }
 
 // PushSequentialJob will enqueue a new sequential job
 func (s *JobStore) PushSequentialJob(j *JobEntry) error {
-	return s.pushJobInternal(s.syncDb, j, BucketSequentialJobs)
+	return s.pushJobInternal(j, BucketSequentialJobs)
 }
 
 // PushAsyncJob will enqueue a new asynchronous job
 func (s *JobStore) PushAsyncJob(j *JobEntry) error {
-	return s.pushJobInternal(s.asyncDb, j, BucketAsyncJobs)
+	return s.pushJobInternal(j, BucketAsyncJobs)
 }
