@@ -9,8 +9,7 @@ _TESTS = $(shell find src/ -not -path '*/vendor/*' -name '*_test.go' | xargs -I{
 
 BINARIES = \
 	ferryctl \
-	ferryd \
-	hax
+	ferryd
 
 # Build all binaries as static binary
 BINS = $(addsuffix .build,$(BINARIES))
