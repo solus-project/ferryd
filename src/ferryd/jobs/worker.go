@@ -172,8 +172,13 @@ func (w *Worker) Start() {
 // so that we increment the wait period. It will cap the time index to the
 // highest index available (60)
 func (w *Worker) setTimeIndex(newTimeIndex int) {
-	if newTimeIndex >= len(timeIndexes) {
-		newTimeIndex = len(timeIndexes) - 1
+	maxIndex := len(timeIndexes)
+	// Sequential queue has to be more responsive
+	if w.sequential {
+		maxIndex = 4
+	}
+	if newTimeIndex >= maxIndex {
+		newTimeIndex = maxIndex - 1
 	}
 	// No sense resetting our ticker
 	if w.timeIndex == newTimeIndex {
