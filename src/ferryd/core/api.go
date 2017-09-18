@@ -17,7 +17,6 @@
 package core
 
 import (
-	"fmt"
 	"libeopkg"
 	"path/filepath"
 )
@@ -42,18 +41,18 @@ func (m *Manager) GetRepo(id string) (*Repository, error) {
 
 // AddPackages will attempt to add the named packages to the repository
 func (m *Manager) AddPackages(repoID string, packages []string) error {
-	_, err := m.GetRepo(repoID)
+	repo, err := m.GetRepo(repoID)
 	if err != nil {
 		return err
 	}
 
-	return fmt.Errorf("not yet ported")
+	for _, pkg := range packages {
+		if err := repo.AddPackage(m.db, m.pool, pkg); err != nil {
+			return err
+		}
+	}
 
-	//if err := repo.AddPackages(m.db, m.pool, packages); err != nil {
-	//	return err
-	//}
-
-	// return m.Index(repoID)
+	return m.Index(repoID)
 }
 
 // Index will cause the repository's index to be reconstructed

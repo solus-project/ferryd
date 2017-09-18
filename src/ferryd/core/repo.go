@@ -300,8 +300,6 @@ func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopk
 		} else {
 			repoEntry.Published = pkg.ID
 		}
-	} else if err != nil {
-		fmt.Printf("Error was %v\n", err)
 	}
 
 	// Check if we've already indexed it, non-fatal
