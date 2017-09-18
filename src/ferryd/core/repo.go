@@ -417,8 +417,6 @@ func (r *Repository) CreateDelta(db libdb.Database, oldPkg, newPkg *libeopkg.Met
 	oldPath := filepath.Join(r.path, oldPkg.PackageURI)
 	newPath := filepath.Join(r.path, newPkg.PackageURI)
 
-	fmt.Printf(" * Forming delta %s\n", fullPath)
-
 	if err := ProduceDelta(r.deltaPath, oldPath, newPath, fullPath); err != nil {
 		return "", err
 	}
