@@ -95,6 +95,18 @@ func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
 	return l.db.Put(l.getRealKey(id), by, nil)
 }
 
+func (l *levelDbHandle) DeleteObject(id []byte) error {
+	if bytes.HasPrefix(id, bucketPrefix) || bytes.HasPrefix(id, rootBucketPrefix) {
+		return fmt.Errorf("key uses reserved bucket notation: %v", string(id))
+	}
+
+	if l.batch != nil {
+		l.batch.Delete(l.getRealKey(id))
+		return nil
+	}
+	return l.db.Delete(l.getRealKey(id), nil)
+}
+
 func (l *levelDbHandle) Decode(input []byte, o interface{}) error {
 	tr := NewGobDecoderLight()
 	if err := tr.DecodeType(input, o); err != nil {

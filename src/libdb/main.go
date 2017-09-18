@@ -44,6 +44,9 @@ type ReadOnlyView interface {
 // WriterView allows destructive write actions within the database
 type WriterView interface {
 
+	// Delete an object from storage
+	DeleteObject(id []byte) error
+
 	// Put an object into storage (unique key)
 	PutObject(id []byte, o interface{}) error
 }

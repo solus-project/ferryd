@@ -65,6 +65,19 @@ func writeTest() {
 		// return fmt.Errorf("nope no write")
 	})
 
+	// Pretend to delete ObjectB
+	err = db.Update(func(d libdb.Database) error {
+		if err := d.Bucket(bucket).DeleteObject([]byte("ObjectB")); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't delete object: %v\n", err)
+			return err
+		}
+		return fmt.Errorf("ensuring object b is never deleted")
+	})
+
+	if err == nil {
+		panic("shouldn't have worked")
+	}
+
 	err = db.Update(func(d libdb.Database) error {
 		if err := d.Bucket(bucket).PutObject([]byte("ObjectC"), &objC); err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't write object: %v\n", err)
@@ -76,6 +89,19 @@ func writeTest() {
 
 	if err == nil {
 		panic("shouldn't have worked!")
+	}
+
+	objD := &MyObject{
+		Name: "Ikey",
+		Age:  28,
+	}
+
+	if err = db.PutObject([]byte("RootObject"), &objD); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to insert root object: %v\n", err)
+	}
+
+	if err = db.DeleteObject([]byte("RootObject")); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to delete root object: %v\n", err)
 	}
 }
 
@@ -111,6 +137,10 @@ func readTest() {
 
 	if err := db.Bucket(bucket).GetObject([]byte("ObjectC"), &obj); err == nil {
 		fmt.Fprintf(os.Stderr, "ObjectC should NOT exist!!\n")
+	}
+
+	if err := db.GetObject([]byte("RootObject"), &obj); err == nil {
+		fmt.Fprintf(os.Stderr, "RootObject should NOT exist!!\n")
 	}
 }
 
