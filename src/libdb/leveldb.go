@@ -78,6 +78,10 @@ func (l *levelDbHandle) GetObject(id []byte, outObject interface{}) error {
 	return l.Decode(val, outObject)
 }
 
+func (l *levelDbHandle) HasObject(id []byte) (bool, error) {
+	return l.db.Has(l.getRealKey(id), nil)
+}
+
 func (l *levelDbHandle) PutObject(id []byte, inObject interface{}) error {
 	if bytes.HasPrefix(id, bucketPrefix) || bytes.HasPrefix(id, rootBucketPrefix) {
 		return fmt.Errorf("key uses reserved bucket notation: %v", string(id))

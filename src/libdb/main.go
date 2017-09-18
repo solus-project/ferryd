@@ -36,6 +36,9 @@ type ReadOnlyView interface {
 	// Get an object from storage
 	GetObject(id []byte, o interface{}) error
 
+	// Determine if an object with that ID exists already
+	HasObject(id []byte) (bool, error)
+
 	// Attempt to decode the input into the given output pointer
 	Decode(input []byte, o interface{}) error
 
