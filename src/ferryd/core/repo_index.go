@@ -19,7 +19,7 @@ package core
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/boltdb/bolt"
+	"libdb"
 	"libeopkg"
 	"os"
 	"path/filepath"

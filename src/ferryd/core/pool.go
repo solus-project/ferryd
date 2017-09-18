@@ -18,7 +18,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/boltdb/bolt"
+	"libdb"
 	"libeopkg"
 	"os"
 	"path/filepath"

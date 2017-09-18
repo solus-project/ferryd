@@ -17,14 +17,14 @@
 package core
 
 import (
-	"github.com/boltdb/bolt"
+	"libdb"
 	"os"
 	"path/filepath"
 )
 
 // A Manager is the the singleton responsible for slip management
 type Manager struct {
-	db   *bolt.DB           // Open database connection
+	db   libdb.Database     // Our main database
 	ctx  *Context           // Context shares all our path assignments
 	pool *Pool              // Our main pool for eopkgs
 	repo *RepositoryManager // Repo management
@@ -42,7 +42,7 @@ func NewManager(path string) (*Manager, error) {
 
 	// Open the database if we can
 	// TODO: Add a timeout for locks
-	db, err := bolt.Open(ctx.DbPath, 00600, nil)
+	db, err := libdb.Open(ctx.DbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,9 @@ func (m *Manager) initComponents() error {
 	}
 
 	// Create all root-level buckets in a single transaction
-	return m.db.Update(func(tx *bolt.Tx) error {
+	return m.db.Update(func(db libdb.Database) error {
 		for _, component := range components {
-			if err := component.Init(m.ctx, tx); err != nil {
+			if err := component.Init(m.ctx, db); err != nil {
 				return err
 			}
 		}

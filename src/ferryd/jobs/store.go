@@ -20,7 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"ferryd/core"
-	"github.com/boltdb/bolt"
+	"libdb"
 )
 
 var (

@@ -21,7 +21,7 @@
 package core
 
 import (
-	"github.com/boltdb/bolt"
+	"libdb"
 	"os"
 	"path/filepath"
 )
@@ -29,13 +29,7 @@ import (
 const (
 	// DatabasePathComponent is the suffix applied to a working directory
 	// for the database file itself.
-	DatabasePathComponent = "ferry.db"
-
-	// JobDatabasePathComponent references our separate job database
-	JobDatabasePathComponent = "ferry_jobs.db"
-
-	// PriorityJobDatabasePathComponent references our separate priority job database
-	PriorityJobDatabasePathComponent = "ferry_priority_jobs.db"
+	DatabasePathComponent = "ferry_db"
 
 	// IncomingPathComponent is the base for all per-repo incoming directories
 	IncomingPathComponent = "incoming"
@@ -47,10 +41,9 @@ const (
 // The Context is shared between all of the components of ferryd to provide
 // working directories and such.
 type Context struct {
-	BaseDir           string // Base directory of operations
-	DbPath            string // Path to the main database file
-	JobDbPath         string // Path to the job database file
-	PriorityJobDbPath string // Path to the priority job database file
+	BaseDir   string // Base directory of operations
+	DbPath    string // Path to the main database file
+	JobDbPath string // Path to the job database file
 }
 
 // NewContext will construct a context from the given base directory for
@@ -66,10 +59,8 @@ func NewContext(root string) (*Context, error) {
 		return nil, err
 	}
 	return &Context{
-		BaseDir:           basedir,
-		DbPath:            filepath.Join(basedir, DatabasePathComponent),
-		JobDbPath:         filepath.Join(basedir, JobDatabasePathComponent),
-		PriorityJobDbPath: filepath.Join(basedir, PriorityJobDatabasePathComponent),
+		BaseDir: basedir,
+		DbPath:  filepath.Join(basedir, DatabasePathComponent),
 	}, nil
 }
 
@@ -78,7 +69,7 @@ func NewContext(root string) (*Context, error) {
 type Component interface {
 
 	// Initialise the component on the initial transaction
-	Init(ctx *Context, tx *bolt.Tx) error
+	Init(ctx *Context, db libdb.Database) error
 
 	// Close will request the component stops any ongoing operations and cleanup
 	Close()
