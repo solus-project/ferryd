@@ -29,7 +29,9 @@ type Closable interface {
 	Close()
 }
 
-// ReadOnlyView offers a read-only API for the database
+// ReadOnlyView offers a read-only API for the database. Note it cannot
+// gain access to buckets again, so you should obtain the view from the
+// bucket.
 type ReadOnlyView interface {
 	// Get an object from storage
 	GetObject(id []byte, o interface{}) error
@@ -65,7 +67,8 @@ type Database interface {
 	// Return a subset of the database for usage
 	Bucket(id []byte) Database
 
-	// Obtain a read-only view of the database
+	// Convert view of current database or bucket into a read-only one.
+	// This should not be considered a transaction, just special sauce.
 	View(f ReadOnlyFunc) error
 
 	// Obtain a read-write view of the database in a transaction
