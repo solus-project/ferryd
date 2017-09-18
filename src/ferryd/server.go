@@ -19,7 +19,7 @@ package main
 import (
 	"errors"
 	"ferryd/core"
-	"ferryd/jobs"
+	// "ferryd/jobs"
 	"github.com/julienschmidt/httprouter"
 	"github.com/radu-munteanu/fsnotify"
 	log "github.com/sirupsen/logrus"
@@ -43,9 +43,9 @@ type Server struct {
 	router  *httprouter.Router
 	socket  net.Listener
 
-	manager    *core.Manager     // heart of the story
-	store      *jobs.JobStore    // Storage for jobs processor
-	jproc      *jobs.Processor   // Allow scheduling jobs
+	manager *core.Manager // heart of the story
+	// store      *jobs.JobStore    // Storage for jobs processor
+	// jproc      *jobs.Processor   // Allow scheduling jobs
 	watcher    *fsnotify.Watcher // Monitor incoming uploads
 	watchChan  chan bool         // Allow terminating the watcher
 	watchGroup *sync.WaitGroup   // Allow blocking watch terminate.
@@ -106,14 +106,14 @@ func (s *Server) Bind() error {
 	}
 	s.manager = m
 
-	st, e := jobs.NewStore(baseDir)
-	if e != nil {
-		return e
-	}
-	s.store = st
+	// st, e := jobs.NewStore(baseDir)
+	// if e != nil {
+	// 	return e
+	// }
+	// s.store = st
 
 	// TODO: Expose setting for background job count
-	s.jproc = jobs.NewProcessor(s.manager, s.store, -1)
+	// s.jproc = jobs.NewProcessor(s.manager, s.store, -1)
 
 	// Set up watching the manager's incoming directory
 	if err := s.InitWatcher(); err != nil {
@@ -145,7 +145,7 @@ func (s *Server) Serve() error {
 		s.running = false
 	}()
 	// Serve the job queue
-	s.jproc.Begin()
+	// s.jproc.Begin()
 	s.WatchIncoming()
 	// Don't treat Shutdown/Close as an error, it's intended by us.
 	if e := s.srv.Serve(s.socket); e != http.ErrServerClosed {
@@ -160,8 +160,8 @@ func (s *Server) Close() {
 		return
 	}
 	s.StopWatching()
-	s.jproc.Close()
-	s.store.Close()
+	// s.jproc.Close()
+	// s.store.Close()
 	s.manager.Close()
 	s.running = false
 	s.srv.Shutdown(nil)
