@@ -99,7 +99,7 @@ func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
 
 		// Attempt to find relevant job, break when we have it + id
 		err := bucket.ForEach(func(id, value []byte) error {
-			var j *JobEntry
+			j := &JobEntry{}
 			if err := bucket.Decode(value, j); err != nil {
 				return err
 			}
