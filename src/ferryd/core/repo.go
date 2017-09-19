@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"libdb"
 	"libeopkg"
@@ -198,8 +197,51 @@ func (r *RepositoryManager) CreateRepo(db libdb.Database, id string) (*Repositor
 }
 
 // DeleteRepo is not yet implemented
-func (r *RepositoryManager) DeleteRepo(db libdb.Database, id string) error {
-	return errors.New("not yet implemented")
+func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string) error {
+	repo, err := r.GetRepo(db, id)
+	if err != nil {
+		return fmt.Errorf("The specified repository '%s' does not exist", id)
+	}
+
+	// TODO: lock this repository from accepting inclusions ..
+
+	// Let's iterate over every one of our packages here and start up an unref
+	// cycle
+	return db.Update(func(db libdb.Database) error {
+		repoBucket := db.Bucket([]byte(DatabaseBucketRepo))
+		rootBucket := repoBucket.Bucket([]byte(repo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+		err := rootBucket.ForEach(func(k, v []byte) error {
+			// Grab each repo entry
+			entry := RepoEntry{}
+			if err := rootBucket.Decode(v, &entry); err != nil {
+				return err
+			}
+
+			// First up, find all the packages to unref
+			for _, id := range entry.Available {
+				if err := repo.removePackageInternal(db, pool, id); err != nil {
+					return err
+				}
+			}
+
+			// Next up, find all the deltas to unref
+			for _, id := range entry.Deltas {
+				if err := repo.removeDeltaInternal(db, pool, id); err != nil {
+					return err
+				}
+			}
+
+			// Remove all IDs for this package, now we must remove this entry
+			// Note this isn't applied within the foreach.
+			return rootBucket.DeleteObject([]byte(entry.Name))
+		})
+		if err != nil {
+			return err
+		}
+		// Now remove the repository object itself
+		return repoBucket.DeleteObject([]byte(repo.ID))
+	})
 }
 
 // GetEntry will return the package entry for the given ID
@@ -277,6 +319,36 @@ func (r *Repository) AddLocalDelta(db libdb.Database, pool *Pool, pkg *libeopkg.
 	}
 
 	return r.putEntry(db, entry)
+}
+
+// Internal helper to remove packages
+func (r *Repository) removePackageInternal(db libdb.Database, pool *Pool, id string) error {
+	poolEntry, err := pool.GetEntry(db, id)
+	if err != nil {
+		return nil
+	}
+
+	pkgDir := filepath.Join(r.path, poolEntry.Meta.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, poolEntry.Name)
+
+	// TODO: Consider making non-fatal..
+	if err = os.Remove(pkgTarget); err != nil {
+		return err
+	}
+
+	// TODO: This likely shouldn't be fatal either
+	if err = RemovePackageParents(pkgTarget); err != nil {
+		return err
+	}
+
+	// Tell the pool we no longer need this guy
+	return pool.UnrefEntry(db, id)
+}
+
+// removeDeltaInternal has the same job as removePackageInternal, but in future should
+// be extended to remove the skip records
+func (r *Repository) removeDeltaInternal(db libdb.Database, pool *Pool, id string) error {
+	return r.removePackageInternal(db, pool, id)
 }
 
 // AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository

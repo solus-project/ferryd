@@ -35,7 +35,7 @@ func (m *Manager) CreateRepo(id string) error {
 
 // DeleteRepo exposes the API for repository deletion
 func (m *Manager) DeleteRepo(id string) error {
-	return m.repo.DeleteRepo(m.db, id)
+	return m.repo.DeleteRepo(m.db, m.pool, id)
 }
 
 // GetRepo will grab the repository if it exists
