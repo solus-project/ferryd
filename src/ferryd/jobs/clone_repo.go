@@ -50,7 +50,7 @@ func NewCloneRepoJobHandler(j *JobEntry) (*CloneRepoJobHandler, error) {
 	return &CloneRepoJobHandler{
 		repoID:    j.Params[0],
 		newClone:  j.Params[1],
-		cloneMode: j.Params[3],
+		cloneMode: j.Params[2],
 	}, nil
 }
 
