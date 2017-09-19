@@ -94,6 +94,28 @@ func (s *Server) GetRepos(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	w.Write(buf.Bytes())
 }
 
+// GetPoolItems will handle responding with the currently known pool items
+func (s *Server) GetPoolItems(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	req := libferry.PoolListingRequest{}
+	pools, err := s.manager.GetPoolItems()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, pool := range pools {
+		req.Item = append(req.Item, libferry.PoolItem{
+			ID:       pool.Name,
+			RefCount: int(pool.RefCount),
+		})
+	}
+	buf := bytes.Buffer{}
+	if err := json.NewEncoder(&buf).Encode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
 // CreateRepo will handle remote requests for repository creation
 func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")

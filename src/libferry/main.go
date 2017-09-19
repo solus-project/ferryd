@@ -83,7 +83,7 @@ func (c *Client) GetVersion() (string, error) {
 // GetRepos will grab a list of repos from the daemon
 func (c *Client) GetRepos() ([]string, error) {
 	var lq RepoListingRequest
-	resp, err := c.client.Get(c.formURI("api/v1/list_repos"))
+	resp, err := c.client.Get(c.formURI("api/v1/list/repos"))
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +92,20 @@ func (c *Client) GetRepos() ([]string, error) {
 		return nil, err
 	}
 	return lq.Repository, nil
+}
+
+// GetPoolItems will grab a list of pool items from the daemon
+func (c *Client) GetPoolItems() ([]PoolItem, error) {
+	var lq PoolListingRequest
+	resp, err := c.client.Get(c.formURI("api/v1/list/pool"))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err = json.NewDecoder(resp.Body).Decode(&lq); err != nil {
+		return nil, err
+	}
+	return lq.Item, nil
 }
 
 // A helper to wrap the trivial functionality, chaining off
@@ -144,25 +158,25 @@ func (c *Client) postBasicResponse(url string, inT interface{}, outT interface{}
 
 // CreateRepo will attempt to create a repository in the daemon
 func (c *Client) CreateRepo(id string) error {
-	uri := c.formURI("/api/v1/create_repo/" + id)
+	uri := c.formURI("/api/v1/create/repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
 
 // DeleteRepo will attempt to delete a remote repository
 func (c *Client) DeleteRepo(id string) error {
-	uri := c.formURI("/api/v1/delete_repo/" + id)
+	uri := c.formURI("/api/v1/delete/repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
 
 // DeltaRepo will attempt to reproduce deltas in the given repo
 func (c *Client) DeltaRepo(id string) error {
-	uri := c.formURI("/api/v1/delta_repo/" + id)
+	uri := c.formURI("/api/v1/delta/repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
 
 // IndexRepo will attempt to index a repository in the daemon
 func (c *Client) IndexRepo(id string) error {
-	uri := c.formURI("/api/v1/index_repo/" + id)
+	uri := c.formURI("/api/v1/index/repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
 

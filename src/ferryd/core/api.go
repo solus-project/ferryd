@@ -49,6 +49,11 @@ func (m *Manager) GetRepo(id string) (*Repository, error) {
 	return m.repo.GetRepo(m.db, id)
 }
 
+// GetPoolItems will return all known pool items
+func (m *Manager) GetPoolItems() ([]*PoolEntry, error) {
+	return m.pool.GetPoolItems(m.db)
+}
+
 // AddPackages will attempt to add the named packages to the repository
 func (m *Manager) AddPackages(repoID string, packages []string) error {
 	repo, err := m.GetRepo(repoID)

@@ -43,3 +43,16 @@ type RepoListingRequest struct {
 	Response
 	Repository []string `json:"repos"`
 }
+
+// A PoolItem simply has an ID and a refcount, allowing us to examine our
+// local storage efficiency.
+type PoolItem struct {
+	ID       string `json:"id"`
+	RefCount int    `json:"refCount"`
+}
+
+// A PoolListingRequest is sent to get a listing of all pool items
+type PoolListingRequest struct {
+	Response
+	Item []PoolItem `json:"items"`
+}

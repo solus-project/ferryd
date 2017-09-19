@@ -85,6 +85,25 @@ func (p *Pool) Init(ctx *Context, db libdb.Database) error {
 // Close doesn't currently do anything
 func (p *Pool) Close() {}
 
+// GetPoolItems will return a copy of the pool entries in our database
+func (p *Pool) GetPoolItems(db libdb.Database) ([]*PoolEntry, error) {
+	var ret []*PoolEntry
+	err := db.Bucket([]byte(DatabaseBucketPool)).View(func(db libdb.ReadOnlyView) error {
+		return db.ForEach(func(key, value []byte) error {
+			var entry PoolEntry
+			if err := db.Decode(value, &entry); err != nil {
+				return err
+			}
+			ret = append(ret, &entry)
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
 // GetEntry will return the package entry for the given ID
 func (p *Pool) GetEntry(db libdb.Database, id string) (*PoolEntry, error) {
 	bucket := db.Bucket([]byte(DatabaseBucketPool))
