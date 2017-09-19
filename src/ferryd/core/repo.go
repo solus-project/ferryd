@@ -72,7 +72,8 @@ type Repository struct {
 	deltaStagePath string                 // Where we'll stage final deltas
 	dist           *libeopkg.Distribution // Distribution
 
-	indexMut *sync.Mutex // Indexing requires a special, separate lock
+	insertMut *sync.Mutex // Prevent parallel inserts
+	indexMut  *sync.Mutex // Indexing requires a special, separate lock
 }
 
 // RepoEntry is the basic repository storage unit, and details what packages
@@ -124,6 +125,7 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 		deltaPath:      filepath.Join(r.deltaBase, id),
 		deltaStagePath: filepath.Join(r.deltaStageBase, id),
 		indexMut:       &sync.Mutex{},
+		insertMut:      &sync.Mutex{},
 	}
 
 	paths := []string{
@@ -318,6 +320,9 @@ func (r *Repository) putEntry(db libdb.Database, entry *RepoEntry) error {
 
 // RefDelta will take the existing delta from the pool and insert it into our own repository
 func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string, mapping *DeltaInformation) error {
+	r.insertMut.Lock()
+	defer r.insertMut.Unlock()
+
 	// Ensure we REALLY have the delta.
 	poolEntry, err := pool.GetEntry(db, deltaID)
 	if err != nil {
@@ -384,6 +389,9 @@ func (r *Repository) AddDelta(db libdb.Database, pool *Pool, filename string, ma
 // All ref'd deltas are retained, but not necessarily emitted unless they're
 // valid for the from-to relationship.
 func (r *Repository) AddLocalDelta(db libdb.Database, pool *Pool, pkg *libeopkg.Package, mapping *DeltaInformation) error {
+	r.insertMut.Lock()
+	defer r.insertMut.Unlock()
+
 	// Find our local package entry for the delta package first
 	entry, err := r.GetEntry(db, pkg.Meta.Package.Name)
 	if err != nil {
@@ -426,6 +434,9 @@ func (r *Repository) AddLocalDelta(db libdb.Database, pool *Pool, pkg *libeopkg.
 
 // Internal helper to remove packages
 func (r *Repository) removePackageInternal(db libdb.Database, pool *Pool, id string) error {
+	r.insertMut.Lock()
+	defer r.insertMut.Unlock()
+
 	poolEntry, err := pool.GetEntry(db, id)
 	if err != nil {
 		return nil
@@ -456,6 +467,9 @@ func (r *Repository) removeDeltaInternal(db libdb.Database, pool *Pool, id strin
 
 // RefPackage will dupe a package from the pool into our own storage
 func (r *Repository) RefPackage(db libdb.Database, pool *Pool, pkgID string) error {
+	r.insertMut.Lock()
+	defer r.insertMut.Unlock()
+
 	// Require a pool entry to clone from
 	poolEntry, err := pool.GetEntry(db, pkgID)
 	if err != nil {
@@ -537,6 +551,9 @@ func (r *Repository) buildSaneEntry(db libdb.Database, pool *Pool, newPkg *libeo
 
 // AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
 func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopkg.Package) error {
+	r.insertMut.Lock()
+	defer r.insertMut.Unlock()
+
 	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
 	pkgTarget := filepath.Join(pkgDir, pkg.ID)
 
