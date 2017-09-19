@@ -111,6 +111,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewBulkAddJobHandler(j)
 	case CreateRepo:
 		return NewCreateRepoJobHandler(j)
+	case DeleteRepo:
+		return NewDeleteRepoJobHandler(j)
 	case Delta:
 		return NewDeltaJobHandler(j, false)
 	case DeltaRepo:
