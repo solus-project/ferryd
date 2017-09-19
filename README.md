@@ -46,7 +46,7 @@ TODO
  - [ ] Handle garbage collection of deltas when including new delta
  - [ ] Handle garbage collection of all deltas when removing a package
  - [x] Add `clone` operation to clone one repo to another (optionally all or tip)
- - [ ] Add `pull` operation to pull from one repo into another (missing and mismatched)
+ - [x] Add `pull` operation to pull from one repo into another (missing and mismatched)
  - [x] Add delete operation to remove repo (unref cycle)
  - [ ] Add `trim` commands
  - [ ] Maybe add `trim` subcommand to nuke obsoletes ?
