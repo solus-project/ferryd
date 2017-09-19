@@ -89,7 +89,7 @@ func (s *Server) DeleteRepo(w http.ResponseWriter, r *http.Request, p httprouter
 	id := p.ByName("id")
 	log.WithFields(log.Fields{
 		"id": id,
-	}).Info("Repository creation requested")
+	}).Info("Repository deletion requested")
 	s.jproc.PushJob(jobs.NewDeleteRepoJob(id))
 }
 
