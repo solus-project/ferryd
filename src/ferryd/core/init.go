@@ -73,7 +73,7 @@ func NewContext(root string) (*Context, error) {
 type Component interface {
 
 	// Initialise the component on the initial transaction
-	Init(ctx *Context, db libdb.DatabaseConnection) error
+	Init(ctx *Context, db libdb.Database) error
 
 	// Close will request the component stops any ongoing operations and cleanup
 	Close()

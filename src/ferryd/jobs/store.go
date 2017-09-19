@@ -39,7 +39,7 @@ var (
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
-	db     *libdb.Database
+	db     libdb.Database
 	modMut *sync.Mutex
 }
 
@@ -91,13 +91,7 @@ func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
 
 	var job *JobEntry
 
-	con, err := s.db.Connection()
-	if err != nil {
-		return nil, err
-	}
-	defer con.Close()
-
-	err = con.Update(func(db libdb.DatabaseConnection) error {
+	err := s.db.Update(func(db libdb.Database) error {
 		bucket := db.Bucket(bucketID)
 
 		// Attempt to find relevant job, break when we have it + id
@@ -151,13 +145,7 @@ func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	con, err := s.db.Connection()
-	if err != nil {
-		return err
-	}
-	defer con.Close()
-
-	return con.Update(func(db libdb.DatabaseConnection) error {
+	return s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketAsyncJobs).DeleteObject(j.id)
 	})
 }
@@ -167,13 +155,7 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	con, err := s.db.Connection()
-	if err != nil {
-		return err
-	}
-	defer con.Close()
-
-	return con.Update(func(db libdb.DatabaseConnection) error {
+	return s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketSequentialJobs).DeleteObject(j.id)
 	})
 }
@@ -183,20 +165,17 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	j.Claimed = false
 
-	con, err := s.db.Connection()
-	if err != nil {
-		return err
-	}
-	defer con.Close()
-
-	// Use next natural sequence in the bucket
-	j.id = con.Bucket(bk).NextSequence()
+	j.id = s.db.Bucket(bk).NextSequence()
 
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return con.Update(func(db libdb.DatabaseConnection) error {
-		return db.Bucket(bk).PutObject(j.id, j)
+	return s.db.Update(func(db libdb.Database) error {
+		bucket := db.Bucket(bk)
+		// Use next natural sequence in the bucket
+
+		j.id = bucket.NextSequence()
+		return bucket.PutObject(j.id, j)
 	})
 }
 

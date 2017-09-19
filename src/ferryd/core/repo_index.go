@@ -117,7 +117,7 @@ func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 
 // pushDeltaPackages will insert all applicable (usable) delta packages from
 // our repository into the emitted index
-func (r *Repository) pushDeltaPackages(db libdb.DatabaseConnection, pool *Pool, entry *PoolEntry) error {
+func (r *Repository) pushDeltaPackages(db libdb.Database, pool *Pool, entry *PoolEntry) error {
 	// Get our local entry
 	repoEntry, err := r.GetEntry(db, entry.Meta.Name)
 	if err != nil {
@@ -158,7 +158,7 @@ func (r *Repository) pushDeltaPackages(db libdb.DatabaseConnection, pool *Pool, 
 	return nil
 }
 
-func (r *Repository) emitIndexPackage(db libdb.DatabaseConnection, pool *Pool, pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
+func (r *Repository) emitIndexPackage(db libdb.Database, pool *Pool, pkg string, encoder *xml.Encoder, entry *PoolEntry) error {
 	// Wrap every output item as Package
 	elem := xml.StartElement{
 		Name: xml.Name{
@@ -201,7 +201,7 @@ func (r *Repository) emitIndexPackage(db libdb.DatabaseConnection, pool *Pool, p
 
 // emitIndex does the heavy lifting of writing to the given file descriptor,
 // i.e. serialising the DB repo out to the index file
-func (r *Repository) emitIndex(db libdb.DatabaseConnection, pool *Pool, file *os.File) error {
+func (r *Repository) emitIndex(db libdb.Database, pool *Pool, file *os.File) error {
 	var pkgIds []string
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 
@@ -269,7 +269,7 @@ func (r *Repository) emitIndex(db libdb.DatabaseConnection, pool *Pool, file *os
 
 // Index will attempt to write the eopkg index out to disk
 // This only requires a read-only database view
-func (r *Repository) Index(db libdb.DatabaseConnection, pool *Pool) error {
+func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	r.indexMut.Lock()
 	defer r.indexMut.Unlock()
 

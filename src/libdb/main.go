@@ -17,12 +17,17 @@
 package libdb
 
 import (
-	"runtime"
 	"sync"
 )
 
 // DbForeachFunc is used in the root (untyped buckets)
 type DbForeachFunc func(key, val []byte) error
+
+// A Closable is a handle or database that can be closed
+type Closable interface {
+	// Close the database
+	Close()
+}
 
 // ReadOnlyView offers a read-only API for the database. Note it cannot
 // gain access to buckets again, so you should obtain the view from the
@@ -55,15 +60,15 @@ type WriterView interface {
 type ReadOnlyFunc func(view ReadOnlyView) error
 
 // A WriterFunc is used for batch write (transactional) views
-type WriterFunc func(db DatabaseConnection) error
+type WriterFunc func(db Database) error
 
-// DatabaseConnection is the compound interface to the underlying database implementation
-type DatabaseConnection interface {
+// Database is the compound interface to the underlying database implementation
+type Database interface {
 	ReadOnlyView
 	WriterView
 
 	// Return a subset of the database for usage
-	Bucket(id []byte) DatabaseConnection
+	Bucket(id []byte) Database
 
 	// NextSequence returns the next natural sequence for insert-order-centric applications
 	// Note this will cause implementations to lock while finding the natural sequence
@@ -76,100 +81,34 @@ type DatabaseConnection interface {
 	// Obtain a read-write view of the database in a transaction
 	Update(f WriterFunc) error
 
-	// Close the connection (might no-op)
+	// Close the database (might no-op)
 	Close()
 }
 
-// A Database is an opaque object that manages connections to the underlying
-// database implementation. It simply provides two methods, Connection() and Close().
-//
-// Consumers should always close the main database itself when they are finished
-// with it, and Close() every returned Connection() to ensure that all resources
-// are actually freed. This is vital to ensure memory reclamation happens.
-type Database struct {
-	resourcePath string // Identifier of the database. We only support leveldb right now
-	conMut       *sync.Mutex
-	closeMut     *sync.Mutex
-	handle       *levelDb
-	refCount     int
-	closed       bool
+// Private helper to add sync locks to the interfaces
+type closable struct {
+	closed bool
+	mut    *sync.Mutex
 }
 
-// Close the existing database
-func (d *Database) Close() {
-	d.closeMut.Lock()
-	defer d.closeMut.Unlock()
-	if d.closed {
-		return
+func (c *closable) initClosable() {
+	c.closed = false
+	c.mut = &sync.Mutex{}
+}
+
+func (c *closable) close() bool {
+	c.mut.Lock()
+	defer c.mut.Unlock()
+	if c.closed {
+		return false
 	}
-	d.closed = true
-	d.conMut.Lock()
-	defer d.conMut.Unlock()
-	if d.handle != nil {
-		d.handle.consume()
-		d.handle = nil
-	}
+	c.closed = true
+	return true
 }
 
 // Open will return an opaque representation of the underlying database
-// implementation suitable for usage within ferryd.
-// A single connection will be opened and collected by way of a ping
-func Open(path string) (*Database, error) {
-	db := &Database{
-		resourcePath: path,
-		conMut:       &sync.Mutex{},
-		closeMut:     &sync.Mutex{},
-		handle:       nil,
-		refCount:     0,
-	}
-	c, err := newLevelDBHandle(db, db.resourcePath)
-	if err != nil {
-		return nil, err
-	}
-	c.consume()
-	return db, nil
-}
-
-// Connection will return a connection to the underlying database, and should
-// be Close()'d when you are done with it.
-func (d *Database) Connection() (DatabaseConnection, error) {
-	d.conMut.Lock()
-	defer d.conMut.Unlock()
-	d.refCount++
-
-	// Opening for the "first time"
-	if d.refCount != 1 {
-		return d.handle, nil
-	}
-	handle, err := newLevelDBHandle(d, d.resourcePath)
-	if err != nil {
-		d.refCount--
-		return nil, err
-	}
-	d.handle = handle
-	return handle, nil
-}
-
-// unref is called by a child connection when they've been closed
-func (d *Database) unref() {
-	d.conMut.Lock()
-	defer d.conMut.Unlock()
-	d.refCount--
-
-	if d.refCount < 0 {
-		panic("resource unref'd too many times!")
-	}
-
-	// Ideally this needs to be on an idle timer
-	if d.refCount != 0 {
-		return
-	}
-
-	// unref'd to 0, time to free the underlying handle
-	if d.handle != nil {
-		d.handle.consume()
-		d.handle = nil
-		// ferryd is a big bastid, GC here.
-		runtime.GC()
-	}
+// implementation suitable for usage within ferryd
+func Open(path string) (Database, error) {
+	// For now we're just using leveldb
+	return newLevelDBHandle(path)
 }

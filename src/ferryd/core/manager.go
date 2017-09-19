@@ -24,7 +24,7 @@ import (
 
 // A Manager is the the singleton responsible for slip management
 type Manager struct {
-	db   *libdb.Database    // Our main database
+	db   libdb.Database     // Our main database
 	ctx  *Context           // Context shares all our path assignments
 	pool *Pool              // Our main pool for eopkgs
 	repo *RepositoryManager // Repo management
@@ -79,14 +79,8 @@ func (m *Manager) initComponents() error {
 		m.repo,
 	}
 
-	con, err := m.db.Connection()
-	if err != nil {
-		return err
-	}
-	defer con.Close()
-
 	// Create all root-level buckets in a single transaction
-	return con.Update(func(db libdb.DatabaseConnection) error {
+	return m.db.Update(func(db libdb.Database) error {
 		for _, component := range components {
 			if err := component.Init(m.ctx, db); err != nil {
 				return err

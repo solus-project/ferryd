@@ -85,7 +85,7 @@ type RepoEntry struct {
 }
 
 // Init will create our initial working paths and DB bucket
-func (r *RepositoryManager) Init(ctx *Context, db libdb.DatabaseConnection) error {
+func (r *RepositoryManager) Init(ctx *Context, db libdb.Database) error {
 	r.repoBase = filepath.Join(ctx.BaseDir, RepoPathComponent)
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
 	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
@@ -146,7 +146,7 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 
 // GetRepo will attempt to get the named repo if it exists, otherwise
 // return an error. This is a transactional helper to make the API simpler
-func (r *RepositoryManager) GetRepo(db libdb.DatabaseConnection, id string) (*Repository, error) {
+func (r *RepositoryManager) GetRepo(db libdb.Database, id string) (*Repository, error) {
 	// Cache each repository.
 	if repo, ok := r.repos[id]; ok {
 		return repo, nil
@@ -171,7 +171,7 @@ func (r *RepositoryManager) GetRepo(db libdb.DatabaseConnection, id string) (*Re
 
 // CreateRepo will create a new repository (bucket) within the top level
 // repo bucket.
-func (r *RepositoryManager) CreateRepo(db libdb.DatabaseConnection, id string) (*Repository, error) {
+func (r *RepositoryManager) CreateRepo(db libdb.Database, id string) (*Repository, error) {
 	if _, err := r.GetRepo(db, id); err == nil {
 		return nil, fmt.Errorf("The specified repository '%s' already exists", id)
 	}
@@ -198,12 +198,12 @@ func (r *RepositoryManager) CreateRepo(db libdb.DatabaseConnection, id string) (
 }
 
 // DeleteRepo is not yet implemented
-func (r *RepositoryManager) DeleteRepo(db libdb.DatabaseConnection, id string) error {
+func (r *RepositoryManager) DeleteRepo(db libdb.Database, id string) error {
 	return errors.New("not yet implemented")
 }
 
 // GetEntry will return the package entry for the given ID
-func (r *Repository) GetEntry(db libdb.DatabaseConnection, id string) (*RepoEntry, error) {
+func (r *Repository) GetEntry(db libdb.Database, id string) (*RepoEntry, error) {
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 	entry := &RepoEntry{}
 	if err := rootBucket.GetObject([]byte(id), entry); err != nil {
@@ -215,13 +215,13 @@ func (r *Repository) GetEntry(db libdb.DatabaseConnection, id string) (*RepoEntr
 // Private method to re-put the entry into the DB
 //
 // TODO: Consider write protection
-func (r *Repository) putEntry(db libdb.DatabaseConnection, entry *RepoEntry) error {
+func (r *Repository) putEntry(db libdb.Database, entry *RepoEntry) error {
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 	return rootBucket.PutObject([]byte(entry.Name), entry)
 }
 
 // AddDelta will first open and read the .delta.eopkg, before passing it back off to AddLocalDelta
-func (r *Repository) AddDelta(db libdb.DatabaseConnection, pool *Pool, filename string, mapping *DeltaInformation) error {
+func (r *Repository) AddDelta(db libdb.Database, pool *Pool, filename string, mapping *DeltaInformation) error {
 	pkg, err := libeopkg.Open(filename)
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (r *Repository) AddDelta(db libdb.DatabaseConnection, pool *Pool, filename 
 // AddLocalDelta will attempt to add the delta to this repository, if possible
 // All ref'd deltas are retained, but not necessarily emitted unless they're
 // valid for the from-to relationship.
-func (r *Repository) AddLocalDelta(db libdb.DatabaseConnection, pool *Pool, pkg *libeopkg.Package, mapping *DeltaInformation) error {
+func (r *Repository) AddLocalDelta(db libdb.Database, pool *Pool, pkg *libeopkg.Package, mapping *DeltaInformation) error {
 	// Find our local package entry for the delta package first
 	entry, err := r.GetEntry(db, pkg.Meta.Package.Name)
 	if err != nil {
@@ -280,7 +280,7 @@ func (r *Repository) AddLocalDelta(db libdb.DatabaseConnection, pool *Pool, pkg 
 }
 
 // AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
-func (r *Repository) AddLocalPackage(db libdb.DatabaseConnection, pool *Pool, pkg *libeopkg.Package) error {
+func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopkg.Package) error {
 	repoEntry := &RepoEntry{
 		SchemaVersion: RepoSchemaVersion,
 		Name:          pkg.Meta.Package.Name,
@@ -341,7 +341,7 @@ func (r *Repository) AddLocalPackage(db libdb.DatabaseConnection, pool *Pool, pk
 
 // AddPackage will attempt to load the local package and then add it to the
 // repository via AddLocalPackage
-func (r *Repository) AddPackage(db libdb.DatabaseConnection, pool *Pool, filename string) error {
+func (r *Repository) AddPackage(db libdb.Database, pool *Pool, filename string) error {
 	pkg, err := libeopkg.Open(filename)
 	if err != nil {
 		return err
@@ -358,7 +358,7 @@ func (r *Repository) AddPackage(db libdb.DatabaseConnection, pool *Pool, filenam
 // GetPackageNames will traverse the buckets and find all package names as stored
 // within the DB. This doesn't account for obsolete names, which should in fact
 // be removed from the repo entirely.
-func (r *Repository) GetPackageNames(db libdb.DatabaseConnection) ([]string, error) {
+func (r *Repository) GetPackageNames(db libdb.Database) ([]string, error) {
 	var pkgIds []string
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 
@@ -378,7 +378,7 @@ func (r *Repository) GetPackageNames(db libdb.DatabaseConnection) ([]string, err
 }
 
 // GetPackages will return all package objects for a given name
-func (r *Repository) GetPackages(db libdb.DatabaseConnection, pool *Pool, pkgName string) ([]*libeopkg.MetaPackage, error) {
+func (r *Repository) GetPackages(db libdb.Database, pool *Pool, pkgName string) ([]*libeopkg.MetaPackage, error) {
 	var pkgs []*libeopkg.MetaPackage
 
 	entry, err := r.GetEntry(db, pkgName)
@@ -408,7 +408,7 @@ func (r *Repository) GetPackages(db libdb.DatabaseConnection, pool *Pool, pkgNam
 // staging area if it successfully produces a delta. This does not mark a delta
 // attempt as "pointless", nor does it actually *include* the delta package
 // within the repository.
-func (r *Repository) CreateDelta(db libdb.DatabaseConnection, oldPkg, newPkg *libeopkg.MetaPackage) (string, error) {
+func (r *Repository) CreateDelta(db libdb.Database, oldPkg, newPkg *libeopkg.MetaPackage) (string, error) {
 	if !libeopkg.IsDeltaPossible(oldPkg, newPkg) {
 		return "", libeopkg.ErrMismatchedDelta
 	}
@@ -431,7 +431,7 @@ func (r *Repository) CreateDelta(db libdb.DatabaseConnection, oldPkg, newPkg *li
 }
 
 // HasDelta will work out if we actually have a delta already
-func (r *Repository) HasDelta(db libdb.DatabaseConnection, pkgName, deltaPath string) (bool, error) {
+func (r *Repository) HasDelta(db libdb.Database, pkgName, deltaPath string) (bool, error) {
 	entry, err := r.GetEntry(db, pkgName)
 	if err != nil {
 		return false, err

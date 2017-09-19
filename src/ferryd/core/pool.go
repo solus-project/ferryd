@@ -77,7 +77,7 @@ type Pool struct {
 }
 
 // Init will create our initial working paths and DB bucket
-func (p *Pool) Init(ctx *Context, db libdb.DatabaseConnection) error {
+func (p *Pool) Init(ctx *Context, db libdb.Database) error {
 	p.poolDir = filepath.Join(ctx.BaseDir, PoolPathComponent)
 	return os.MkdirAll(p.poolDir, 00755)
 }
@@ -86,7 +86,7 @@ func (p *Pool) Init(ctx *Context, db libdb.DatabaseConnection) error {
 func (p *Pool) Close() {}
 
 // GetEntry will return the package entry for the given ID
-func (p *Pool) GetEntry(db libdb.DatabaseConnection, id string) (*PoolEntry, error) {
+func (p *Pool) GetEntry(db libdb.Database, id string) (*PoolEntry, error) {
 	bucket := db.Bucket([]byte(DatabaseBucketPool))
 	entry := &PoolEntry{}
 
@@ -99,12 +99,12 @@ func (p *Pool) GetEntry(db libdb.DatabaseConnection, id string) (*PoolEntry, err
 // Private method to re-put the entry into the DB
 //
 // TODO: Evaluate write transaction!
-func (p *Pool) putEntry(db libdb.DatabaseConnection, entry *PoolEntry) error {
+func (p *Pool) putEntry(db libdb.Database, entry *PoolEntry) error {
 	return db.Bucket([]byte(DatabaseBucketPool)).PutObject([]byte(entry.Name), entry)
 }
 
 // GetSkipEntry will return the delta-skip entry for the given ID
-func (p *Pool) GetSkipEntry(db libdb.DatabaseConnection, id string) (*DeltaSkipEntry, error) {
+func (p *Pool) GetSkipEntry(db libdb.Database, id string) (*DeltaSkipEntry, error) {
 	bucket := db.Bucket([]byte(DatabaseBucketDeltaSkip))
 	entry := &DeltaSkipEntry{}
 
@@ -117,7 +117,7 @@ func (p *Pool) GetSkipEntry(db libdb.DatabaseConnection, id string) (*DeltaSkipE
 // Private method to re-put the entry into the DB
 //
 // TODO: Evaluate write transaction!
-func (p *Pool) putSkipEntry(db libdb.DatabaseConnection, entry *DeltaSkipEntry) error {
+func (p *Pool) putSkipEntry(db libdb.Database, entry *DeltaSkipEntry) error {
 	return db.Bucket([]byte(DatabaseBucketDeltaSkip)).PutObject([]byte(entry.Name), entry)
 }
 
@@ -135,7 +135,7 @@ func (p *Pool) GetPackagePoolPath(pkg *libeopkg.Package) string {
 // This is a very loose wrapper around AddPackage, but will add some delta
 // information too. Note that a delta package is still a package in its own
 // right, its just installed and handled differently (lacking files, etc.)
-func (p *Pool) AddDelta(db libdb.DatabaseConnection, pkg *libeopkg.Package, mapping *DeltaInformation, copyDisk bool) (*PoolEntry, error) {
+func (p *Pool) AddDelta(db libdb.Database, pkg *libeopkg.Package, mapping *DeltaInformation, copyDisk bool) (*PoolEntry, error) {
 	// Check if this is just a simple case of bumping the refcount
 	if entry, err := p.GetEntry(db, pkg.ID); err == nil {
 		entry.RefCount++
@@ -161,7 +161,7 @@ func (p *Pool) AddDelta(db libdb.DatabaseConnection, pkg *libeopkg.Package, mapp
 
 // addPackageInternal used by both AddDelta and AddPackage for the main bulk of
 // the work
-func (p *Pool) addPackageInternal(db libdb.DatabaseConnection, pkg *libeopkg.Package, copyDisk bool, delta *DeltaInformation) (*PoolEntry, error) {
+func (p *Pool) addPackageInternal(db libdb.Database, pkg *libeopkg.Package, copyDisk bool, delta *DeltaInformation) (*PoolEntry, error) {
 	// Check if this is just a simple case of bumping the refcount
 	if entry, err := p.GetEntry(db, pkg.ID); err == nil {
 		entry.RefCount++
@@ -215,13 +215,13 @@ func (p *Pool) addPackageInternal(db libdb.DatabaseConnection, pkg *libeopkg.Pac
 // AddPackage will determine where the new eopkg goes, and whether we need
 // to actually push it on disk, or simply bump the ref count. Any file
 // passed to us is believed to be under our ownership now.
-func (p *Pool) AddPackage(db libdb.DatabaseConnection, pkg *libeopkg.Package, copy bool) (*PoolEntry, error) {
+func (p *Pool) AddPackage(db libdb.Database, pkg *libeopkg.Package, copy bool) (*PoolEntry, error) {
 	return p.addPackageInternal(db, pkg, copy, nil)
 }
 
 // RefEntry will include the given eopkg if it doesn't yet exist, otherwise
 // it will simply increase the ref count by 1.
-func (p *Pool) RefEntry(db libdb.DatabaseConnection, id string) error {
+func (p *Pool) RefEntry(db libdb.Database, id string) error {
 	entry, err := p.GetEntry(db, id)
 	if err != nil {
 		return err
@@ -233,7 +233,7 @@ func (p *Pool) RefEntry(db libdb.DatabaseConnection, id string) error {
 // UnrefEntry will unref a given ID from the repository.
 // Should the refcount hit 0, the package will then be removed from the pool
 // storage.
-func (p *Pool) UnrefEntry(db libdb.DatabaseConnection, id string) error {
+func (p *Pool) UnrefEntry(db libdb.Database, id string) error {
 	entry, err := p.GetEntry(db, id)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func (p *Pool) UnrefEntry(db libdb.DatabaseConnection, id string) error {
 
 // MarkDeltaFailed will insert a record indicating that it is not possible
 // to actually produce a given delta ID
-func (p *Pool) MarkDeltaFailed(db libdb.DatabaseConnection, id string, delta *DeltaInformation) error {
+func (p *Pool) MarkDeltaFailed(db libdb.Database, id string, delta *DeltaInformation) error {
 	// Already recorded? Skip again..
 	if _, err := p.GetSkipEntry(db, id); err == nil {
 		return nil
@@ -280,7 +280,7 @@ func (p *Pool) MarkDeltaFailed(db libdb.DatabaseConnection, id string, delta *De
 
 // GetDeltaFailed will determine if generation of this delta ID has actually
 // failed in the past, skipping a potentially expensive delta examination.
-func (p *Pool) GetDeltaFailed(db libdb.DatabaseConnection, id string) bool {
+func (p *Pool) GetDeltaFailed(db libdb.Database, id string) bool {
 	skip, err := p.GetSkipEntry(db, id)
 	if err == nil && skip != nil {
 		return true

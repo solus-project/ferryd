@@ -43,36 +43,30 @@ type levelDbHandle struct {
 // levelDb is our concrete type
 type levelDb struct {
 	levelDbHandle
-	parentDB *Database
+	closable
 }
 
-func newLevelDBHandle(parentDB *Database, storagePath string) (*levelDb, error) {
+func newLevelDBHandle(storagePath string) (*levelDb, error) {
 	// TODO: Set up options, support read-only, etc.
 	ldb, err := leveldb.OpenFile(storagePath, nil)
 	if err != nil {
 		return nil, err
 	}
 	handle := &levelDb{}
-	handle.parentDB = parentDB
 	handle.db = ldb
 	handle.prefix = []byte("|rootBucket|")
 	handle.keyPrefix = []byte("|rootBucket|-")
 	handle.prefixBytes = util.BytesPrefix(handle.prefix)
 	handle.seqLock = &sync.Mutex{}
+	handle.initClosable()
 	return handle, nil
-}
-
-// we must destroy all resources now
-func (l *levelDb) consume() {
-	if l.db != nil {
-		l.db.Close()
-		l.db = nil
-	}
 }
 
 // Close the existing levelDbHandle
 func (l *levelDb) Close() {
-	l.parentDB.unref()
+	if l.close() {
+		l.db.Close()
+	}
 }
 
 func (l *levelDbHandle) getRealKey(id []byte) []byte {
@@ -152,7 +146,7 @@ func (l *levelDbHandle) ForEach(f DbForeachFunc) error {
 // Close is a no-op for our handle
 func (l *levelDbHandle) Close() {}
 
-func (l *levelDbHandle) Bucket(id []byte) DatabaseConnection {
+func (l *levelDbHandle) Bucket(id []byte) Database {
 	var newID []byte
 	if l.prefix != nil {
 		newID = []byte(fmt.Sprintf("%s-%s-%s", string(bucketPrefix), string(l.prefix), id))
@@ -188,6 +182,7 @@ func (l *levelDbHandle) Update(f WriterFunc) error {
 		keyPrefix:   l.keyPrefix,
 		prefixBytes: l.prefixBytes,
 		batch:       &leveldb.Batch{},
+		seqLock:     l.seqLock,
 	}
 	err := f(&clone)
 	if err != nil {
