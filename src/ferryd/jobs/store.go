@@ -19,10 +19,7 @@ package jobs
 import (
 	"errors"
 	"ferryd/core"
-	"fmt"
-	"github.com/google/uuid"
 	"libdb"
-	"os"
 	"sync"
 )
 
@@ -181,28 +178,6 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 	})
 }
 
-func (s *JobStore) generateUUID(con libdb.DatabaseConnection) []byte {
-	nTries := 0
-	for nTries < 10 {
-		u, err := uuid.NewRandom()
-		if err != nil {
-			nTries++
-			fmt.Fprintf(os.Stderr, "UUID generation failure: %v\n", err)
-			continue
-		}
-		b := []byte(u.String())
-		// Skip used UUIDs..
-		if has, _ := con.HasObject(b); has {
-			nTries++
-			fmt.Fprintf(os.Stderr, "The end is nigh! Duplicate UUID: %v\n", b)
-			continue
-		}
-		return b
-	}
-	// Die here. We're fucked.
-	panic("uuid generation completely failed")
-}
-
 // pushJobInternal is identical between sync and async jobs, it
 // just needs to know which bucket to store the job in.
 func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
@@ -214,7 +189,8 @@ func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
 	}
 	defer con.Close()
 
-	j.id = s.generateUUID(con)
+	// Use next natural sequence in the bucket
+	j.id = con.Bucket(bk).NextSequence()
 
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
