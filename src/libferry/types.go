@@ -69,3 +69,11 @@ type PullRepoRequest struct {
 	Response
 	Source string `json:"source"`
 }
+
+// RemoveSourceRequest is used to ask ferryd to remove all packages matching the
+// given source and relno parameters
+type RemoveSourceRequest struct {
+	Response
+	Source  string `json:"source"`
+	Release int    `json:"relno"`
+}

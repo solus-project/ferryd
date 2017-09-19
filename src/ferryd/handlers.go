@@ -209,3 +209,23 @@ func (s *Server) PullRepo(w http.ResponseWriter, r *http.Request, p httprouter.P
 
 	s.jproc.PushJob(jobs.NewPullRepoJob(req.Source, target))
 }
+
+// RemoveSource will proxy a job to remove an existing set of packages by source name + relno
+func (s *Server) RemoveSource(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	target := p.ByName("id")
+
+	req := libferry.RemoveSourceRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"source":  req.Source,
+		"release": req.Release,
+		"repo":    target,
+	}).Info("Repository pull requested")
+
+	s.jproc.PushJob(jobs.NewRemoveSourceJob(target, req.Source, req.Release))
+}

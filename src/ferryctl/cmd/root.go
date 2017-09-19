@@ -35,7 +35,7 @@ var ListCmd = &cobra.Command{
 // RemoveCmd is the parent for remove type commands
 var RemoveCmd = &cobra.Command{
 	Use:   "remove",
-	Short: "remove [repo]",
+	Short: "remove [repo] [source]",
 }
 
 func init() {

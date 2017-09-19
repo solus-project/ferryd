@@ -59,6 +59,9 @@ const (
 	// PullRepo is a sequential job that will attempt to pull a repo
 	PullRepo = "PullRepo"
 
+	// RemoveSource is a sequential job that will attempt removal of packages
+	RemoveSource = "RemoveSource"
+
 	// TransitProcess is a sequential job that will process the incoming uploads
 	// directory, dealing with each .tram upload
 	TransitProcess = "TransitProcess"
@@ -130,6 +133,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewDeltaJobHandler(j, true)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
+	case RemoveSource:
+		return NewRemoveSourceJobHandler(j)
 	case PullRepo:
 		return NewPullRepoJobHandler(j)
 	case TransitProcess:

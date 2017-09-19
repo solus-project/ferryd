@@ -21,30 +21,45 @@ import (
 	"github.com/spf13/cobra"
 	"libferry"
 	"os"
+	"strconv"
 )
 
-var removeRepoCmd = &cobra.Command{
-	Use:   "repo",
-	Short: "remove an existing repository",
-	Long:  "Remove an existing repository in the ferryd instance",
-	Run:   removeRepo,
+var removeSourceCmd = &cobra.Command{
+	Use:   "source [repoName] [sourceName] [releaseNumber]",
+	Short: "remove packages by source name",
+	Long:  "Remove an existing package set in the ferryd instance",
+	Run:   removeSource,
 }
 
 func init() {
-	RemoveCmd.AddCommand(removeRepoCmd)
+	RemoveCmd.AddCommand(removeSourceCmd)
 }
 
-func removeRepo(cmd *cobra.Command, args []string) {
-	// Attempt to grab the local daemon version
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "remove repo takes exactly 1 argument\n")
+func removeSource(cmd *cobra.Command, args []string) {
+	// TODO: Support -1 implicitly to remove *all* by source ID
+	if len(args) != 3 {
+		fmt.Fprintf(os.Stderr, "remove source takes exactly 3 arguments\n")
+		return
+	}
+
+	release, err := strconv.ParseInt(args[2], 10, 32)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid integer: %v\n", err)
+		return
+	}
+
+	if release < 1 {
+		fmt.Fprintf(os.Stderr, "Release should be higher than 1\n")
 		return
 	}
 
 	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 
-	if err := client.DeleteRepo(args[0]); err != nil {
+	repoID := args[0]
+	sourceID := args[1]
+
+	if err := client.RemoveSource(repoID, sourceID, int(release)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}

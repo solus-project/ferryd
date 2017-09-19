@@ -67,7 +67,7 @@ func NewServer() *Server {
 
 	// Repo management
 	router.GET("/api/v1/create/repo/:id", s.CreateRepo)
-	router.GET("/api/v1/delete/repo/:id", s.DeleteRepo)
+	router.GET("/api/v1/remove/repo/:id", s.DeleteRepo)
 	router.GET("/api/v1/delta/repo/:id", s.DeltaRepo)
 	router.GET("/api/v1/index/repo/:id", s.IndexRepo)
 
@@ -75,6 +75,9 @@ func NewServer() *Server {
 	router.POST("/api/v1/import/:id", s.ImportPackages)
 	router.POST("/api/v1/clone/:id", s.CloneRepo)
 	router.POST("/api/v1/pull/:id", s.PullRepo)
+
+	// Removal
+	router.POST("/api/v1/remove/source/:id", s.RemoveSource)
 
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)

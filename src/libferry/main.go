@@ -164,7 +164,7 @@ func (c *Client) CreateRepo(id string) error {
 
 // DeleteRepo will attempt to delete a remote repository
 func (c *Client) DeleteRepo(id string) error {
-	uri := c.formURI("/api/v1/delete/repo/" + id)
+	uri := c.formURI("/api/v1/remove/repo/" + id)
 	return c.getBasicResponse(uri, &Response{})
 }
 
@@ -204,4 +204,13 @@ func (c *Client) PullRepo(sourceID, targetID string) error {
 		Source: sourceID,
 	}
 	return c.postBasicResponse(c.formURI("api/v1/pull/"+targetID), &pq, &Response{})
+}
+
+// RemoveSource will ask the backend to remove packages by source name
+func (c *Client) RemoveSource(repoID, sourceID string, relno int) error {
+	sq := RemoveSourceRequest{
+		Source:  sourceID,
+		Release: relno,
+	}
+	return c.postBasicResponse(c.formURI("api/v1/remove/source/"+repoID), &sq, Response{})
 }
