@@ -140,12 +140,17 @@ func (p *Pool) putSkipEntry(db libdb.Database, entry *DeltaSkipEntry) error {
 	return db.Bucket([]byte(DatabaseBucketDeltaSkip)).PutObject([]byte(entry.Name), entry)
 }
 
+// GetMetaPoolPath will return the internal path for a given meta package
+func (p *Pool) GetMetaPoolPath(id string, meta *libeopkg.MetaPackage) string {
+	pkgDir := filepath.Join(p.poolDir, meta.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, id)
+	return pkgTarget
+}
+
 // GetPackagePoolPath Convenience function to grab the target for the given package
 // within the current pool
 func (p *Pool) GetPackagePoolPath(pkg *libeopkg.Package) string {
-	pkgDir := filepath.Join(p.poolDir, pkg.Meta.Package.GetPathComponent())
-	pkgTarget := filepath.Join(pkgDir, pkg.ID)
-	return pkgTarget
+	return p.GetMetaPoolPath(pkg.ID, &pkg.Meta.Package)
 }
 
 // AddDelta will add a delta package to the pool if doesn't exist, otherwise
