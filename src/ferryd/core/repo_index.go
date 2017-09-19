@@ -321,17 +321,6 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 		return errAbort
 	}
 
-	// Same again but sha256 now
-	indexPathSha256 := filepath.Join(r.path, "eopkg-index.xml.sha256sum.new")
-	indexPathSha256Final := filepath.Join(r.path, "eopkg-index.xml.sha256sum")
-	outPaths = append(outPaths, indexPathSha256)
-	finalPaths = append(finalPaths, indexPathSha256Final)
-
-	// pop off the sha256
-	if errAbort = WriteSha256sum(indexPath, indexPathSha256); err != nil {
-		return errAbort
-	}
-
 	// Write our XZ index out
 	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.new.xz")
 	indexPathXzFinal := filepath.Join(r.path, "eopkg-index.xml.xz")
@@ -348,20 +337,8 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	outPaths = append(outPaths, indexPathXzSha)
 	finalPaths = append(finalPaths, indexPathXzShaFinal)
 
-	// Write sha256sum for the xz file. This is currently unused by eopkg but
-	// we will switch to it by default some time in the future
-	indexPathXzSha256 := filepath.Join(r.path, "eopkg-index.xml.xz.sha256sum.new")
-	indexPathXzSha256Final := filepath.Join(r.path, "eopkg-index.xml.xz.sha256sum")
-	outPaths = append(outPaths, indexPathXzSha256)
-	finalPaths = append(finalPaths, indexPathXzSha256Final)
-
 	// xz sha1
 	if errAbort = WriteSha1sum(indexPathXz, indexPathXzSha); err != nil {
-		return errAbort
-	}
-
-	// xz sha256
-	if errAbort = WriteSha256sum(indexPathXz, indexPathXzSha256); err != nil {
 		return errAbort
 	}
 
