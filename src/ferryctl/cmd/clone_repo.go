@@ -23,6 +23,10 @@ import (
 	"os"
 )
 
+var (
+	fullClone bool
+)
+
 var cloneRepoCmd = &cobra.Command{
 	Use:   "clone [from] [newName]",
 	Short: "clone an existing repository",
@@ -31,6 +35,7 @@ var cloneRepoCmd = &cobra.Command{
 }
 
 func init() {
+	cloneRepoCmd.PersistentFlags().BoolVarP(&fullClone, "full", "f", false, "Perform a deep clone")
 	RootCmd.AddCommand(cloneRepoCmd)
 }
 
@@ -44,7 +49,7 @@ func cloneRepo(cmd *cobra.Command, args []string) {
 	defer client.Close()
 
 	// TODO: Add flag for full depth clone
-	if err := client.CloneRepo(args[0], args[1], false); err != nil {
+	if err := client.CloneRepo(args[0], args[1], fullClone); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}
