@@ -133,6 +133,15 @@ func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) 
 	return repo.AddDelta(m.db, m.pool, deltaPath, mapping)
 }
 
+// RefDelta will dupe an existing delta into the target repository
+func (m *Manager) RefDelta(repoID, deltaID string, mapping *DeltaInformation) error {
+	repo, err := m.GetRepo(repoID)
+	if err != nil {
+		return err
+	}
+	return repo.RefDelta(m.db, m.pool, deltaID, mapping)
+}
+
 // MarkDeltaFailed will permanently record the delta package as failing so we do
 // not attempt to recreate it (expensive)
 func (m *Manager) MarkDeltaFailed(deltaID string, delta *DeltaInformation) error {

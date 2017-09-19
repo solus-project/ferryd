@@ -316,6 +316,23 @@ func (r *Repository) putEntry(db libdb.Database, entry *RepoEntry) error {
 	return rootBucket.PutObject([]byte(entry.Name), entry)
 }
 
+// RefDelta will take the existing delta from the pool and insert it into our own repository
+func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string, mapping *DeltaInformation) error {
+	// Ensure we REALLY have the delta.
+	poolEntry, err := pool.GetEntry(db, deltaID)
+	if err != nil {
+		return err
+	}
+
+	// Now make sure we actually have the local entry
+	_, err = r.GetEntry(db, poolEntry.Meta.Name)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("not yet implemented")
+}
+
 // AddDelta will first open and read the .delta.eopkg, before passing it back off to AddLocalDelta
 func (r *Repository) AddDelta(db libdb.Database, pool *Pool, filename string, mapping *DeltaInformation) error {
 	pkg, err := libeopkg.Open(filename)
