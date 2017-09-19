@@ -688,3 +688,44 @@ func (r *Repository) HasDelta(db libdb.Database, pkgName, deltaPath string) (boo
 	}
 	return false, nil
 }
+
+// CloneFrom will attempt to clone everything from the target repository into
+// ourselves
+func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) error {
+	// First things first, instigate a write lock on the target
+	sourceRepo.insertMut.Lock()
+	defer sourceRepo.insertMut.Unlock()
+
+	var copyIDs []string
+
+	// TODO: Differentiate between tip and all
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		// TODO: Grab only published OR available here
+		copyIDs = append(copyIDs, entry.Available...)
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now we'll insert all the new IDs. We can't really transaction this as
+	// we're going to rely on on the refcount cycle and updating published/available
+	// depending on tip or ALL
+	for _, id := range copyIDs {
+		if err := r.RefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
