@@ -57,6 +57,8 @@ type RepositoryManager struct {
 	deltaBase      string
 	deltaStageBase string
 
+	repoLock *sync.RWMutex
+
 	repos map[string]*Repository // Cache all repositories.
 }
 
@@ -89,6 +91,7 @@ func (r *RepositoryManager) Init(ctx *Context, db libdb.Database) error {
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
 	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
 	r.deltaStageBase = filepath.Join(ctx.BaseDir, DeltaStagePathComponent)
+	r.repoLock = &sync.RWMutex{}
 	r.repos = make(map[string]*Repository)
 
 	paths := []string{
@@ -146,6 +149,9 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 // GetRepo will attempt to get the named repo if it exists, otherwise
 // return an error. This is a transactional helper to make the API simpler
 func (r *RepositoryManager) GetRepo(db libdb.Database, id string) (*Repository, error) {
+	r.repoLock.RLock()
+	defer r.repoLock.RUnlock()
+
 	// Cache each repository.
 	if repo, ok := r.repos[id]; ok {
 		return repo, nil
@@ -171,6 +177,9 @@ func (r *RepositoryManager) GetRepo(db libdb.Database, id string) (*Repository, 
 // CreateRepo will create a new repository (bucket) within the top level
 // repo bucket.
 func (r *RepositoryManager) CreateRepo(db libdb.Database, id string) (*Repository, error) {
+	r.repoLock.Lock()
+	defer r.repoLock.Unlock()
+
 	if _, err := r.GetRepo(db, id); err == nil {
 		return nil, fmt.Errorf("The specified repository '%s' already exists", id)
 	}
@@ -198,6 +207,9 @@ func (r *RepositoryManager) CreateRepo(db libdb.Database, id string) (*Repositor
 
 // DeleteRepo is not yet implemented
 func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string) error {
+	r.repoLock.Lock()
+	defer r.repoLock.Unlock()
+
 	repo, err := r.GetRepo(db, id)
 	if err != nil {
 		return fmt.Errorf("The specified repository '%s' does not exist", id)
