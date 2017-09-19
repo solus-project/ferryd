@@ -32,6 +32,8 @@ ferryd is a [Solus project](https://solus-project.com/).
 
 ![logo](https://build.solus-project.com/logo.png)
 
+_Disclaimer regarding the name: Solus has this weird obsession with all things nautilic. Oh and birds._
+
 TODO
 ----
 
