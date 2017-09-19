@@ -204,6 +204,7 @@ func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string)
 	}
 
 	// TODO: lock this repository from accepting inclusions ..
+	delete(r.repos, id)
 
 	// Let's iterate over every one of our packages here and start up an unref
 	// cycle
