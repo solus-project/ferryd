@@ -29,9 +29,16 @@ var RootCmd = &cobra.Command{
 // ListCmd is a parent for list type commands
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list [repos]",
+	Short: "list [repos] [pool]",
+}
+
+// RemoveCmd is the parent for remove type commands
+var RemoveCmd = &cobra.Command{
+	Use:   "remove",
+	Short: "remove [repo]",
 }
 
 func init() {
 	RootCmd.AddCommand(ListCmd)
+	RootCmd.AddCommand(RemoveCmd)
 }

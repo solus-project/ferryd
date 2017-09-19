@@ -23,21 +23,21 @@ import (
 	"os"
 )
 
-var deleteRepoCmd = &cobra.Command{
-	Use:   "delete-repo",
-	Short: "delete an existing repository",
-	Long:  "Delete an existing repository in the ferryd instance",
-	Run:   deleteRepo,
+var removeRepoCmd = &cobra.Command{
+	Use:   "repo",
+	Short: "remove an existing repository",
+	Long:  "Remove an existing repository in the ferryd instance",
+	Run:   removeRepo,
 }
 
 func init() {
-	RootCmd.AddCommand(deleteRepoCmd)
+	RemoveCmd.AddCommand(removeRepoCmd)
 }
 
-func deleteRepo(cmd *cobra.Command, args []string) {
+func removeRepo(cmd *cobra.Command, args []string) {
 	// Attempt to grab the local daemon version
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "delete-repo takes exactly 1 argument")
+		fmt.Fprintf(os.Stderr, "remove repo takes exactly 1 argument")
 		return
 	}
 
