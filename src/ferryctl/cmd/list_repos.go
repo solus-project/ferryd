@@ -52,9 +52,10 @@ func listRepos(cmd *cobra.Command, args []string) {
 	sort.Strings(repos)
 	if len(repos) == 0 {
 		fmt.Printf("No repositories have been created yet.\n\n")
-		fmt.Println("Create one with 'ferryctl create-repo $name'")
+		fmt.Println("Create one with 'ferryctl create-repo $name'.")
 		return
 	}
+	fmt.Printf("Currently registered repositories: \n\n")
 	for _, repo := range repos {
 		fmt.Printf(" * %v\n", repo)
 	}
