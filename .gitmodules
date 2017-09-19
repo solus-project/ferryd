@@ -25,6 +25,3 @@
 [submodule "src/vendor/github.com/golang/snappy"]
 	path = src/vendor/github.com/golang/snappy
 	url = https://github.com/golang/snappy.git
-[submodule "src/vendor/github.com/google/uuid"]
-	path = src/vendor/github.com/google/uuid
-	url = https://github.com/google/uuid.git
