@@ -319,7 +319,7 @@ func (r *Repository) putEntry(db libdb.Database, entry *RepoEntry) error {
 }
 
 // RefDelta will take the existing delta from the pool and insert it into our own repository
-func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string, mapping *DeltaInformation) error {
+func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string) error {
 	r.insertMut.Lock()
 	defer r.insertMut.Unlock()
 
@@ -691,12 +691,13 @@ func (r *Repository) HasDelta(db libdb.Database, pkgName, deltaPath string) (boo
 
 // CloneFrom will attempt to clone everything from the target repository into
 // ourselves
-func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) error {
+func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Repository, fullClone bool) error {
 	// First things first, instigate a write lock on the target
 	sourceRepo.insertMut.Lock()
 	defer sourceRepo.insertMut.Unlock()
 
 	var copyIDs []string
+	var deltaIDs []string
 
 	// TODO: Differentiate between tip and all
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
@@ -708,8 +709,12 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 			return err
 		}
 
-		// TODO: Grab only published OR available here
-		copyIDs = append(copyIDs, entry.Available...)
+		if fullClone {
+			copyIDs = append(copyIDs, entry.Available...)
+			deltaIDs = append(deltaIDs, entry.Deltas...)
+		} else {
+			copyIDs = append(copyIDs, entry.Published)
+		}
 
 		return nil
 	})
@@ -723,6 +728,13 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 	// depending on tip or ALL
 	for _, id := range copyIDs {
 		if err := r.RefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	// We can only copy deltas across on full clones.
+	for _, id := range deltaIDs {
+		if err := r.RefDelta(db, pool, id); err != nil {
 			return err
 		}
 	}

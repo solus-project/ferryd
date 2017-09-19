@@ -141,7 +141,7 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 		// If so, just re-ref it for usage within the new repo
 		entry, err := manager.GetPoolEntry(deltaID)
 		if entry != nil && err == nil {
-			if err := manager.RefDelta(j.repoID, deltaID, mapping); err != nil {
+			if err := manager.RefDelta(j.repoID, deltaID); err != nil {
 				fields["error"] = err
 				log.WithFields(fields).Error("Failed to ref existing delta")
 				return err

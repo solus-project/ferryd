@@ -35,7 +35,10 @@ func (m *Manager) CreateRepo(id string) error {
 
 // CloneRepo will initially construct a new repository, and then ask that
 // it copy itself from an existing repo
-func (m *Manager) CloneRepo(repoID, newClone string) error {
+//
+// If fullClone is set, all packages are copied. Otherwise only the tip for
+// each package is taken.
+func (m *Manager) CloneRepo(repoID, newClone string, fullClone bool) error {
 	// Try to get the source repo
 	sourceRepo, err := m.repo.GetRepo(m.db, repoID)
 	if err != nil {
@@ -50,7 +53,7 @@ func (m *Manager) CloneRepo(repoID, newClone string) error {
 	}
 
 	// Now ask it to clone..
-	if err = newRepo.CloneFrom(m.db, m.pool, sourceRepo); err != nil {
+	if err = newRepo.CloneFrom(m.db, m.pool, sourceRepo, fullClone); err != nil {
 		return err
 	}
 
@@ -159,12 +162,12 @@ func (m *Manager) AddDelta(repoID, deltaPath string, mapping *DeltaInformation) 
 }
 
 // RefDelta will dupe an existing delta into the target repository
-func (m *Manager) RefDelta(repoID, deltaID string, mapping *DeltaInformation) error {
+func (m *Manager) RefDelta(repoID, deltaID string) error {
 	repo, err := m.GetRepo(repoID)
 	if err != nil {
 		return err
 	}
-	return repo.RefDelta(m.db, m.pool, deltaID, mapping)
+	return repo.RefDelta(m.db, m.pool, deltaID)
 }
 
 // MarkDeltaFailed will permanently record the delta package as failing so we do

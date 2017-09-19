@@ -183,9 +183,10 @@ func (s *Server) CloneRepo(w http.ResponseWriter, r *http.Request, p httprouter.
 	}
 
 	log.WithFields(log.Fields{
-		"source": id,
-		"target": req.CloneName,
+		"source":    id,
+		"target":    req.CloneName,
+		"fullClone": req.CopyAll,
 	}).Info("Repository clone requested")
 
-	s.jproc.PushJob(jobs.NewCloneRepoJob(id, req.CloneName))
+	s.jproc.PushJob(jobs.NewCloneRepoJob(id, req.CloneName, req.CopyAll))
 }

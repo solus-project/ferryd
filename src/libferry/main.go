@@ -190,9 +190,10 @@ func (c *Client) ImportPackages(repoID string, pkgs []string) error {
 }
 
 // CloneRepo will ask the backend to clone an existing repository into a new repository
-func (c *Client) CloneRepo(repoID, newClone string) error {
+func (c *Client) CloneRepo(repoID, newClone string, copyAll bool) error {
 	cq := CloneRepoRequest{
 		CloneName: newClone,
+		CopyAll:   copyAll,
 	}
 	return c.postBasicResponse(c.formURI("api/v1/clone/"+repoID), &cq, &Response{})
 }

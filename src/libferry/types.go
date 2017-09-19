@@ -61,4 +61,5 @@ type PoolListingRequest struct {
 type CloneRepoRequest struct {
 	Response
 	CloneName string `json:"cloneName"`
+	CopyAll   bool   `json:"copyAll"` // Full clone
 }

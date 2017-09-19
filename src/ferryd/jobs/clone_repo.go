@@ -24,33 +24,44 @@ import (
 
 // CloneRepoJobHandler is responsible for cloning an existing repository
 type CloneRepoJobHandler struct {
-	repoID   string
-	newClone string
+	repoID    string
+	newClone  string
+	cloneMode string
 }
 
 // NewCloneRepoJob will return a job suitable for adding to the job processor
-func NewCloneRepoJob(repoID, newClone string) *JobEntry {
+func NewCloneRepoJob(repoID, newClone string, cloneAll bool) *JobEntry {
+	mode := "tip"
+	if cloneAll {
+		mode = "full"
+	}
 	return &JobEntry{
 		sequential: true,
 		Type:       CloneRepo,
-		Params:     []string{repoID, newClone},
+		Params:     []string{repoID, newClone, mode},
 	}
 }
 
 // NewCloneRepoJobHandler will create a job handler for the input job and ensure it validates
 func NewCloneRepoJobHandler(j *JobEntry) (*CloneRepoJobHandler, error) {
-	if len(j.Params) != 2 {
+	if len(j.Params) != 3 {
 		return nil, fmt.Errorf("job has invalid parameters")
 	}
 	return &CloneRepoJobHandler{
-		repoID:   j.Params[0],
-		newClone: j.Params[1],
+		repoID:    j.Params[0],
+		newClone:  j.Params[1],
+		cloneMode: j.Params[3],
 	}, nil
 }
 
 // Execute will construct a new repository if possible
 func (j *CloneRepoJobHandler) Execute(_ *Processor, manager *core.Manager) error {
-	if err := manager.CloneRepo(j.repoID, j.newClone); err != nil {
+	fullClone := false
+	if j.cloneMode == "full" {
+		fullClone = true
+	}
+
+	if err := manager.CloneRepo(j.repoID, j.newClone, fullClone); err != nil {
 		return err
 	}
 	log.WithFields(log.Fields{"repo": j.repoID}).Info("Cloned repository")
