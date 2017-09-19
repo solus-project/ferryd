@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"libdb"
 	"libeopkg"
@@ -700,7 +699,6 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 	var copyIDs []string
 	var deltaIDs []string
 
-	// TODO: Differentiate between tip and all
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
 
 	// Grab every package
@@ -766,5 +764,63 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 // source to have identical mirrors again. This should be performed rarely and only
 // during periods of maintenance due to this method violating atomic indexes.
 func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) error {
-	return errors.New("not yet implemented")
+	// First things first, instigate a write lock on the source
+	sourceRepo.insertMut.Lock()
+	defer sourceRepo.insertMut.Unlock()
+
+	var copyIDs []string
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		localEntry, _ := r.GetEntry(db, entry.Name)
+
+		// We haven't got this, copy the published version
+		if localEntry == nil {
+			copyIDs = append(copyIDs, entry.Published)
+			return nil
+		}
+
+		// We have got this, so is it newer than ours?
+		tipVer, err := pool.GetEntry(db, entry.Published)
+		if err != nil {
+			return err
+		}
+		ourTip, err := pool.GetEntry(db, localEntry.Published)
+		if err != nil {
+			return err
+		}
+
+		// Their tip is newer than ours, copy it
+		if tipVer.Meta.GetRelease() > ourTip.Meta.GetRelease() {
+			copyIDs = append(copyIDs, entry.Published)
+		}
+
+		// Is something completely bork?
+		if tipVer.Meta.GetRelease() < ourTip.Meta.GetRelease() {
+			return fmt.Errorf("inconsistent target repository, %v is NEWER in target not SOURCE", localEntry.Name)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now we'll insert all the new IDs. We can't really transaction this as
+	// we're going to rely on on the refcount cycle and updating published/available
+	// depending on tip or ALL
+	for _, id := range copyIDs {
+		if err := r.RefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
