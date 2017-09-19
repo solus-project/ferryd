@@ -18,9 +18,11 @@ package libdb
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"sync"
 )
 
 var (
@@ -35,6 +37,7 @@ type levelDbHandle struct {
 	keyPrefix   []byte
 	db          *leveldb.DB
 	batch       *leveldb.Batch // Usually nil but set for write transactions
+	seqLock     *sync.Mutex    // Must ensure we have atomic view of DB for sequence
 }
 
 // levelDb is our concrete type
@@ -55,6 +58,7 @@ func newLevelDBHandle(parentDB *Database, storagePath string) (*levelDb, error) 
 	handle.prefix = []byte("|rootBucket|")
 	handle.keyPrefix = []byte("|rootBucket|-")
 	handle.prefixBytes = util.BytesPrefix(handle.prefix)
+	handle.seqLock = &sync.Mutex{}
 	return handle, nil
 }
 
@@ -161,6 +165,7 @@ func (l *levelDbHandle) Bucket(id []byte) DatabaseConnection {
 		keyPrefix:   []byte(fmt.Sprintf("%s-", string(newID))),
 		prefixBytes: util.BytesPrefix(newID),
 		batch:       l.batch,
+		seqLock:     l.seqLock,
 	}
 	return ret
 }
@@ -190,4 +195,31 @@ func (l *levelDbHandle) Update(f WriterFunc) error {
 		return err
 	}
 	return clone.db.Write(clone.batch, nil)
+}
+
+// NextSequence will return the next natural key to be used for inserts,
+// when the application only needs a unique record, not a specific key.
+func (l *levelDbHandle) NextSequence() []byte {
+	l.seqLock.Lock()
+	defer l.seqLock.Unlock()
+
+	iter := l.db.NewIterator(l.prefixBytes, nil)
+	defer iter.Release()
+	var retKey uint64
+	if !iter.Last() {
+		retKey = 0
+	} else {
+		key := iter.Key()
+		newKey := bytes.TrimPrefix(key, l.keyPrefix)
+
+		if len(newKey) != 8 {
+			retKey = 0
+		} else {
+			// Increment last key by 1
+			retKey = binary.BigEndian.Uint64(newKey) + 1
+		}
+	}
+	byt := make([]byte, 8)
+	binary.BigEndian.PutUint64(byt, retKey)
+	return byt
 }

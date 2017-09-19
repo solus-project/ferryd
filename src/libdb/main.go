@@ -65,6 +65,10 @@ type DatabaseConnection interface {
 	// Return a subset of the database for usage
 	Bucket(id []byte) DatabaseConnection
 
+	// NextSequence returns the next natural sequence for insert-order-centric applications
+	// Note this will cause implementations to lock while finding the natural sequence
+	NextSequence() []byte
+
 	// Convert view of current database or bucket into a read-only one.
 	// This should not be considered a transaction, just special sauce.
 	View(f ReadOnlyFunc) error
