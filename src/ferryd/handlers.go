@@ -170,3 +170,22 @@ func (s *Server) ImportPackages(w http.ResponseWriter, r *http.Request, p httpro
 
 	s.jproc.PushJob(jobs.NewBulkAddJob(id, req.Path))
 }
+
+// CloneRepo will proxy a job to clone an existing repository
+func (s *Server) CloneRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+
+	req := libferry.CloneRepoRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"source": id,
+		"target": req.CloneName,
+	}).Info("Repository clone requested")
+
+	s.jproc.PushJob(jobs.NewCloneRepoJob(id, req.CloneName))
+}

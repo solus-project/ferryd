@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"libeopkg"
 	"path/filepath"
 )
@@ -31,6 +32,12 @@ func (m *Manager) CreateRepo(id string) error {
 	}
 	// Index the newly created repo
 	return m.Index(id)
+}
+
+// CloneRepo will initially construct a new repository, and then ask that
+// it copy itself from an existing repo
+func (m *Manager) CloneRepo(repoID, newClone string) error {
+	return errors.New("not yet implemented")
 }
 
 // GetRepos will return all known repositories

@@ -56,3 +56,9 @@ type PoolListingRequest struct {
 	Response
 	Item []PoolItem `json:"items"`
 }
+
+// CloneRepoRequest is given to ferryd to ask it to clone one repo into another
+type CloneRepoRequest struct {
+	Response
+	CloneName string `json:"cloneName"`
+}

@@ -70,7 +70,10 @@ func NewServer() *Server {
 	router.GET("/api/v1/delete/repo/:id", s.DeleteRepo)
 	router.GET("/api/v1/delta/repo/:id", s.DeltaRepo)
 	router.GET("/api/v1/index/repo/:id", s.IndexRepo)
+
+	// Client sends us data
 	router.POST("/api/v1/import/:id", s.ImportPackages)
+	router.POST("/api/v1/clone/:id", s.CloneRepo)
 
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)
