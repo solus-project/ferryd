@@ -56,6 +56,9 @@ const (
 	// IndexRepo is a sequential job that requests the repository be re-indexed
 	IndexRepo = "IndexRepo"
 
+	// PullRepo is a sequential job that will attempt to pull a repo
+	PullRepo = "PullRepo"
+
 	// TransitProcess is a sequential job that will process the incoming uploads
 	// directory, dealing with each .tram upload
 	TransitProcess = "TransitProcess"
@@ -127,6 +130,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewDeltaJobHandler(j, true)
 	case IndexRepo:
 		return NewIndexRepoJobHandler(j)
+	case PullRepo:
+		return NewPullRepoJobHandler(j)
 	case TransitProcess:
 		return NewTransitJobHandler(j)
 	default:

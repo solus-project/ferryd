@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"libdb"
 	"libeopkg"
@@ -740,4 +741,30 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 	}
 
 	return nil
+}
+
+// PullFrom will iterate the source repositories contents, looking for any packages
+// we can pull into ourselves.
+//
+// If a package is missing from our own indexes (i.e. no key) we'll pull that package.
+// If a package is present in our own indexes, but the package in sourceRepo's published
+// field is actually _newer_ than ours, we'll pull that guy in too.
+//
+// Note this isn't "pull" in the git sense, as we'll not perform any removals or attempt
+// to sync the states completely. Pull is typically used on a clone from a volatile target,
+// i.e. pulling from unstable into stable. As many rebuilds might happen in unstable, we
+// actually only want to bring in the *tip* from the new sources.
+//
+// Over time, a clone will drift in content from the source. In terms of upgrade paths
+// for users, they'll only follow *one* repository, i.e. the stable rolling snapshot
+// channel. To be able to provide usable and effective delta paths for those users, we
+// really need to form deltas per repository between their effective tip and "old" items,
+// otherwise with a git-like sync the users might never see any useful delta packages
+// for the fast moving items.
+//
+// Drift can be corrected by nuking a repository and performing a full clone from the
+// source to have identical mirrors again. This should be performed rarely and only
+// during periods of maintenance due to this method violating atomic indexes.
+func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) error {
+	return errors.New("not yet implemented")
 }

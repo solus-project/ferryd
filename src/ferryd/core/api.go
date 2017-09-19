@@ -61,6 +61,29 @@ func (m *Manager) CloneRepo(repoID, newClone string, fullClone bool) error {
 	return m.Index(newClone)
 }
 
+// PullRepo will pull from one repo, the source ID, into the target repository
+func (m *Manager) PullRepo(sourceID, targetID string) error {
+	// Try to get the source repo
+	sourceRepo, err := m.repo.GetRepo(m.db, sourceID)
+	if err != nil {
+		return err
+	}
+
+	// Try to get the target repo
+	targetRepo, err := m.repo.GetRepo(m.db, targetID)
+	if err != nil {
+		return err
+	}
+
+	// Now ask it to pull..
+	if err = targetRepo.PullFrom(m.db, m.pool, sourceRepo); err != nil {
+		return err
+	}
+
+	// Success, index the target
+	return m.Index(targetID)
+}
+
 // GetRepos will return all known repositories
 func (m *Manager) GetRepos() ([]*Repository, error) {
 	return m.repo.GetRepos(m.db)

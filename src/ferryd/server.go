@@ -74,6 +74,7 @@ func NewServer() *Server {
 	// Client sends us data
 	router.POST("/api/v1/import/:id", s.ImportPackages)
 	router.POST("/api/v1/clone/:id", s.CloneRepo)
+	router.POST("/api/v1/pull/:id", s.PullRepo)
 
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)

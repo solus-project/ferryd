@@ -23,32 +23,27 @@ import (
 	"os"
 )
 
-var (
-	fullClone bool
-)
-
-var cloneRepoCmd = &cobra.Command{
-	Use:   "clone [from] [newName]",
-	Short: "clone an existing repository",
+var pullRepoCmd = &cobra.Command{
+	Use:   "pull [from] [into]",
+	Short: "pull an existing repository",
 	Long:  "Clone an existing repository into a new repository",
-	Run:   cloneRepo,
+	Run:   pullRepo,
 }
 
 func init() {
-	cloneRepoCmd.PersistentFlags().BoolVarP(&fullClone, "full", "f", false, "Perform a deep clone")
-	RootCmd.AddCommand(cloneRepoCmd)
+	RootCmd.AddCommand(pullRepoCmd)
 }
 
-func cloneRepo(cmd *cobra.Command, args []string) {
+func pullRepo(cmd *cobra.Command, args []string) {
 	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "clone takes exactly 2 arguments\n")
+		fmt.Fprintf(os.Stderr, "pull takes exactly 2 arguments\n")
 		return
 	}
 
 	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 
-	if err := client.CloneRepo(args[0], args[1], fullClone); err != nil {
+	if err := client.PullRepo(args[0], args[1]); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}

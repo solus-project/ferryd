@@ -197,3 +197,11 @@ func (c *Client) CloneRepo(repoID, newClone string, copyAll bool) error {
 	}
 	return c.postBasicResponse(c.formURI("api/v1/clone/"+repoID), &cq, &Response{})
 }
+
+// PullRepo will ask the backend to pull from target into repoID
+func (c *Client) PullRepo(sourceID, targetID string) error {
+	pq := PullRepoRequest{
+		Source: sourceID,
+	}
+	return c.postBasicResponse(c.formURI("api/v1/pull/"+targetID), &pq, &Response{})
+}

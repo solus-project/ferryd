@@ -63,3 +63,9 @@ type CloneRepoRequest struct {
 	CloneName string `json:"cloneName"`
 	CopyAll   bool   `json:"copyAll"` // Full clone
 }
+
+// PullRepoRequest is given to ferryd to ask it to from from one repo into another
+type PullRepoRequest struct {
+	Response
+	Source string `json:"source"`
+}
