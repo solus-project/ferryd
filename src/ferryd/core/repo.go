@@ -207,7 +207,7 @@ func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string)
 
 	// Let's iterate over every one of our packages here and start up an unref
 	// cycle
-	return db.Update(func(db libdb.Database) error {
+	err = db.Update(func(db libdb.Database) error {
 		repoBucket := db.Bucket([]byte(DatabaseBucketRepo))
 		rootBucket := repoBucket.Bucket([]byte(repo.ID)).Bucket([]byte(DatabaseBucketPackage))
 
@@ -242,6 +242,31 @@ func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string)
 		// Now remove the repository object itself
 		return repoBucket.DeleteObject([]byte(repo.ID))
 	})
+
+	if err != nil {
+		return err
+	}
+
+	deletionPaths := []string{
+		repo.path,
+		repo.assetPath,
+		repo.deltaPath,
+		repo.deltaStagePath,
+	}
+
+	// Clean up the repo paths.
+	// TODO: Make non fatal, just attempt what we can.
+
+	for _, p := range deletionPaths {
+		if !PathExists(p) {
+			continue
+		}
+		if err := os.RemoveAll(p); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // GetEntry will return the package entry for the given ID
