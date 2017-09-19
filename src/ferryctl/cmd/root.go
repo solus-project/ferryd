@@ -25,3 +25,13 @@ var RootCmd = &cobra.Command{
 	Use:   "ferry",
 	Short: "ferry is the Solus package repository tool",
 }
+
+// ListCmd is a parent for list type commands
+var ListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "list [repos]",
+}
+
+func init() {
+	RootCmd.AddCommand(ListCmd)
+}

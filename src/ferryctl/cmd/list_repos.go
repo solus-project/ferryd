@@ -25,14 +25,14 @@ import (
 )
 
 var listReposCmd = &cobra.Command{
-	Use:   "list-repos",
+	Use:   "repos",
 	Short: "List the currently known repositories",
 	Long:  "List the currently known repositories",
 	Run:   listRepos,
 }
 
 func init() {
-	RootCmd.AddCommand(listReposCmd)
+	ListCmd.AddCommand(listReposCmd)
 }
 
 func listRepos(cmd *cobra.Command, args []string) {
