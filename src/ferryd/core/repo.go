@@ -57,7 +57,7 @@ type RepositoryManager struct {
 	deltaBase      string
 	deltaStageBase string
 
-	repoLock *sync.RWMutex
+	repoLock *sync.Mutex
 
 	repos map[string]*Repository // Cache all repositories.
 }
@@ -91,7 +91,7 @@ func (r *RepositoryManager) Init(ctx *Context, db libdb.Database) error {
 	r.assetBase = filepath.Join(ctx.BaseDir, AssetPathComponent)
 	r.deltaBase = filepath.Join(ctx.BaseDir, DeltaPathComponent)
 	r.deltaStageBase = filepath.Join(ctx.BaseDir, DeltaStagePathComponent)
-	r.repoLock = &sync.RWMutex{}
+	r.repoLock = &sync.Mutex{}
 	r.repos = make(map[string]*Repository)
 
 	paths := []string{
@@ -149,9 +149,6 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 // GetRepo will attempt to get the named repo if it exists, otherwise
 // return an error. This is a transactional helper to make the API simpler
 func (r *RepositoryManager) GetRepo(db libdb.Database, id string) (*Repository, error) {
-	r.repoLock.RLock()
-	defer r.repoLock.RUnlock()
-
 	// Cache each repository.
 	if repo, ok := r.repos[id]; ok {
 		return repo, nil
