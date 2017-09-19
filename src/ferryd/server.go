@@ -66,6 +66,7 @@ func NewServer() *Server {
 	router.GET("/api/v1/version", s.GetVersion)
 
 	// Repo management
+	router.GET("/api/v1/list_repos", s.GetRepos)
 	router.GET("/api/v1/create_repo/:id", s.CreateRepo)
 	router.GET("/api/v1/delete_repo/:id", s.DeleteRepo)
 	router.GET("/api/v1/delta_repo/:id", s.DeltaRepo)

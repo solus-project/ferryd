@@ -33,6 +33,11 @@ func (m *Manager) CreateRepo(id string) error {
 	return m.Index(id)
 }
 
+// GetRepos will return all known repositories
+func (m *Manager) GetRepos() ([]*Repository, error) {
+	return m.repo.GetRepos(m.db)
+}
+
 // DeleteRepo exposes the API for repository deletion
 func (m *Manager) DeleteRepo(id string) error {
 	return m.repo.DeleteRepo(m.db, m.pool, id)

@@ -146,6 +146,25 @@ func (r *RepositoryManager) bakeRepo(id string) (*Repository, error) {
 	return repository, nil
 }
 
+// GetRepos will return a copy of the repositores in our database
+func (r *RepositoryManager) GetRepos(db libdb.Database) ([]*Repository, error) {
+	var ret []*Repository
+	err := db.Bucket([]byte(DatabaseBucketRepo)).View(func(db libdb.ReadOnlyView) error {
+		return db.ForEach(func(key, value []byte) error {
+			var repo Repository
+			if err := db.Decode(value, &repo); err != nil {
+				return err
+			}
+			ret = append(ret, &repo)
+			return nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
 // GetRepo will attempt to get the named repo if it exists, otherwise
 // return an error. This is a transactional helper to make the API simpler
 func (r *RepositoryManager) GetRepo(db libdb.Database, id string) (*Repository, error) {

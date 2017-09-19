@@ -69,15 +69,29 @@ func (c *Client) formURI(part string) string {
 // GetVersion will return the version of the remote daemon
 func (c *Client) GetVersion() (string, error) {
 	var vq VersionRequest
-	resp, e := c.client.Get(c.formURI("api/v1/version"))
-	if e != nil {
-		return "", e
+	resp, err := c.client.Get(c.formURI("api/v1/version"))
+	if err != nil {
+		return "", err
 	}
 	defer resp.Body.Close()
-	if e = json.NewDecoder(resp.Body).Decode(&vq); e != nil {
-		return "", e
+	if err = json.NewDecoder(resp.Body).Decode(&vq); err != nil {
+		return "", err
 	}
 	return vq.Version, nil
+}
+
+// GetRepos will grab a list of repos from the daemon
+func (c *Client) GetRepos() ([]string, error) {
+	var lq RepoListingRequest
+	resp, err := c.client.Get(c.formURI("api/v1/list_repos"))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err = json.NewDecoder(resp.Body).Decode(&lq); err != nil {
+		return nil, err
+	}
+	return lq.Repository, nil
 }
 
 // A helper to wrap the trivial functionality, chaining off

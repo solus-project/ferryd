@@ -75,6 +75,25 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter
 	w.Write(buf.Bytes())
 }
 
+// GetRepos will attempt to serialise our known repositories into a response
+func (s *Server) GetRepos(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	req := libferry.RepoListingRequest{}
+	repos, err := s.manager.GetRepos()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, repo := range repos {
+		req.Repository = append(req.Repository, repo.ID)
+	}
+	buf := bytes.Buffer{}
+	if err := json.NewEncoder(&buf).Encode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
 // CreateRepo will handle remote requests for repository creation
 func (s *Server) CreateRepo(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")

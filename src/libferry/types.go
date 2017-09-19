@@ -36,3 +36,10 @@ type ImportRequest struct {
 	Response
 	Path []string `json:"path"`
 }
+
+// RepoListingRequest allows us to ask the remote what repositories it
+// currently knows about.
+type RepoListingRequest struct {
+	Response
+	Repository []string `json:"repos"`
+}
