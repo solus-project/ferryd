@@ -325,12 +325,44 @@ func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string, map
 	}
 
 	// Now make sure we actually have the local entry
-	_, err = r.GetEntry(db, poolEntry.Meta.Name)
+	entry, err := r.GetEntry(db, poolEntry.Meta.Name)
 	if err != nil {
 		return err
 	}
 
-	return fmt.Errorf("not yet implemented")
+	// Extract our relevant paths
+	localPath := pool.GetMetaPoolPath(deltaID, poolEntry.Meta)
+	targetDir := filepath.Join(r.path, poolEntry.Meta.GetPathComponent())
+	targetPath := filepath.Join(targetDir, deltaID)
+
+	// Check we don't know about this delta already
+	for _, id := range entry.Deltas {
+		if id == deltaID {
+			fmt.Printf("Skipping already included delta %s\n", id)
+			return nil
+		}
+	}
+
+	// Insert this deltas ID to this package map
+	entry.Deltas = append(entry.Deltas, deltaID)
+	sort.Strings(entry.Deltas)
+
+	// Construct root dirs
+	if err := os.MkdirAll(targetDir, 00755); err != nil {
+		return err
+	}
+
+	// Grab the pool reference for this package
+	if err := pool.RefDelta(db, deltaID); err != nil {
+		return err
+	}
+
+	// Ensure the eopkg file is linked inside our own tree
+	if err := LinkOrCopyFile(localPath, targetPath, false); err != nil {
+		return err
+	}
+
+	return r.putEntry(db, entry)
 }
 
 // AddDelta will first open and read the .delta.eopkg, before passing it back off to AddLocalDelta
