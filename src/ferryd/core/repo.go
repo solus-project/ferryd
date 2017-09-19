@@ -454,41 +454,98 @@ func (r *Repository) removeDeltaInternal(db libdb.Database, pool *Pool, id strin
 	return r.removePackageInternal(db, pool, id)
 }
 
-// AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
-func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopkg.Package) error {
-	repoEntry := &RepoEntry{
-		SchemaVersion: RepoSchemaVersion,
-		Name:          pkg.Meta.Package.Name,
-		Published:     pkg.ID,
+// RefPackage will dupe a package from the pool into our own storage
+func (r *Repository) RefPackage(db libdb.Database, pool *Pool, pkgID string) error {
+	// Require a pool entry to clone from
+	poolEntry, err := pool.GetEntry(db, pkgID)
+	if err != nil {
+		return err
 	}
 
-	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
-	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+	localPath := pool.GetMetaPoolPath(pkgID, poolEntry.Meta)
+	targetDir := filepath.Join(r.path, poolEntry.Meta.GetPathComponent())
+	targetPath := filepath.Join(targetDir, pkgID)
 
-	// Already have a package, so let's copy the existing bits over
-	entry, err := r.GetEntry(db, pkg.Meta.Package.Name)
+	repoEntry := r.buildSaneEntry(db, pool, poolEntry.Meta, pkgID)
+	// Already included
+	if repoEntry == nil {
+		return nil
+	}
+
+	// Construct root dirs
+	if err := os.MkdirAll(targetDir, 00755); err != nil {
+		return err
+	}
+
+	// Grab the pool reference for this package (Always copy)
+	if err = pool.RefEntry(db, pkgID); err != nil {
+		return err
+	}
+
+	// Ensure the eopkg file is linked inside our own tree
+	if err = LinkOrCopyFile(localPath, targetPath, false); err != nil {
+		return err
+	}
+
+	return r.putEntry(db, repoEntry)
+}
+
+// buildSaneEntry will either return a plain entry if none exists already, otherwise it will
+// take an existing entry and correctly set up the available/published fields
+func (r *Repository) buildSaneEntry(db libdb.Database, pool *Pool, newPkg *libeopkg.MetaPackage, newID string) *RepoEntry {
+	// Fallback in case one actually doesn't exist yet
+	repoEntry := &RepoEntry{
+		SchemaVersion: RepoSchemaVersion,
+		Name:          newPkg.Name,
+		Published:     newID,
+	}
+
+	// Not so worried about the error, just having the entry
+	entry, _ := r.GetEntry(db, newPkg.Name)
+
+	// Clone across the relevant field now
 	if entry != nil {
 		repoEntry.Available = entry.Available
 		repoEntry.Published = entry.Published
 
 		pkgAvail, err := pool.GetEntry(db, repoEntry.Published)
 		if err == nil {
-			if pkg.Meta.Package.GetRelease() > pkgAvail.Meta.GetRelease() {
-				repoEntry.Published = pkg.ID
-			} else if pkg.Meta.Package.GetRelease() == pkgAvail.Meta.GetRelease() && pkgAvail.Name != pkg.ID {
-				fmt.Printf(" **** DUPLICATE RELEASE NUMBER DETECTED. FAK: %s %s **** \n", pkg.ID, pkgAvail.Name)
+			if newPkg.GetRelease() > pkgAvail.Meta.GetRelease() {
+				repoEntry.Published = newID
+			} else if newPkg.GetRelease() == pkgAvail.Meta.GetRelease() && pkgAvail.Name != newID {
+				fmt.Printf(" **** DUPLICATE RELEASE NUMBER DETECTED. FAK: %s %s **** \n", newID, pkgAvail.Name)
 			}
 		} else {
-			repoEntry.Published = pkg.ID
+			repoEntry.Published = newID
 		}
 	}
 
 	// Check if we've already indexed it, non-fatal
 	for _, id := range repoEntry.Available {
-		if id == pkg.ID {
+		if id == newID {
 			fmt.Printf("Skipping already included %s\n", id)
 			return nil
 		}
+	}
+
+	// Keep the available list clean + sorted
+	repoEntry.Available = append(repoEntry.Available, newID)
+	sort.Strings(repoEntry.Available)
+
+	return repoEntry
+}
+
+// AddLocalPackage will do the real work of adding an open & loaded eopkg to the repository
+func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopkg.Package) error {
+	pkgDir := filepath.Join(r.path, pkg.Meta.Package.GetPathComponent())
+	pkgTarget := filepath.Join(pkgDir, pkg.ID)
+
+	// Already have a package, so let's copy the existing bits over
+	repoEntry := r.buildSaneEntry(db, pool, &pkg.Meta.Package, pkg.ID)
+
+	// nil == already included
+	if repoEntry == nil {
+		return nil
 	}
 
 	// Construct root dirs
@@ -496,18 +553,14 @@ func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopk
 		return err
 	}
 
-	// Keep the available list clean + sorted
-	repoEntry.Available = append(repoEntry.Available, pkg.ID)
-	sort.Strings(repoEntry.Available)
-
 	// Grab the pool reference for this package (Always copy)
-	if _, err = pool.AddPackage(db, pkg, false); err != nil {
+	if _, err := pool.AddPackage(db, pkg, false); err != nil {
 		return err
 	}
 
 	// Ensure the eopkg file is linked inside our own tree
 	source := pool.GetPackagePoolPath(pkg)
-	if err = LinkOrCopyFile(source, pkgTarget, false); err != nil {
+	if err := LinkOrCopyFile(source, pkgTarget, false); err != nil {
 		return err
 	}
 
