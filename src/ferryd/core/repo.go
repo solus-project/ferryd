@@ -353,7 +353,7 @@ func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string, map
 	}
 
 	// Grab the pool reference for this package
-	if err := pool.RefDelta(db, deltaID); err != nil {
+	if err := pool.RefEntry(db, deltaID); err != nil {
 		return err
 	}
 

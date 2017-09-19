@@ -183,16 +183,6 @@ func (p *Pool) AddDelta(db libdb.Database, pkg *libeopkg.Package, mapping *Delta
 	return p.addPackageInternal(db, pkg, copyDisk, mapping)
 }
 
-// RefDelta will attempt to bump the refcount on an existing delta
-func (p *Pool) RefDelta(db libdb.Database, deltaID string) error {
-	entry, err := p.GetEntry(db, deltaID)
-	if err != nil {
-		return err
-	}
-	entry.RefCount++
-	return p.putEntry(db, entry)
-}
-
 // addPackageInternal used by both AddDelta and AddPackage for the main bulk of
 // the work
 func (p *Pool) addPackageInternal(db libdb.Database, pkg *libeopkg.Package, copyDisk bool, delta *DeltaInformation) (*PoolEntry, error) {
