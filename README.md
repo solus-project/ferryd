@@ -58,6 +58,19 @@ TODO
  - [ ] Ensure any operation resulting in adding new packages first checks entries don't exist in the pool. We will NOT allow importing a broken package set.
 
 
+Deployment Plan
+---------------
+
+ - [ ] Add `.tram` support to solbuild
+ - [ ] Make sure builder script uploads `.tram` file last if it exists
+ - [ ] Set up ferryd on the Solus package server
+ - [ ] Import existing repos "as is" but without any old delta packages
+ - [ ] Set up new ring0 cname to point to the new ferryd instance
+ - [ ] Ensure deltas work
+ - [ ] Ensure simple pull operation works as expected
+ - [ ] Test indexes in cli + SC to verify languages show as expected
+ - [ ] Build ISOs from the repos to ensure they're identical (all deps accounted for)
+
 Usage (basic)
 -------------
 
