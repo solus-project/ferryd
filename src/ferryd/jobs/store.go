@@ -202,7 +202,7 @@ func (s *JobStore) markCompletion(j *JobEntry) error {
 	// We'll need to figure out how to truncate our buckets..
 	return s.db.Update(func(db libdb.Database) error {
 		bucket := db.Bucket(bucketID)
-		nextID := db.NextSequence()
+		nextID := bucket.NextSequence()
 
 		storeJob := libferry.Job{
 			Timing:      j.Timing,

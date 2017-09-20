@@ -35,12 +35,11 @@ func init() {
 	RootCmd.AddCommand(statusCmd)
 }
 
-func printJobs(js []*libferry.Job, description string) {
+func printActiveJobs(js []*libferry.Job) {
 	header := []string{
 		"Status",
 		"Queued",
-		"Completed",
-		"Duration",
+		"Waited",
 		"Description",
 	}
 	table := tablewriter.NewWriter(os.Stdout)
@@ -48,26 +47,62 @@ func printJobs(js []*libferry.Job, description string) {
 	table.SetBorder(false)
 
 	for _, j := range js {
-		timeStart := j.QueuedSince().String()
+		table.Append([]string{
+			"queued",
+			j.Timing.Queued.Format("2006-01-02 15:04:05"),
+			j.QueuedSince().String(),
+			j.Description,
+		})
+	}
+	table.Render()
+}
 
-		// Is it actually complete ?
-		if j.Timing.End.IsZero() {
-			table.Append([]string{
-				"queued",
-				timeStart,
-				"-",
-				"-",
-				j.Description,
-			})
-		} else {
-			table.Append([]string{
-				description,
-				timeStart,
-				j.Executed().String(),
-				j.ExecutionTime().String(),
-				j.Description,
-			})
-		}
+// Print out all the failed jobs
+func printFailedJobs(js []*libferry.Job) {
+	header := []string{
+		"Status",
+		"Completed",
+		"Duration",
+		"Description",
+		"Error",
+	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.SetBorder(false)
+
+	for _, j := range js {
+		table.Append([]string{
+			"failed",
+			j.Timing.End.Format("2006-01-02 15:04:05"),
+			j.ExecutionTime().String(),
+			j.Description,
+			j.Error,
+		})
+	}
+	table.Render()
+}
+
+// Print all successfully completed jobs
+func printCompletedJobs(js []*libferry.Job) {
+	header := []string{
+		"Status",
+		"Completed",
+		"Duration",
+		"Execution time",
+		"Description",
+	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.SetBorder(false)
+
+	for _, j := range js {
+		table.Append([]string{
+			"success",
+			j.Timing.End.Format("2006-01-02 15:04:05"),
+			j.TotalTime().String(),
+			j.ExecutionTime().String(),
+			j.Description,
+		})
 	}
 	table.Render()
 }
@@ -94,12 +129,17 @@ func getStatus(cmd *cobra.Command, args []string) {
 	// Show failing
 	if len(status.FailedJobs) > 0 {
 		fmt.Printf("Failed jobs: \n\n")
-		printJobs(status.FailedJobs, "failed")
+		printFailedJobs(status.FailedJobs)
 	}
 
 	// Show current
 	if len(status.CurrentJobs) > 0 {
 		fmt.Printf("Current jobs: \n\n")
-		printJobs(status.CurrentJobs, "active")
+		printActiveJobs(status.CurrentJobs)
+	}
+
+	if len(status.CompletedJobs) > 0 {
+		fmt.Printf("Completed jobs:\n\n")
+		printCompletedJobs(status.CompletedJobs)
 	}
 }
