@@ -48,7 +48,7 @@ TODO
  - [x] Add `pull` operation to pull from one repo into another (missing and mismatched)
  - [x] Add delete operation to remove repo (unref cycle)
  - [x] Have `clone` and `pull` operations sync `*.xml` asset files
- - [ ] Ensure job claim status is cleared on startup.
+ - [x] Ensure job claim status is cleared on startup.
  - [ ] Add `trim` commands
  - [ ] Maybe add `trim` subcommand to nuke obsoletes ?
  - [ ] Clean up copy/paste issues, ensure Ctrl+C, polish, etc.
