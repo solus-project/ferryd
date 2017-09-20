@@ -36,30 +36,39 @@ func init() {
 }
 
 func removeSource(cmd *cobra.Command, args []string) {
-	// TODO: Support -1 implicitly to remove *all* by source ID
-	if len(args) != 3 {
-		fmt.Fprintf(os.Stderr, "remove source takes exactly 3 arguments\n")
-		return
-	}
+	var (
+		repoID        string
+		sourceID      string
+		sourceRelease int
+	)
 
-	release, err := strconv.ParseInt(args[2], 10, 32)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid integer: %v\n", err)
-		return
-	}
-
-	if release < 1 {
-		fmt.Fprintf(os.Stderr, "Release should be higher than 1\n")
+	switch len(args) {
+	case 2:
+		repoID = args[0]
+		sourceID = args[1]
+		sourceRelease = -1
+	case 3:
+		repoID = args[0]
+		sourceID = args[1]
+		release, err := strconv.ParseInt(args[2], 10, 32)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid integer: %v\n", err)
+			return
+		}
+		if release < 1 {
+			fmt.Fprintf(os.Stderr, "Release should be higher than 1\n")
+			return
+		}
+		sourceRelease = int(release)
+	default:
+		fmt.Fprintf(os.Stderr, "usage: [repoName] [sourceID] [release]\n")
 		return
 	}
 
 	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 
-	repoID := args[0]
-	sourceID := args[1]
-
-	if err := client.RemoveSource(repoID, sourceID, int(release)); err != nil {
+	if err := client.RemoveSource(repoID, sourceID, sourceRelease); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}

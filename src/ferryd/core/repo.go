@@ -978,7 +978,8 @@ func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string
 				continue
 			}
 
-			if poolEntry.Meta.GetRelease() != release {
+			// if release is -1 we remove all matching source
+			if release > 0 && poolEntry.Meta.GetRelease() != release {
 				continue
 			}
 
@@ -1029,7 +1030,8 @@ func (r *Repository) CopySourceFrom(db libdb.Database, pool *Pool, sourceRepo *R
 				continue
 			}
 
-			if poolEntry.Meta.GetRelease() != release {
+			// if release is -1 we copy all matching source
+			if release > 0 && poolEntry.Meta.GetRelease() != release {
 				continue
 			}
 

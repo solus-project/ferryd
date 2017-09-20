@@ -36,31 +36,43 @@ func init() {
 }
 
 func copySource(cmd *cobra.Command, args []string) {
-	// TODO: Support -1 implicitly to copy *all* by source ID
-	if len(args) != 4 {
-		fmt.Fprintf(os.Stderr, "copy source takes exactly 4 arguments\n")
-		return
-	}
+	var (
+		repoID        string
+		targetID      string
+		sourceID      string
+		sourceRelease int
+	)
 
-	release, err := strconv.ParseInt(args[3], 10, 32)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid integer: %v\n", err)
-		return
-	}
+	switch len(args) {
+	case 3:
+		repoID = args[0]
+		targetID = args[1]
+		sourceID = args[2]
+		sourceRelease = -1
+	case 4:
+		repoID = args[0]
+		targetID = args[1]
+		sourceID = args[2]
 
-	if release < 1 {
-		fmt.Fprintf(os.Stderr, "Release should be higher than 1\n")
+		release, err := strconv.ParseInt(args[3], 10, 32)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid integer: %v\n", err)
+			return
+		}
+		if release < 1 {
+			fmt.Fprintf(os.Stderr, "Release should be higher than 1\n")
+			return
+		}
+		sourceRelease = int(release)
+	default:
+		fmt.Fprintf(os.Stderr, "usage: [sourceRepo] [targetRepo] [sourceID] [release]\n")
 		return
 	}
 
 	client := libferry.NewClient("./ferryd.sock")
 	defer client.Close()
 
-	repoID := args[0]
-	targetID := args[1]
-	sourceID := args[2]
-
-	if err := client.CopySource(repoID, targetID, sourceID, int(release)); err != nil {
+	if err := client.CopySource(repoID, targetID, sourceID, sourceRelease); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return
 	}
