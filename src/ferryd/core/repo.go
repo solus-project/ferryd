@@ -774,6 +774,34 @@ func (r *Repository) HasDelta(db libdb.Database, pkgName, deltaPath string) (boo
 	return false, nil
 }
 
+// pullAssets will pull the various asset files in prior to indexing
+func (r *Repository) pullAssets(sourceRepo *Repository) error {
+	copyPaths := []string{
+		filepath.Join(sourceRepo.assetPath, "distribution.xml"),
+		filepath.Join(sourceRepo.assetPath, "components.xml"),
+		filepath.Join(sourceRepo.assetPath, "groups.xml"),
+	}
+
+	// In case anyone is being cranky ..
+	if !PathExists(r.assetPath) {
+		if err := os.MkdirAll(r.assetPath, 00755); err != nil {
+			return err
+		}
+	}
+
+	for _, p := range copyPaths {
+		if !PathExists(p) {
+			continue
+		}
+		dstPath := filepath.Join(r.assetPath, filepath.Base(p))
+		if err := CopyFile(p, dstPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CloneFrom will attempt to clone everything from the target repository into
 // ourselves
 func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Repository, fullClone bool) error {
@@ -785,6 +813,11 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 	var deltaIDs []string
 
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Before doing anything, sync the assets
+	if err := r.pullAssets(sourceRepo); err != nil {
+		return err
+	}
 
 	// Grab every package
 	err := rootBucket.ForEach(func(k, v []byte) error {
@@ -856,6 +889,11 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 	var copyIDs []string
 
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Before doing anything, sync the assets
+	if err := r.pullAssets(sourceRepo); err != nil {
+		return err
+	}
 
 	// Grab every package
 	err := rootBucket.ForEach(func(k, v []byte) error {
