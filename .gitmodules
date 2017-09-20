@@ -25,3 +25,6 @@
 [submodule "src/vendor/github.com/golang/snappy"]
 	path = src/vendor/github.com/golang/snappy
 	url = https://github.com/golang/snappy.git
+[submodule "src/vendor/github.com/olekukonko/tablewriter"]
+	path = src/vendor/github.com/olekukonko/tablewriter
+	url = https://github.com/olekukonko/tablewriter.git
