@@ -1004,6 +1004,55 @@ func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string
 	return nil
 }
 
+// CopySourceFrom will find all records within sourceRepo that have both the
+// specified sourceID and release number.
+func (r *Repository) CopySourceFrom(db libdb.Database, pool *Pool, sourceRepo *Repository, sourceID string, release int) error {
+	var copyIDs []string
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		// Now we must grab every "available" package for this bucket entry
+		for _, id := range entry.Available {
+			poolEntry, err := pool.GetEntry(db, id)
+			if err != nil {
+				return err
+			}
+
+			if poolEntry.Meta.Source.Name != sourceID {
+				continue
+			}
+
+			if poolEntry.Meta.GetRelease() != release {
+				continue
+			}
+
+			// We've got a match.
+			copyIDs = append(copyIDs, id)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now to insert all of those IDs
+	for _, id := range copyIDs {
+		if err = r.RefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // TrimObsolete isn't very straight forward as it has to account for some
 // janky behaviour in eopkg.
 //
