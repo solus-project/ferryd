@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"libferry"
 	"os"
@@ -34,21 +35,38 @@ func init() {
 	RootCmd.AddCommand(statusCmd)
 }
 
-func printHeader() {
-	fmt.Println("Queued\tCompleted\tDuration\tDescription")
-}
-
-// printJob pretty prints the job to the CLI
-func printJob(j *libferry.Job) {
-	// How long ago it was queued
-	timeStart := j.QueuedSince()
-
-	// Is it actually complete?
-	if j.Timing.End.IsZero() {
-		fmt.Printf("%v\t-\t-\t%v\n", timeStart, j.Description)
-	} else {
-		fmt.Printf("%v\t%v\t%v\t%v\n", timeStart, j.Executed(), j.ExecutionTime(), j.Description)
+func printJobs(js []*libferry.Job) {
+	header := []string{
+		"Queued",
+		"Completed",
+		"Duration",
+		"Description",
 	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.SetBorder(false)
+
+	for _, j := range js {
+		timeStart := j.QueuedSince().String()
+
+		// Is it actually complete ?
+		if j.Timing.End.IsZero() {
+			table.Append([]string{
+				timeStart,
+				"-",
+				"-",
+				j.Description,
+			})
+		} else {
+			table.Append([]string{
+				timeStart,
+				j.Executed().String(),
+				j.ExecutionTime().String(),
+				j.Description,
+			})
+		}
+	}
+	table.Render()
 }
 
 func getStatus(cmd *cobra.Command, args []string) {
@@ -73,18 +91,12 @@ func getStatus(cmd *cobra.Command, args []string) {
 	// Show failing
 	if len(status.FailedJobs) > 0 {
 		fmt.Printf("Failed jobs: \n\n")
-		printHeader()
-		for i := range status.FailedJobs {
-			printJob(status.FailedJobs[i])
-		}
+		printJobs(status.FailedJobs)
 	}
 
 	// Show current
 	if len(status.CurrentJobs) > 0 {
 		fmt.Printf("Current jobs: \n\n")
-		printHeader()
-		for i := range status.CurrentJobs {
-			printJob(status.CurrentJobs[i])
-		}
+		printJobs(status.CurrentJobs)
 	}
 }
