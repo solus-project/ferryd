@@ -73,9 +73,49 @@ func (s *JobStore) Close() {
 	}
 }
 
-// Setup may be used at a later stage to purge old jobs on startup
+// setup is called during our early start to perform any relevant cleanup
+// and repairs from previous runs.
 func (s *JobStore) setup() error {
-	return nil
+	if err := s.UnclaimSequential(); err != nil {
+		return err
+	}
+	return s.UnclaimAsync()
+}
+
+// unclaimJobs will mark any previously claimed jobs as unclaimed again.
+// This is only used during the initial start up ferryd as part of a
+// recovery option
+func (s *JobStore) unclaimJobs(bucketID []byte) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
+	return s.db.Update(func(db libdb.Database) error {
+		bucket := db.Bucket(bucketID)
+
+		// Loop all claimed jobs, unclaim them
+		return bucket.ForEach(func(id, value []byte) error {
+			j := &JobEntry{}
+			if err := bucket.Decode(value, j); err != nil {
+				return err
+			}
+			if !j.Claimed {
+				return nil
+			}
+			j.Claimed = false
+
+			return bucket.PutObject(id, j)
+		})
+	})
+}
+
+// UnclaimSequential will find all claimed sequential jobs and unclaim them again
+func (s *JobStore) UnclaimSequential() error {
+	return s.unclaimJobs([]byte(BucketSequentialJobs))
+}
+
+// UnclaimAsync will find all claimed async jobs and unclaim them again
+func (s *JobStore) UnclaimAsync() error {
+	return s.unclaimJobs([]byte(BucketAsyncJobs))
 }
 
 // claimJobInternal handles the similarity of the async/sync operations, grabbing
