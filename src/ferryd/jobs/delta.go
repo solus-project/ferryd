@@ -25,21 +25,6 @@ import (
 	"sort"
 )
 
-// PackageSet provides sorting capabilities for a slice of packages
-type PackageSet []*libeopkg.MetaPackage
-
-func (p PackageSet) Len() int {
-	return len(p)
-}
-
-func (p PackageSet) Less(a, b int) bool {
-	return p[a].GetRelease() < p[b].GetRelease()
-}
-
-func (p PackageSet) Swap(a, b int) {
-	p[a], p[b] = p[b], p[a]
-}
-
 // DeltaJobHandler is responsible for indexing repositories and should only
 // ever be used in async queues. Deltas may take some time to produce and
 // shouldn't be allowed to block the sequential processing queue.
@@ -99,7 +84,7 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 		return nil
 	}
 
-	sort.Sort(PackageSet(pkgs))
+	sort.Sort(libeopkg.PackageSet(pkgs))
 	tip := pkgs[len(pkgs)-1]
 
 	// TODO: Invalidate old deltas

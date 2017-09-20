@@ -1075,3 +1075,63 @@ func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
 
 	return nil
 }
+
+// TrimPackages will trim back the packages in each package entry to a maximum
+// amount of packages, which helps to combat the issue of rapidly inserting
+// many builds into a repo, i.e. removing old backversions
+func (r *Repository) TrimPackages(db libdb.Database, pool *Pool, maxKeep int) error {
+	// All the guys who we're sending to the big bitsink in the sky
+	var removalIDs []string
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		// micro optimisation ..
+		if len(entry.Available) < maxKeep {
+			return nil
+		}
+
+		var candidates []*libeopkg.MetaPackage
+
+		for _, id := range entry.Available {
+			poolEntry, err := pool.GetEntry(db, id)
+			if err != nil {
+				return err
+			}
+			candidates = append(candidates, poolEntry.Meta)
+		}
+
+		sort.Sort(sort.Reverse(libeopkg.PackageSet(candidates)))
+
+		for i := maxKeep; i < len(candidates); i++ {
+			id := candidates[i].GetID()
+			// Technically impossible but best to be safe.
+			if id == entry.Published {
+				continue
+			}
+			removalIDs = append(removalIDs, candidates[i].GetID())
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now attempt to unref every one of the packages marked as obsolete
+	for _, id := range removalIDs {
+		fmt.Fprintf(os.Stderr, "Trimming old package: %v\n", id)
+		if err := r.UnrefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

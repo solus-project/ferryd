@@ -55,3 +55,18 @@ func FixMissingLocalLanguage(fields *[]LocalisedField) {
 		field.Lang = "en"
 	}
 }
+
+// PackageSet provides sorting capabilities for a slice of packages
+type PackageSet []*MetaPackage
+
+func (p PackageSet) Len() int {
+	return len(p)
+}
+
+func (p PackageSet) Less(a, b int) bool {
+	return p[a].GetRelease() < p[b].GetRelease()
+}
+
+func (p PackageSet) Swap(a, b int) {
+	p[a], p[b] = p[b], p[a]
+}

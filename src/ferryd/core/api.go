@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"libeopkg"
 	"path/filepath"
 )
@@ -116,7 +115,16 @@ func (m *Manager) TrimObsolete(repoID string) error {
 
 // TrimPackages will ask the repo to remove excessive packages
 func (m *Manager) TrimPackages(repoID string, maxKeep int) error {
-	return errors.New("not yet implemented")
+	repo, err := m.repo.GetRepo(m.db, repoID)
+	if err != nil {
+		return err
+	}
+
+	if err = repo.TrimPackages(m.db, m.pool, maxKeep); err != nil {
+		return err
+	}
+
+	return m.Index(repoID)
 }
 
 // GetRepos will return all known repositories
