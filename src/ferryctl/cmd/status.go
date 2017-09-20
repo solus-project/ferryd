@@ -54,7 +54,8 @@ func getStatus(cmd *cobra.Command, args []string) {
 	}
 
 	// Show uptime
-	fmt.Printf("Daemon uptime: %v\n", status.Uptime())
+	fmt.Printf(" - Daemon uptime: %v\n", status.Uptime())
+	fmt.Printf(" - Daemon version: %v\n", status.Version)
 
 	// Show failing
 	if len(status.FailedJobs) > 0 {

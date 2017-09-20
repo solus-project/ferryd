@@ -78,6 +78,7 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter
 func (s *Server) GetStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ret := libferry.StatusRequest{
 		TimeStarted: s.timeStarted,
+		Version:     libferry.Version,
 	}
 
 	// TODO: Insert jobs from the job store
