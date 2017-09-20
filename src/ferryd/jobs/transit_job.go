@@ -49,7 +49,7 @@ func NewTransitJobHandler(j *JobEntry) (*TransitJobHandler, error) {
 	}, nil
 }
 
-// Execute will index the given repository if possible
+// Execute will process incoming .tram files for potential repo inclusion
 func (j *TransitJobHandler) Execute(jproc *Processor, manager *core.Manager) error {
 	tram, err := core.NewTransitManifest(j.path)
 	if err != nil {

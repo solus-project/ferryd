@@ -49,7 +49,7 @@ func NewBulkAddJobHandler(j *JobEntry) (*BulkAddJobHandler, error) {
 	}, nil
 }
 
-// Execute will index the given repository if possible
+// Execute will attempt the mass-import of packages passed to the job
 func (j *BulkAddJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	if err := manager.AddPackages(j.repoID, j.packagePaths); err != nil {
 		return err

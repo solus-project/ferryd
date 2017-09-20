@@ -47,7 +47,7 @@ func NewDeleteRepoJobHandler(j *JobEntry) (*DeleteRepoJobHandler, error) {
 	}, nil
 }
 
-// Execute will construct a new repository if possible
+// Execute will delete an existing repository
 func (j *DeleteRepoJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	if err := manager.DeleteRepo(j.repoID); err != nil {
 		return err

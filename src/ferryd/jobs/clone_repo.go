@@ -54,7 +54,7 @@ func NewCloneRepoJobHandler(j *JobEntry) (*CloneRepoJobHandler, error) {
 	}, nil
 }
 
-// Execute will construct a new repository if possible
+// Execute attempt to clone the repoID to newClone, optionally at full depth
 func (j *CloneRepoJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	fullClone := false
 	if j.cloneMode == "full" {
