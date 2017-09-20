@@ -125,6 +125,22 @@ func (j *Job) TotalTime() time.Duration {
 	return j.QueuedTime() + (j.ExecutionTime())
 }
 
+// JobSet provides sorting capabilities for a slice of jobs
+type JobSet []*Job
+
+func (j JobSet) Len() int {
+	return len(j)
+}
+
+// We sort based on the time the job was originally queued
+func (j JobSet) Less(a, b int) bool {
+	return j[a].Timing.Queued.Before(j[b].Timing.Queued)
+}
+
+func (j JobSet) Swap(a, b int) {
+	j[a], j[b] = j[b], j[a]
+}
+
 // Job is used to represent status items in the backend
 type Job struct {
 	Description string            `json:"description"`
@@ -142,9 +158,9 @@ type StatusRequest struct {
 	TimeStarted time.Time `json:"timeStarted"`
 	Version     string    `json:"version"`
 
-	FailedJobs    []*Job `json:"failedJobs"`    // Known failed jobs
-	CurrentJobs   []*Job `json:"currentJobs"`   // Currently registered jobs
-	CompletedJobs []*Job `json:"completedJobs"` // Successfully completed jobs
+	FailedJobs    JobSet `json:"failedJobs"`    // Known failed jobs
+	CurrentJobs   JobSet `json:"currentJobs"`   // Currently registered jobs
+	CompletedJobs JobSet `json:"completedJobs"` // Successfully completed jobs
 }
 
 // Uptime will determine the uptime of the daemon

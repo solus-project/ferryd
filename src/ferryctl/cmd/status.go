@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"libferry"
 	"os"
+	"sort"
 )
 
 var statusCmd = &cobra.Command{
@@ -134,17 +135,20 @@ func getStatus(cmd *cobra.Command, args []string) {
 
 	// Show failing
 	if len(status.FailedJobs) > 0 {
+		sort.Sort(status.FailedJobs)
 		fmt.Printf("Failed jobs: \n\n")
 		printFailedJobs(status.FailedJobs)
 	}
 
 	// Show current
 	if len(status.CurrentJobs) > 0 {
+		sort.Sort(status.CurrentJobs)
 		fmt.Printf("Current jobs: \n\n")
 		printActiveJobs(status.CurrentJobs)
 	}
 
 	if len(status.CompletedJobs) > 0 {
+		sort.Sort(status.CompletedJobs)
 		fmt.Printf("Completed jobs:\n\n")
 		printCompletedJobs(status.CompletedJobs)
 	}
