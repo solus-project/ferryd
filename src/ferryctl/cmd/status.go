@@ -161,20 +161,20 @@ func getStatus(cmd *cobra.Command, args []string) {
 	// Show failing
 	if len(status.FailedJobs) > 0 {
 		sort.Sort(sort.Reverse(status.FailedJobs))
-		fmt.Printf("Failed jobs: \n\n")
+		fmt.Printf("Failed jobs: (%d tracked)\n\n", len(status.FailedJobs))
 		printFailedJobs(status.FailedJobs)
 	}
 
 	// Show current
 	if len(status.CurrentJobs) > 0 {
 		sort.Sort(status.CurrentJobs)
-		fmt.Printf("Current jobs: \n\n")
+		fmt.Printf("Current/Active jobs: (%d tracked)\n\n", len(status.CurrentJobs))
 		printActiveJobs(status.CurrentJobs)
 	}
 
 	if len(status.CompletedJobs) > 0 {
 		sort.Sort(sort.Reverse(status.CompletedJobs))
-		fmt.Printf("Completed jobs:\n\n")
+		fmt.Printf("Completed jobs: (%d tracked)\n\n", len(status.CompletedJobs))
 		printCompletedJobs(status.CompletedJobs)
 	}
 }
