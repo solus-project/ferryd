@@ -97,6 +97,12 @@ type JobEntry struct {
 	Claimed    bool
 	Params     []string
 	Timing     libferry.TimingInformation // Store all timing information
+
+	// Not serialised, set by the worker on claim
+	description string
+
+	// Not serialised, stored by the worker if the job fails
+	failure error
 }
 
 // Serialize uses Gob encoding to convert a JobEntry to a byte slice

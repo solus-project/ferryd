@@ -209,16 +209,19 @@ func (w *Worker) processJob(job *JobEntry) {
 
 	if err != nil {
 		fields["error"] = err
+		job.failure = err
 		log.WithFields(fields).Error("No known job handler, cannot continue with job")
 		return
 	}
 
 	// Safely have a handler now
-	fields["description"] = handler.Describe()
+	job.description = handler.Describe()
+	fields["description"] = job.description
 
 	// Try to execute it, report the error
 	if err := handler.Execute(w.processor, w.manager); err != nil {
 		fields["error"] = err
+		job.failure = err
 		log.WithFields(fields).Error("Job failed with error")
 		return
 	}

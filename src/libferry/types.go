@@ -129,6 +129,8 @@ func (j *Job) TotalTime() time.Duration {
 type Job struct {
 	Description string            `json:"description"`
 	Timing      TimingInformation `json:"timing"`
+	Failed      bool              `json:"failed"` // Whether it failed or not
+	Error       string            `json:"error"`  // Only set if we have Failed == true
 }
 
 // StatusRequest is used to grab information from the daemon, including its

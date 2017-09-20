@@ -32,6 +32,12 @@ var (
 	// BucketSequentialJobs holds all sequential jobs
 	BucketSequentialJobs = []byte("Sync")
 
+	// BucketSuccessJobs contains jobs that have completed successfully
+	BucketSuccessJobs = []byte("CompletedSuccess")
+
+	// BucketFailJobs contains jobs that completed with failure
+	BucketFailJobs = []byte("CompletedFailure")
+
 	// ErrEmptyQueue is returned to indicate a job is not available yet
 	ErrEmptyQueue = errors.New("Queue is empty")
 
@@ -184,14 +190,48 @@ func (s *JobStore) ClaimSequentialJob() (*JobEntry, error) {
 	return s.claimJobInternal([]byte(BucketSequentialJobs))
 }
 
+// Used to mark the completion of a job and store in the appropriate bucket
+func (s *JobStore) markCompletion(j *JobEntry) error {
+	var bucketID []byte
+	if j.failure != nil {
+		bucketID = BucketFailJobs
+	} else {
+		bucketID = BucketSuccessJobs
+	}
+
+	// We'll need to figure out how to truncate our buckets..
+	return s.db.Update(func(db libdb.Database) error {
+		bucket := db.Bucket(bucketID)
+		nextID := db.NextSequence()
+
+		storeJob := libferry.Job{
+			Timing:      j.Timing,
+			Description: j.description,
+		}
+
+		// Mark relevant failure fields
+		if j.failure != nil {
+			storeJob.Error = j.failure.Error()
+			storeJob.Failed = true
+		}
+
+		return bucket.PutObject(nextID, &storeJob)
+	})
+}
+
 // RetireAsyncJob removes a completed asynchronous job
 func (s *JobStore) RetireAsyncJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return s.db.Update(func(db libdb.Database) error {
+	err := s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketAsyncJobs).DeleteObject(j.id)
 	})
+
+	if err != nil {
+		return err
+	}
+	return s.markCompletion(j)
 }
 
 // RetireSequentialJob removes a completed synchronous job
@@ -199,9 +239,14 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 	s.modMut.Lock()
 	defer s.modMut.Unlock()
 
-	return s.db.Update(func(db libdb.Database) error {
+	err := s.db.Update(func(db libdb.Database) error {
 		return db.Bucket(BucketSequentialJobs).DeleteObject(j.id)
 	})
+
+	if err != nil {
+		return err
+	}
+	return s.markCompletion(j)
 }
 
 // pushJobInternal is identical between sync and async jobs, it
@@ -274,6 +319,43 @@ func (s *JobStore) cloneCurrentJobs(ret *[]*libferry.Job, bucketID []byte) error
 				Timing:      j.Timing,
 			}
 			*ret = append(*ret, r)
+
+			return nil
+		})
+	})
+}
+
+// CompletedJobs will return all successfully completed jobs still stored
+func (s *JobStore) CompletedJobs() ([]*libferry.Job, error) {
+	var ret []*libferry.Job
+	if err := s.clonePastJobs(&ret, BucketSuccessJobs); err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+// FailedJobs will return all failed jobs that are still stored
+func (s *JobStore) FailedJobs() ([]*libferry.Job, error) {
+	var ret []*libferry.Job
+	if err := s.clonePastJobs(&ret, BucketFailJobs); err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+// clonePastJobs will pull the libferry.Job references from the DB and return
+// clones
+func (s *JobStore) clonePastJobs(ret *[]*libferry.Job, bucketID []byte) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
+	return s.db.Bucket(bucketID).View(func(db libdb.ReadOnlyView) error {
+		return db.ForEach(func(k, v []byte) error {
+			j := &libferry.Job{}
+			if err := db.Decode(v, j); err != nil {
+				return err
+			}
+			*ret = append(*ret, j)
 
 			return nil
 		})
