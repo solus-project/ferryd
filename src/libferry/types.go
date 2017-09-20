@@ -95,15 +95,15 @@ type TrimPackagesRequest struct {
 //
 // All times must be recorded in UTC!
 type TimingInformation struct {
-	Queued time.Time // Job initially scheduled
-	Begin  time.Time // Job execution began
-	End    time.Time // Job execution ended
+	Queued time.Time `json:"queued"` // Job initially scheduled
+	Begin  time.Time `json:"begin"`  // Job execution began
+	End    time.Time `json:"end"`    // Job execution ended
 }
 
 // Job is used to represent status items in the backend
 type Job struct {
-	Description string
-	Timing      TimingInformation
+	Description string            `json:"description"`
+	Timing      TimingInformation `json:"timing"`
 }
 
 // StatusRequest is used to grab information from the daemon, including its
