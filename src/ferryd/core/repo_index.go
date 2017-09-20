@@ -225,7 +225,7 @@ func (r *Repository) emitIndex(db libdb.Database, pool *Pool, file *os.File) err
 	sort.Strings(pkgIds)
 
 	encoder := xml.NewEncoder(file)
-	encoder.Indent("    ", "    ")
+	// encoder.Indent("    ", "    ")
 
 	// Ensure we have the start element
 	if err := encoder.EncodeToken(xml.StartElement{Name: xml.Name{Local: "PISI"}}); err != nil {
