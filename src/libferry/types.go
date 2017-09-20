@@ -100,6 +100,21 @@ type TimingInformation struct {
 	End    time.Time `json:"end"`    // Job execution ended
 }
 
+// ExecutionTime will return the time it took to execute a job
+func (j *Job) ExecutionTime() time.Duration {
+	return j.Timing.End.Sub(j.Timing.Begin)
+}
+
+// QueuedTime will return the total time that the job was queued for
+func (j *Job) QueuedTime() time.Duration {
+	return j.Timing.Begin.Sub(j.Timing.Queued)
+}
+
+// TotalTime will return the total time a job took to complete from queuing
+func (j *Job) TotalTime() time.Duration {
+	return j.QueuedTime() + (j.ExecutionTime())
+}
+
 // Job is used to represent status items in the backend
 type Job struct {
 	Description string            `json:"description"`
