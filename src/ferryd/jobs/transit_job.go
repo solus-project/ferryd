@@ -70,7 +70,7 @@ func (j *TransitJobHandler) Execute(jproc *Processor, manager *core.Manager) err
 
 	// Now try to merge into the repo
 	pkgs := tram.GetPaths()
-	if err = manager.AddPackages(repo, pkgs); err != nil {
+	if err = manager.AddPackages(repo, pkgs, true); err != nil {
 		return err
 	}
 

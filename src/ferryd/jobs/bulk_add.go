@@ -51,7 +51,7 @@ func NewBulkAddJobHandler(j *JobEntry) (*BulkAddJobHandler, error) {
 
 // Execute will attempt the mass-import of packages passed to the job
 func (j *BulkAddJobHandler) Execute(_ *Processor, manager *core.Manager) error {
-	if err := manager.AddPackages(j.repoID, j.packagePaths); err != nil {
+	if err := manager.AddPackages(j.repoID, j.packagePaths, false); err != nil {
 		return err
 	}
 	log.WithFields(log.Fields{"repo": j.repoID}).Info("Added packages to repository")

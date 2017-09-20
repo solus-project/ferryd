@@ -168,14 +168,14 @@ func (m *Manager) GetPoolItems() ([]*PoolEntry, error) {
 }
 
 // AddPackages will attempt to add the named packages to the repository
-func (m *Manager) AddPackages(repoID string, packages []string) error {
+func (m *Manager) AddPackages(repoID string, packages []string, anal bool) error {
 	repo, err := m.GetRepo(repoID)
 	if err != nil {
 		return err
 	}
 
 	for _, pkg := range packages {
-		if err := repo.AddPackage(m.db, m.pool, pkg); err != nil {
+		if err := repo.AddPackage(m.db, m.pool, pkg, anal); err != nil {
 			return err
 		}
 	}

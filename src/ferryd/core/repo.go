@@ -672,7 +672,7 @@ func (r *Repository) AddLocalPackage(db libdb.Database, pool *Pool, pkg *libeopk
 
 // AddPackage will attempt to load the local package and then add it to the
 // repository via AddLocalPackage
-func (r *Repository) AddPackage(db libdb.Database, pool *Pool, filename string) error {
+func (r *Repository) AddPackage(db libdb.Database, pool *Pool, filename string, anal bool) error {
 	pkg, err := libeopkg.Open(filename)
 	if err != nil {
 		return err
@@ -683,6 +683,37 @@ func (r *Repository) AddPackage(db libdb.Database, pool *Pool, filename string) 
 		return err
 	}
 
+	// Not being strict, just let it in
+	if !anal {
+		return r.AddLocalPackage(db, pool, pkg)
+	}
+
+	// Do we have this?
+	localPkg, err := r.GetEntry(db, pkg.Meta.Package.Name)
+	if err != nil {
+		return r.AddLocalPackage(db, pool, pkg)
+	}
+
+	// We have this package, so Published link must work
+	published, err := pool.GetEntry(db, localPkg.Published)
+	if err != nil {
+		return err
+	}
+
+	// We must have an older release, don't build the same thing again
+	if published.Meta.GetRelease() > pkg.Meta.Package.GetRelease() {
+		return fmt.Errorf("local package has higher release: %v %v", localPkg.Published, pkg.ID)
+	}
+
+	// Check for the same release, either way its wrong, but report it specifically
+	if published.Meta.GetRelease() == pkg.Meta.Package.GetRelease() {
+		if published.Meta.GetVersion() != pkg.Meta.Package.GetVersion() {
+			return fmt.Errorf("new package has different version but same release: %v %v", localPkg.Published, pkg.ID)
+		}
+		return fmt.Errorf("attempted to re-include an existing package through upload: %v", pkg.ID)
+	}
+
+	// Hey look buddy, you made it.
 	return r.AddLocalPackage(db, pool, pkg)
 }
 
