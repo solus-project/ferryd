@@ -91,7 +91,12 @@ func (m *Manager) RemoveSource(repoID, sourceID string, release int) error {
 	if err != nil {
 		return err
 	}
-	return repo.RemoveSource(m.db, m.pool, sourceID, release)
+
+	if err = repo.RemoveSource(m.db, m.pool, sourceID, release); err != nil {
+		return err
+	}
+
+	return m.Index(repoID)
 }
 
 // GetRepos will return all known repositories
