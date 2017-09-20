@@ -71,8 +71,23 @@ func (s *Server) GetStatus(w http.ResponseWriter, r *http.Request, _ httprouter.
 	jo, err := s.store.ActiveJobs()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	ret.CurrentJobs = jo
+
+	fj, err := s.store.FailedJobs()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	ret.FailedJobs = fj
+
+	cj, err := s.store.CompletedJobs()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	ret.CompletedJobs = cj
 
 	// TODO: Insert failed jobs from the job store
 	buf := bytes.Buffer{}

@@ -142,8 +142,9 @@ type StatusRequest struct {
 	TimeStarted time.Time `json:"timeStarted"`
 	Version     string    `json:"version"`
 
-	FailedJobs  []*Job `json:"failedJobs"`  // Known failed jobs
-	CurrentJobs []*Job `json:"currentJobs"` // Currently registered jobs
+	FailedJobs    []*Job `json:"failedJobs"`    // Known failed jobs
+	CurrentJobs   []*Job `json:"currentJobs"`   // Currently registered jobs
+	CompletedJobs []*Job `json:"completedJobs"` // Successfully completed jobs
 }
 
 // Uptime will determine the uptime of the daemon
