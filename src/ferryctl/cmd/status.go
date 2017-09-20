@@ -35,8 +35,9 @@ func init() {
 	RootCmd.AddCommand(statusCmd)
 }
 
-func printJobs(js []*libferry.Job) {
+func printJobs(js []*libferry.Job, description string) {
 	header := []string{
+		"Status",
 		"Queued",
 		"Completed",
 		"Duration",
@@ -52,6 +53,7 @@ func printJobs(js []*libferry.Job) {
 		// Is it actually complete ?
 		if j.Timing.End.IsZero() {
 			table.Append([]string{
+				"queued",
 				timeStart,
 				"-",
 				"-",
@@ -59,6 +61,7 @@ func printJobs(js []*libferry.Job) {
 			})
 		} else {
 			table.Append([]string{
+				description,
 				timeStart,
 				j.Executed().String(),
 				j.ExecutionTime().String(),
@@ -91,12 +94,12 @@ func getStatus(cmd *cobra.Command, args []string) {
 	// Show failing
 	if len(status.FailedJobs) > 0 {
 		fmt.Printf("Failed jobs: \n\n")
-		printJobs(status.FailedJobs)
+		printJobs(status.FailedJobs, "failed")
 	}
 
 	// Show current
 	if len(status.CurrentJobs) > 0 {
 		fmt.Printf("Current jobs: \n\n")
-		printJobs(status.CurrentJobs)
+		printJobs(status.CurrentJobs, "active")
 	}
 }
