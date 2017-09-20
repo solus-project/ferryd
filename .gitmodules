@@ -31,3 +31,6 @@
 [submodule "src/vendor/github.com/mattn/go-runewidth"]
 	path = src/vendor/github.com/mattn/go-runewidth
 	url = https://github.com/mattn/go-runewidth.git
+[submodule "src/vendor/github.com/coreos/go-systemd"]
+	path = src/vendor/github.com/coreos/go-systemd
+	url = https://github.com/coreos/go-systemd.git
