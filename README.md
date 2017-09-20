@@ -54,7 +54,7 @@ TODO
  - [ ] Clean up copy/paste issues, ensure Ctrl+C, polish, etc.
  - [ ] Throw another shedload of data and test upload cycle/bump upload/delta/index
  - [ ] Stats UI? i.e. ongoing jobs, recently completed, etc.
- - [ ] Restore binman parity, allow removing package (by release number), copying a single package, group of packages, etc.
+ - [x] Restore binman parity, allow removing package (by release number), copying a single package, group of packages, etc.
  - [ ] Ensure any operation resulting in adding new packages first checks entries don't exist in the pool. We will NOT allow importing a broken package set.
 
 
