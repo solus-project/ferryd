@@ -135,7 +135,7 @@ func getStatus(cmd *cobra.Command, args []string) {
 
 	// Show failing
 	if len(status.FailedJobs) > 0 {
-		sort.Sort(status.FailedJobs)
+		sort.Sort(sort.Reverse(status.FailedJobs))
 		fmt.Printf("Failed jobs: \n\n")
 		printFailedJobs(status.FailedJobs)
 	}
@@ -148,7 +148,7 @@ func getStatus(cmd *cobra.Command, args []string) {
 	}
 
 	if len(status.CompletedJobs) > 0 {
-		sort.Sort(status.CompletedJobs)
+		sort.Sort(sort.Reverse(status.CompletedJobs))
 		fmt.Printf("Completed jobs:\n\n")
 		printCompletedJobs(status.CompletedJobs)
 	}
