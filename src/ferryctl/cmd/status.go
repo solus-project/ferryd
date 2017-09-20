@@ -40,7 +40,15 @@ func printHeader() {
 
 // printJob pretty prints the job to the CLI
 func printJob(j *libferry.Job) {
-	fmt.Printf("%v\t%v\t%v\t%v\n", j.Timing.Queued, j.Timing.End, j.ExecutionTime(), j.Description)
+	// How long ago it was queued
+	timeStart := j.QueuedSince()
+
+	// Is it actually complete?
+	if j.Timing.End.IsZero() {
+		fmt.Printf("%v\t-\t-\t%v\n", timeStart, j.Description)
+	} else {
+		fmt.Printf("%v\t%v\t%v\t%v\n", timeStart, j.Executed(), j.ExecutionTime(), j.Description)
+	}
 }
 
 func getStatus(cmd *cobra.Command, args []string) {
@@ -67,7 +75,7 @@ func getStatus(cmd *cobra.Command, args []string) {
 		fmt.Printf("Failed jobs: \n\n")
 		printHeader()
 		for i := range status.FailedJobs {
-			printJob(&status.FailedJobs[i])
+			printJob(status.FailedJobs[i])
 		}
 	}
 
@@ -76,7 +84,7 @@ func getStatus(cmd *cobra.Command, args []string) {
 		fmt.Printf("Current jobs: \n\n")
 		printHeader()
 		for i := range status.CurrentJobs {
-			printJob(&status.CurrentJobs[i])
+			printJob(status.CurrentJobs[i])
 		}
 	}
 }

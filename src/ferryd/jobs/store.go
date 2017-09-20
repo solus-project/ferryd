@@ -20,6 +20,7 @@ import (
 	"errors"
 	"ferryd/core"
 	"libdb"
+	"libferry"
 	"sync"
 	"time"
 )
@@ -230,4 +231,49 @@ func (s *JobStore) PushSequentialJob(j *JobEntry) error {
 // PushAsyncJob will enqueue a new asynchronous job
 func (s *JobStore) PushAsyncJob(j *JobEntry) error {
 	return s.pushJobInternal(j, BucketAsyncJobs)
+}
+
+// ActiveJobs will attempt to return a list of active jobs within
+// the scheduler suitable for consumption by the CLI client
+func (s *JobStore) ActiveJobs() ([]*libferry.Job, error) {
+	var ret []*libferry.Job
+
+	if err := s.cloneCurrentJobs(&ret, []byte(BucketSequentialJobs)); err != nil {
+		return nil, err
+	}
+
+	if err := s.cloneCurrentJobs(&ret, []byte(BucketAsyncJobs)); err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
+// cloneCurrentJobs will push clones of our jobs out to the libferry API
+func (s *JobStore) cloneCurrentJobs(ret *[]*libferry.Job, bucketID []byte) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
+	return s.db.Bucket(bucketID).View(func(db libdb.ReadOnlyView) error {
+		return db.ForEach(func(k, v []byte) error {
+			j := &JobEntry{}
+			if err := db.Decode(v, j); err != nil {
+				return err
+			}
+
+			// Now stuff the job into the ret
+			hnd, err := NewJobHandler(j)
+			if err != nil {
+				return err
+			}
+
+			r := &libferry.Job{
+				Description: hnd.Describe(),
+				Timing:      j.Timing,
+			}
+			*ret = append(*ret, r)
+
+			return nil
+		})
+	})
 }

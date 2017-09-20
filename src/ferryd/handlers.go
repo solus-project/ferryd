@@ -67,7 +67,14 @@ func (s *Server) GetStatus(w http.ResponseWriter, r *http.Request, _ httprouter.
 		Version:     libferry.Version,
 	}
 
-	// TODO: Insert jobs from the job store
+	// Stuff the active jobs in
+	jo, err := s.store.ActiveJobs()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	ret.CurrentJobs = jo
+
+	// TODO: Insert failed jobs from the job store
 	buf := bytes.Buffer{}
 	if err := json.NewEncoder(&buf).Encode(&ret); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

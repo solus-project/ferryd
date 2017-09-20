@@ -100,6 +100,16 @@ type TimingInformation struct {
 	End    time.Time `json:"end"`    // Job execution ended
 }
 
+// QueuedSince will let us know how long this task has been queued
+func (j *Job) QueuedSince() time.Duration {
+	return time.Now().UTC().Sub(j.Timing.Queued)
+}
+
+// Executed will work outow long ago it stopped executing
+func (j *Job) Executed() time.Duration {
+	return time.Now().UTC().Sub(j.Timing.End)
+}
+
 // ExecutionTime will return the time it took to execute a job
 func (j *Job) ExecutionTime() time.Duration {
 	return j.Timing.End.Sub(j.Timing.Begin)
@@ -130,8 +140,8 @@ type StatusRequest struct {
 	TimeStarted time.Time `json:"timeStarted"`
 	Version     string    `json:"version"`
 
-	FailedJobs  []Job `json:"failedJobs"`  // Known failed jobs
-	CurrentJobs []Job `json:"currentJobs"` // Currently registered jobs
+	FailedJobs  []*Job `json:"failedJobs"`  // Known failed jobs
+	CurrentJobs []*Job `json:"currentJobs"` // Currently registered jobs
 }
 
 // Uptime will determine the uptime of the daemon
