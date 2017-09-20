@@ -103,6 +103,8 @@ func (s *JobStore) unclaimJobs(bucketID []byte) error {
 			if !j.Claimed {
 				return nil
 			}
+			j.Timing.Begin = time.Time{}
+			j.Timing.End = time.Time{}
 			j.Claimed = false
 
 			return bucket.PutObject(id, j)
