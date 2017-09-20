@@ -32,7 +32,14 @@ var statusCmd = &cobra.Command{
 	Run:   getStatus,
 }
 
+var (
+	// How many jobs we print by default.
+	maxPrintJobs = 10
+	allJobs      = false
+)
+
 func init() {
+	statusCmd.PersistentFlags().BoolVarP(&allJobs, "all", "a", false, "Show all jobs (limits to 10 by default)")
 	RootCmd.AddCommand(statusCmd)
 }
 
@@ -47,7 +54,13 @@ func printActiveJobs(js []*libferry.Job) {
 	table.SetHeader(header)
 	table.SetBorder(false)
 
+	i := 0
+
 	for _, j := range js {
+		if i >= maxPrintJobs && !allJobs {
+			break
+		}
+		i++
 		var runType string
 		if j.Timing.Begin.IsZero() {
 			runType = "queued"
@@ -77,7 +90,13 @@ func printFailedJobs(js []*libferry.Job) {
 	table.SetHeader(header)
 	table.SetBorder(false)
 
+	i := 0
+
 	for _, j := range js {
+		if i >= maxPrintJobs && !allJobs {
+			break
+		}
+		i++
 		table.Append([]string{
 			"failed",
 			j.Timing.End.Format("2006-01-02 15:04:05"),
@@ -102,7 +121,13 @@ func printCompletedJobs(js []*libferry.Job) {
 	table.SetHeader(header)
 	table.SetBorder(false)
 
+	i := 0
+
 	for _, j := range js {
+		if i >= maxPrintJobs && !allJobs {
+			break
+		}
+		i++
 		table.Append([]string{
 			"success",
 			j.Timing.End.Format("2006-01-02 15:04:05"),
