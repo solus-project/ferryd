@@ -78,6 +78,15 @@ type RemoveSourceRequest struct {
 	Release int    `json:"relno"`
 }
 
+// CopySourceRequest is used to ask ferryd to copy all packages matching the
+// given source and relno parameters
+type CopySourceRequest struct {
+	Response
+	Target  string `json:"target"`
+	Source  string `json:"source"`
+	Release int    `json:"relno"`
+}
+
 // TrimPackagesRequest is sent when trimming excessive fat from a repository.
 type TrimPackagesRequest struct {
 	Response

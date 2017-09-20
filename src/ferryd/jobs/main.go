@@ -32,6 +32,9 @@ const (
 	// BulkAdd is a sequential job which will attempt to add all of the packages
 	BulkAdd JobType = "BulkAdd"
 
+	// CopySource is a sequential job to copy from one repo to another
+	CopySource = "CopySource"
+
 	// CloneRepo is a sequential job which will attempt to clone a repo
 	CloneRepo = "CloneRepo"
 
@@ -126,6 +129,8 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 	switch j.Type {
 	case BulkAdd:
 		return NewBulkAddJobHandler(j)
+	case CopySource:
+		return NewCopySourceJobHandler(j)
 	case CloneRepo:
 		return NewCloneRepoJobHandler(j)
 	case CreateRepo:

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"libeopkg"
 	"path/filepath"
 )
@@ -97,6 +98,11 @@ func (m *Manager) RemoveSource(repoID, sourceID string, release int) error {
 	}
 
 	return m.Index(repoID)
+}
+
+// CopySource will ask the repo to copy all matching source==release packages
+func (m *Manager) CopySource(repoID, target, source string, release int) error {
+	return errors.New("not yet implemented")
 }
 
 // TrimObsolete will ask the repo to remove obsolete packages

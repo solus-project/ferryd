@@ -230,6 +230,27 @@ func (s *Server) RemoveSource(w http.ResponseWriter, r *http.Request, p httprout
 	s.jproc.PushJob(jobs.NewRemoveSourceJob(target, req.Source, req.Release))
 }
 
+// CopySource will proxy a job to copy a package by source&relno into target
+func (s *Server) CopySource(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	sourceRepo := p.ByName("id")
+
+	req := libferry.CopySourceRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"sourceName": req.Source,
+		"release":    req.Release,
+		"from":       sourceRepo,
+		"to":         req.Target,
+	}).Info("Source copy requested")
+
+	s.jproc.PushJob(jobs.NewCopySourceJob(sourceRepo, req.Target, req.Source, req.Release))
+}
+
 // TrimPackages will proxy a job to remove excess fat from a repo
 func (s *Server) TrimPackages(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	target := p.ByName("id")

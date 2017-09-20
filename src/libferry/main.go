@@ -215,6 +215,16 @@ func (c *Client) RemoveSource(repoID, sourceID string, relno int) error {
 	return c.postBasicResponse(c.formURI("api/v1/remove/source/"+repoID), &sq, &Response{})
 }
 
+// CopySource will ask the backend to copy packages by source name
+func (c *Client) CopySource(fromID, targetID, sourceID string, relno int) error {
+	sq := CopySourceRequest{
+		Source:  sourceID,
+		Target:  targetID,
+		Release: relno,
+	}
+	return c.postBasicResponse(c.formURI("api/v1/copy/source/"+fromID), &sq, &Response{})
+}
+
 // TrimPackages will request that packages in the repo are trimmed to maxKeep
 func (c *Client) TrimPackages(repoID string, maxKeep int) error {
 	tq := TrimPackagesRequest{

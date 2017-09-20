@@ -38,6 +38,12 @@ var RemoveCmd = &cobra.Command{
 	Short: "remove [repo] [source]",
 }
 
+// CopyCmd is the parent for copy type commands
+var CopyCmd = &cobra.Command{
+	Use:   "copy",
+	Short: "copy [source]",
+}
+
 // TrimCmd is the parent for trim type commands
 var TrimCmd = &cobra.Command{
 	Use:   "trim",
@@ -45,6 +51,7 @@ var TrimCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(CopyCmd)
 	RootCmd.AddCommand(ListCmd)
 	RootCmd.AddCommand(RemoveCmd)
 	RootCmd.AddCommand(TrimCmd)
