@@ -112,7 +112,6 @@ func (w *Worker) Stop() {
 	w.exit <- 1
 	if w.ticker != nil {
 		w.ticker.Stop()
-		w.ticker = nil
 	}
 }
 
