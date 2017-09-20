@@ -17,6 +17,7 @@
 package jobs
 
 import (
+	"encoding/binary"
 	"errors"
 	"ferryd/core"
 	"libdb"
@@ -43,12 +44,28 @@ var (
 
 	// ErrBreakLoop is used only to break the foreach internally.
 	ErrBreakLoop = errors.New("loop breaker")
+
+	// BucketRecord is used as a subbucket for records
+	BucketRecord = []byte("Record")
+
+	// IndexRecordKey is used in the job store to mark the next write location
+	IndexRecordKey = []byte("IndexRecord00")
+)
+
+const (
+	// MaxJobsStored is the maximum amount of jobs we can store before rotating
+	MaxJobsStored = 100
 )
 
 // JobStore handles the storage and manipulation of incomplete jobs
 type JobStore struct {
 	db     libdb.Database
 	modMut *sync.Mutex
+}
+
+// IndexRecord is just a simple helper to store the index record..
+type IndexRecord struct {
+	Index uint64
 }
 
 // NewStore creates a fully initialized JobStore and sets up Bolt Buckets as needed
@@ -202,10 +219,38 @@ func (s *JobStore) markCompletion(j *JobEntry) error {
 		bucketID = BucketSuccessJobs
 	}
 
+	// We're already locked at this point so its safe to work out our next
+	// index
+	bucket := s.db.Bucket(bucketID).Bucket(BucketRecord)
+	record := IndexRecord{
+		Index: 0,
+	}
+
+	// Try to grab it, otherwise reset it
+	if err := bucket.GetObject(IndexRecordKey, &record); err != nil {
+		record.Index = 0
+	} else {
+		// Grabbed an existing record, so increment the key
+		record.Index++
+	}
+
+	// Wrap the index round if we hit too high
+	if record.Index >= MaxJobsStored {
+		record.Index = 0
+	}
+
+	// Ensure we update the pointer
+	if err := bucket.PutObject(IndexRecordKey, &record); err != nil {
+		return err
+	}
+
+	// now stuff it into a new key object
+	nextID := make([]byte, 8)
+	binary.BigEndian.PutUint64(nextID, record.Index)
+
 	// We'll need to figure out how to truncate our buckets..
 	return s.db.Update(func(db libdb.Database) error {
 		bucket := db.Bucket(bucketID)
-		nextID := bucket.NextSequence()
 
 		storeJob := libferry.Job{
 			Timing:      j.Timing,
