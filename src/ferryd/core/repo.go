@@ -1012,6 +1012,9 @@ func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string
 // modifications to ensure child packages (-dbginfo) are also nuked along
 // with them.
 func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
+	r.indexMut.Lock()
+	defer r.indexMut.Unlock()
+
 	if err := r.initDistribution(); err != nil {
 		return err
 	}
