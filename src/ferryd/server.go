@@ -20,6 +20,7 @@ import (
 	"errors"
 	"ferryd/core"
 	"ferryd/jobs"
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/julienschmidt/httprouter"
 	"github.com/radu-munteanu/fsnotify"
 	log "github.com/sirupsen/logrus"
@@ -167,6 +168,11 @@ func (s *Server) Serve() error {
 	// Serve the job queue
 	s.jproc.Begin()
 	s.WatchIncoming()
+
+	if systemdEnabled {
+		daemon.SdNotify(false, "READY=1")
+	}
+
 	// Don't treat Shutdown/Close as an error, it's intended by us.
 	if e := s.srv.Serve(s.socket); e != http.ErrServerClosed {
 		return e

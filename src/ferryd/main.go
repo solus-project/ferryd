@@ -20,6 +20,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	// If systemd is enabled, we'll talk to it.
+	systemdEnabled = false
+)
+
 // Set up the main logger formatting used in USpin
 func init() {
 	form := &log.TextFormatter{}
