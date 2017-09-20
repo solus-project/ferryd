@@ -78,6 +78,8 @@ func NewServer() *Server {
 
 	// Removal
 	router.POST("/api/v1/remove/source/:id", s.RemoveSource)
+	router.POST("/api/v1/trim/packages/:id", s.TrimPackages)
+	router.GET("/api/v1/trim/obsoletes/:id", s.TrimObsolete)
 
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)

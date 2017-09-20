@@ -214,3 +214,17 @@ func (c *Client) RemoveSource(repoID, sourceID string, relno int) error {
 	}
 	return c.postBasicResponse(c.formURI("api/v1/remove/source/"+repoID), &sq, &Response{})
 }
+
+// TrimPackages will request that packages in the repo are trimmed to maxKeep
+func (c *Client) TrimPackages(repoID string, maxKeep int) error {
+	tq := TrimPackagesRequest{
+		MaxKeep: maxKeep,
+	}
+	return c.postBasicResponse(c.formURI("api/v1/trim/packages/"+repoID), &tq, &Response{})
+}
+
+// TrimObsolete will request that all packages marked obsolete are removed
+func (c *Client) TrimObsolete(repoID string) error {
+	uri := c.formURI("/api/v1/trim/obsoletes/" + repoID)
+	return c.getBasicResponse(uri, &Response{})
+}

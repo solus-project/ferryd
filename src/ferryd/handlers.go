@@ -229,3 +229,31 @@ func (s *Server) RemoveSource(w http.ResponseWriter, r *http.Request, p httprout
 
 	s.jproc.PushJob(jobs.NewRemoveSourceJob(target, req.Source, req.Release))
 }
+
+// TrimPackages will proxy a job to remove excess fat from a repo
+func (s *Server) TrimPackages(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	target := p.ByName("id")
+
+	req := libferry.TrimPackagesRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"repo":    target,
+		"maxKeep": req.MaxKeep,
+	}).Info("Package trim requested")
+
+	s.jproc.PushJob(jobs.NewTrimPackagesJob(target, req.MaxKeep))
+}
+
+// TrimObsolete will proxy a job to remove obsolete packages from a repo
+func (s *Server) TrimObsolete(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	log.WithFields(log.Fields{
+		"id": id,
+	}).Info("Obsoletes trim requested")
+	s.jproc.PushJob(jobs.NewTrimObsoleteJob(id))
+}

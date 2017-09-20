@@ -77,3 +77,9 @@ type RemoveSourceRequest struct {
 	Source  string `json:"source"`
 	Release int    `json:"relno"`
 }
+
+// TrimPackagesRequest is sent when trimming excessive fat from a repository.
+type TrimPackagesRequest struct {
+	Response
+	MaxKeep int `json:"maxPackages"`
+}

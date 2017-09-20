@@ -38,7 +38,14 @@ var RemoveCmd = &cobra.Command{
 	Short: "remove [repo] [source]",
 }
 
+// TrimCmd is the parent for trim type commands
+var TrimCmd = &cobra.Command{
+	Use:   "trim",
+	Short: "trim [packages] [obsoletes]",
+}
+
 func init() {
 	RootCmd.AddCommand(ListCmd)
 	RootCmd.AddCommand(RemoveCmd)
+	RootCmd.AddCommand(TrimCmd)
 }

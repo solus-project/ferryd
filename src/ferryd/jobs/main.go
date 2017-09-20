@@ -65,6 +65,13 @@ const (
 	// TransitProcess is a sequential job that will process the incoming uploads
 	// directory, dealing with each .tram upload
 	TransitProcess = "TransitProcess"
+
+	// TrimObsolete is a sequential job to permanently remove obsolete packages
+	// from a repo
+	TrimObsolete = "TrimObsolete"
+
+	// TrimPackages is a sequential job to trim fat from a repository
+	TrimPackages = "TrimPackages"
 )
 
 // A JobHandler is created for each JobEntry, to provide specialised handling
@@ -139,6 +146,10 @@ func NewJobHandler(j *JobEntry) (JobHandler, error) {
 		return NewPullRepoJobHandler(j)
 	case TransitProcess:
 		return NewTransitJobHandler(j)
+	case TrimObsolete:
+		return NewTrimObsoleteJobHandler(j)
+	case TrimPackages:
+		return NewTrimPackagesJobHandler(j)
 	default:
 		return nil, fmt.Errorf("unknown job type '%s'", j.Type)
 	}
