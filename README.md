@@ -65,7 +65,8 @@ Deployment Plan
  - [ ] Make sure builder script uploads `.tram` file last if it exists
  - [ ] Set up ferryd on the Solus package server
  - [ ] Import existing repos "as is" but without any old delta packages
- - [ ] Set up new ring0 cname to point to the new ferryd instance
+ - [x] Set up new ring0 A Record
+ - [ ] Set up ring0 vhost
  - [ ] Ensure deltas work
  - [ ] Ensure simple pull operation works as expected
  - [ ] Test indexes in cli + SC to verify languages show as expected
