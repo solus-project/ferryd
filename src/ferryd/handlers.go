@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"ferryd/jobs"
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"libferry"
@@ -58,19 +57,6 @@ func (s *Server) sendStockError(err error, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(buf.Bytes())
-}
-
-// GetVersion will return the current version of the ferryd
-func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Printf("Got a version request: %v\n", r.URL.Path)
-
-	vq := libferry.VersionRequest{Version: libferry.Version}
-	buf := bytes.Buffer{}
-	if err := json.NewEncoder(&buf).Encode(&vq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	w.Write(buf.Bytes())
 }
 

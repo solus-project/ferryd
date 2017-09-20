@@ -27,13 +27,6 @@ type Response struct {
 	ErrorString string // The associated error message
 }
 
-// A VersionRequest allows the client to request the current version string
-// from the running daemon
-type VersionRequest struct {
-	Response
-	Version string `json:"version"`
-}
-
 // An ImportRequest is given to ferryd to ask for the given packages to be
 // included into the repository
 type ImportRequest struct {

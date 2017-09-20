@@ -68,7 +68,6 @@ func NewServer() *Server {
 		watchGroup:  &sync.WaitGroup{},
 	}
 	// Set up the API bits
-	router.GET("/api/v1/version", s.GetVersion)
 	router.GET("/api/v1/status", s.GetStatus)
 
 	// Repo management

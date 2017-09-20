@@ -66,20 +66,6 @@ func (c *Client) formURI(part string) string {
 	return fmt.Sprintf("http://localhost.localdomain:0/%s", part)
 }
 
-// GetVersion will return the version of the remote daemon
-func (c *Client) GetVersion() (string, error) {
-	var vq VersionRequest
-	resp, err := c.client.Get(c.formURI("api/v1/version"))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if err = json.NewDecoder(resp.Body).Decode(&vq); err != nil {
-		return "", err
-	}
-	return vq.Version, nil
-}
-
 // GetRepos will grab a list of repos from the daemon
 func (c *Client) GetRepos() ([]string, error) {
 	var lq RepoListingRequest
