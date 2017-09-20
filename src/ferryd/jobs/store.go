@@ -21,6 +21,7 @@ import (
 	"ferryd/core"
 	"libdb"
 	"sync"
+	"time"
 )
 
 var (
@@ -203,6 +204,8 @@ func (s *JobStore) RetireSequentialJob(j *JobEntry) error {
 // pushJobInternal is identical between sync and async jobs, it
 // just needs to know which bucket to store the job in.
 func (s *JobStore) pushJobInternal(j *JobEntry, bk []byte) error {
+	// Prep the job prior to insertion
+	j.Timing.Queued = time.Now().UTC()
 	j.Claimed = false
 
 	j.id = s.db.Bucket(bk).NextSequence()

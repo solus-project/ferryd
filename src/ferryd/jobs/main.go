@@ -22,6 +22,7 @@ import (
 	"encoding/gob"
 	"ferryd/core"
 	"fmt"
+	"libferry"
 )
 
 // JobType is a numerical representation of a kind of job
@@ -95,6 +96,7 @@ type JobEntry struct {
 	Type       JobType
 	Claimed    bool
 	Params     []string
+	Timing     libferry.TimingInformation // Store all timing information
 }
 
 // Serialize uses Gob encoding to convert a JobEntry to a byte slice

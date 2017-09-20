@@ -90,10 +90,20 @@ type TrimPackagesRequest struct {
 	MaxKeep int `json:"maxPackages"`
 }
 
+// TimingInformation stores relevant timing stats on jobs so we can know what
+// kind of latency we're dealing with, etc.
+//
+// All times must be recorded in UTC!
+type TimingInformation struct {
+	Queued time.Time // Job initially scheduled
+	Begin  time.Time // Job execution began
+	End    time.Time // Job execution ended
+}
+
 // Job is used to represent status items in the backend
 type Job struct {
 	Description string
-	// TODO: Add timing data!
+	Timing      TimingInformation
 }
 
 // StatusRequest is used to grab information from the daemon, including its

@@ -145,8 +145,14 @@ func (w *Worker) Start() {
 				continue
 			}
 
+			// Got the job so mark our begin time
+			job.Timing.Begin = time.Now().UTC()
+
 			// Got a job, now process it
 			w.processJob(job)
+
+			// Now we mark end time so we can calculate how long it took
+			job.Timing.End = time.Now().UTC()
 
 			// Mark the job as dealt with
 			err = w.reaper(job)
