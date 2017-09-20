@@ -47,8 +47,14 @@ func printActiveJobs(js []*libferry.Job) {
 	table.SetBorder(false)
 
 	for _, j := range js {
+		var runType string
+		if j.Timing.Begin.IsZero() {
+			runType = "queued"
+		} else {
+			runType = "running"
+		}
 		table.Append([]string{
-			"queued",
+			runType,
 			j.Timing.Queued.Format("2006-01-02 15:04:05"),
 			j.QueuedSince().String(),
 			j.Description,

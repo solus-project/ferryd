@@ -145,9 +145,6 @@ func (w *Worker) Start() {
 				continue
 			}
 
-			// Got the job so mark our begin time
-			job.Timing.Begin = time.Now().UTC()
-
 			// Got a job, now process it
 			w.processJob(job)
 

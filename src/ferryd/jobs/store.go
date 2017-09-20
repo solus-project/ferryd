@@ -152,6 +152,9 @@ func (s *JobStore) claimJobInternal(bucketID []byte) (*JobEntry, error) {
 			}
 			if !j.Claimed {
 				j.Claimed = true
+
+				// Got the job so mark our begin time
+				j.Timing.Begin = time.Now().UTC()
 				// Got a usable job now.
 				job = j
 				job.id = make([]byte, len(id))
