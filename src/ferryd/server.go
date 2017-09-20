@@ -28,6 +28,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 )
 
 const (
@@ -42,6 +43,9 @@ type Server struct {
 	running bool
 	router  *httprouter.Router
 	socket  net.Listener
+
+	// When we first started up.
+	timeStarted time.Time
 
 	manager    *core.Manager     // heart of the story
 	store      *jobs.JobStore    // Storage for jobs processor
@@ -58,12 +62,14 @@ func NewServer() *Server {
 		srv: &http.Server{
 			Handler: router,
 		},
-		running:    false,
-		router:     router,
-		watchGroup: &sync.WaitGroup{},
+		running:     false,
+		router:      router,
+		timeStarted: time.Now().UTC(),
+		watchGroup:  &sync.WaitGroup{},
 	}
 	// Set up the API bits
 	router.GET("/api/v1/version", s.GetVersion)
+	router.GET("/api/v1/status", s.GetStatus)
 
 	// Repo management
 	router.GET("/api/v1/create/repo/:id", s.CreateRepo)

@@ -16,6 +16,10 @@
 
 package libferry
 
+import (
+	"time"
+)
+
 // Response is the base portion for all ferryd responses, and will
 // include any relevant information on errors
 type Response struct {
@@ -91,4 +95,27 @@ type CopySourceRequest struct {
 type TrimPackagesRequest struct {
 	Response
 	MaxKeep int `json:"maxPackages"`
+}
+
+// Job is used to represent status items in the backend
+type Job struct {
+	Description string
+	// TODO: Add timing data!
+}
+
+// StatusRequest is used to grab information from the daemon, including its
+// uptime
+type StatusRequest struct {
+	Response
+
+	// When the daemon was first started, to work out uptime
+	TimeStarted time.Time `json:"timeStarted"`
+
+	FailedJobs  []Job // Known failed jobs
+	CurrentJobs []Job // Currently registered jobs
+}
+
+// Uptime will determine the uptime of the daemon
+func (s *StatusRequest) Uptime() time.Duration {
+	return time.Now().UTC().Sub(s.TimeStarted)
 }

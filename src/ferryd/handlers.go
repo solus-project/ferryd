@@ -63,12 +63,26 @@ func (s *Server) sendStockError(err error, w http.ResponseWriter, r *http.Reques
 
 // GetVersion will return the current version of the ferryd
 func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// For now return nothing and default to 200 OK
 	fmt.Printf("Got a version request: %v\n", r.URL.Path)
 
 	vq := libferry.VersionRequest{Version: libferry.Version}
 	buf := bytes.Buffer{}
 	if err := json.NewEncoder(&buf).Encode(&vq); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
+// GetStatus will return the current status of the ferryd instance
+func (s *Server) GetStatus(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ret := libferry.StatusRequest{
+		TimeStarted: s.timeStarted,
+	}
+
+	// TODO: Insert jobs from the job store
+	buf := bytes.Buffer{}
+	if err := json.NewEncoder(&buf).Encode(&ret); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

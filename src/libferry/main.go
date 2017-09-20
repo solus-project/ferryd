@@ -238,3 +238,17 @@ func (c *Client) TrimObsolete(repoID string) error {
 	uri := c.formURI("/api/v1/trim/obsoletes/" + repoID)
 	return c.getBasicResponse(uri, &Response{})
 }
+
+// GetStatus will return status information for the running daemon process
+func (c *Client) GetStatus() (*StatusRequest, error) {
+	var sq StatusRequest
+	resp, err := c.client.Get(c.formURI("api/v1/status"))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err = json.NewDecoder(resp.Body).Decode(&sq); err != nil {
+		return nil, err
+	}
+	return &sq, nil
+}
