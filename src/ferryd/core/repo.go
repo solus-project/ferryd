@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -996,6 +997,78 @@ func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string
 	// we're going to rely on on the refcount cycle.
 	for _, id := range deleteIDs {
 		if err = r.UnrefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TrimObsolete isn't very straight forward as it has to account for some
+// janky behaviour in eopkg.
+//
+// Effectively - any name explicitly marked as obsolete is something we need
+// to remove from the repository. However, we also need to apply certain
+// modifications to ensure child packages (-dbginfo) are also nuked along
+// with them.
+func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
+	if err := r.initDistribution(); err != nil {
+		return err
+	}
+
+	// All the guys who we're sending to the big bitsink in the sky
+	var removalIDs []string
+
+	// TODO: Scream loudly that someones being an eejit and trying to obsolete
+	// packages without a distribution.xml defined.
+	if r.dist == nil {
+		return nil
+	}
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		for _, id := range entry.Available {
+			poolEntry, err := pool.GetEntry(db, id)
+			if err != nil {
+				return err
+			}
+
+			// Retain compatibility with eopkg, auto-drop -dbginfo
+			nom := poolEntry.Meta.Name
+			if strings.HasSuffix(nom, "-dbginfo") {
+				nom = nom[0 : len(nom)-8]
+			}
+
+			// Check if its obsolete, if its automatically obsolete through our
+			// dbginfo trick, warn in the console
+			if r.dist != nil && r.dist.IsObsolete(nom) {
+				if nom != entry.Name {
+					// Scream really loudly, but remove it because its "just" dbginfo.
+					fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", poolEntry.Meta.Name)
+					removalIDs = append(removalIDs, id)
+				}
+				return nil
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now attempt to unref every one of the packages marked as obsolete
+	for _, id := range removalIDs {
+		fmt.Fprintf(os.Stderr, "Removing obsolete package: %v\n", id)
+		if err := r.UnrefPackage(db, pool, id); err != nil {
 			return err
 		}
 	}

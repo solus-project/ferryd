@@ -102,7 +102,16 @@ func (m *Manager) RemoveSource(repoID, sourceID string, release int) error {
 
 // TrimObsolete will ask the repo to remove obsolete packages
 func (m *Manager) TrimObsolete(repoID string) error {
-	return errors.New("not yet implemented")
+	repo, err := m.repo.GetRepo(m.db, repoID)
+	if err != nil {
+		return err
+	}
+
+	if err = repo.TrimObsolete(m.db, m.pool); err != nil {
+		return err
+	}
+
+	return m.Index(repoID)
 }
 
 // TrimPackages will ask the repo to remove excessive packages
