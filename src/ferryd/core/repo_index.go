@@ -30,9 +30,7 @@ import (
 // initDistribution will look for the distribution.xml file which will define
 // the all-important Obsoletes set
 func (r *Repository) initDistribution() error {
-	if r.dist != nil {
-		return nil
-	}
+	r.dist = nil
 
 	dpath := filepath.Join(r.assetPath, "distribution.xml")
 	if !PathExists(dpath) {
