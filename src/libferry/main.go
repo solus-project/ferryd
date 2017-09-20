@@ -212,5 +212,5 @@ func (c *Client) RemoveSource(repoID, sourceID string, relno int) error {
 		Source:  sourceID,
 		Release: relno,
 	}
-	return c.postBasicResponse(c.formURI("api/v1/remove/source/"+repoID), &sq, Response{})
+	return c.postBasicResponse(c.formURI("api/v1/remove/source/"+repoID), &sq, &Response{})
 }

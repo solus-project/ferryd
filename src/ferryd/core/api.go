@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"libeopkg"
 	"path/filepath"
 )
@@ -88,7 +87,11 @@ func (m *Manager) PullRepo(sourceID, targetID string) error {
 // RemoveSource will ask the repo to remove all matching source==release
 // packages.
 func (m *Manager) RemoveSource(repoID, sourceID string, release int) error {
-	return errors.New("not yet implemented")
+	repo, err := m.repo.GetRepo(m.db, repoID)
+	if err != nil {
+		return err
+	}
+	return repo.RemoveSource(m.db, m.pool, sourceID, release)
 }
 
 // GetRepos will return all known repositories

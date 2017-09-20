@@ -225,7 +225,7 @@ func (s *Server) RemoveSource(w http.ResponseWriter, r *http.Request, p httprout
 		"source":  req.Source,
 		"release": req.Release,
 		"repo":    target,
-	}).Info("Repository pull requested")
+	}).Info("Source removal requested")
 
 	s.jproc.PushJob(jobs.NewRemoveSourceJob(target, req.Source, req.Release))
 }

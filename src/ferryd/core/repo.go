@@ -465,6 +465,91 @@ func (r *Repository) removeDeltaInternal(db libdb.Database, pool *Pool, id strin
 	return r.removePackageInternal(db, pool, id)
 }
 
+// UnrefPackage will remove a package from our storage, and potentially remove the
+// entire RepoEntry for the package if none are left.
+//
+// Additionally, we'll locate stray deltas which lead either TO or FROM the given
+// package as they'll now be useless to anyone.
+func (r *Repository) UnrefPackage(db libdb.Database, pool *Pool, pkgID string) error {
+	newHighest := 0
+	var newHighestID string
+
+	// Require a pool entry to remove it
+	poolEntry, err := pool.GetEntry(db, pkgID)
+	if err != nil {
+		return err
+	}
+
+	// Now examine our own local entry
+	entry, err := r.GetEntry(db, poolEntry.Meta.Name)
+	if err != nil {
+		return err
+	}
+
+	// Try to remove it from disk first
+	if err := r.removePackageInternal(db, pool, pkgID); err != nil {
+		return err
+	}
+
+	// Deltas remaining after removals
+	var remainDeltas []string
+
+	// Check out all the deltas
+	for _, deltaID := range entry.Deltas {
+		pkgDelta, err := pool.GetEntry(db, deltaID)
+		if err != nil {
+			return err
+		}
+
+		// We found a delta that is referencing us, we must garbage collect it now
+		if pkgDelta.Delta.FromID == pkgID || pkgDelta.Delta.ToID == pkgID {
+			if err := r.removeDeltaInternal(db, pool, pkgDelta.Name); err != nil {
+				return err
+			}
+		} else {
+			remainDeltas = append(remainDeltas, pkgDelta.Name)
+		}
+	}
+
+	// These are the deltas left
+	entry.Deltas = remainDeltas
+	sort.Strings(entry.Deltas)
+
+	// Filter our ID from the available set
+	var remainAvailable []string
+	for _, id := range entry.Available {
+		if id == pkgID {
+			continue
+		}
+		availEntry, err := pool.GetEntry(db, id)
+		if err != nil {
+			return err
+		}
+		// Learn highest relno here, it's going to be the published ID
+		curRel := availEntry.Meta.GetRelease()
+		if curRel > newHighest {
+			newHighest = curRel
+			newHighestID = id
+		}
+		remainAvailable = append(remainAvailable, id)
+	}
+
+	entry.Available = remainAvailable
+	sort.Strings(entry.Available)
+	// Assign the new Published link
+	entry.Published = newHighestID
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Is this package set now "empty"? Then remove it from our indexes
+	if len(entry.Available) < 1 {
+		return rootBucket.DeleteObject([]byte(entry.Name))
+	}
+
+	// Stuff it back into the DB with the modified bits in place.
+	return r.putEntry(db, entry)
+}
+
 // RefPackage will dupe a package from the pool into our own storage
 func (r *Repository) RefPackage(db libdb.Database, pool *Pool, pkgID string) error {
 	r.insertMut.Lock()
@@ -818,6 +903,61 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 	// depending on tip or ALL
 	for _, id := range copyIDs {
 		if err := r.RefPackage(db, pool, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// RemoveSource will remove all packages that have a matching source name and
+// release number. This allows us to remove multiple packages from a single
+// upload/set in one go.
+//
+// Distributions tend to split packages across a common identifier/release
+// and this method will allow us to remove "bad actors" from the index.
+func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string, release int) error {
+	var deleteIDs []string
+
+	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
+
+	// Grab every package
+	err := rootBucket.ForEach(func(k, v []byte) error {
+		entry := RepoEntry{}
+		if err := rootBucket.Decode(v, &entry); err != nil {
+			return err
+		}
+
+		// Now we must grab every "available" package for this bucket entry
+		for _, id := range entry.Available {
+			poolEntry, err := pool.GetEntry(db, id)
+			if err != nil {
+				return err
+			}
+
+			if poolEntry.Meta.Source.Name != sourceID {
+				continue
+			}
+
+			if poolEntry.Meta.GetRelease() != release {
+				continue
+			}
+
+			// We've got a match.
+			deleteIDs = append(deleteIDs, id)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Now we'll remove all the defunct IDs. We can't really transaction this as
+	// we're going to rely on on the refcount cycle.
+	for _, id := range deleteIDs {
+		if err = r.UnrefPackage(db, pool, id); err != nil {
 			return err
 		}
 	}
