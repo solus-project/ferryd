@@ -46,10 +46,6 @@ func init() {
 	form.FullTimestamp = true
 	form.TimestampFormat = "15:04:05"
 	log.SetFormatter(form)
-
-	// Temp
-	log.SetLevel(log.DebugLevel)
-
 	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
 	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
 }
