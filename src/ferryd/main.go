@@ -41,14 +41,14 @@ func mainLoop() {
 	defer srv.Close()
 	if e := srv.Bind(); e != nil {
 		log.WithFields(log.Fields{
-			"socket": UnixSocketPath,
+			"socket": srv.socketPath,
 			"error":  e,
 		}).Error("Error in binding server socket")
 		return
 	}
 	if e := srv.Serve(); e != nil {
 		log.WithFields(log.Fields{
-			"socket": UnixSocketPath,
+			"socket": srv.socketPath,
 			"error":  e,
 		}).Error("Error in serving on socket")
 		return

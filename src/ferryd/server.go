@@ -20,6 +20,7 @@ import (
 	"errors"
 	"ferryd/core"
 	"ferryd/jobs"
+	"github.com/coreos/go-systemd/activation"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/julienschmidt/httprouter"
 	"github.com/radu-munteanu/fsnotify"
@@ -35,6 +36,9 @@ import (
 const (
 	// UnixSocketPath is the unique socket path on the system for the ferry daemon
 	UnixSocketPath = "./ferryd.sock"
+
+	// SystemUnixSocketPath is the path used when we're properly installed.
+	SystemUnixSocketPath = "/run/ferryd.sock"
 )
 
 // Server sits on a unix socket accepting connections from authenticated
@@ -54,6 +58,7 @@ type Server struct {
 	watcher    *fsnotify.Watcher // Monitor incoming uploads
 	watchChan  chan bool         // Allow terminating the watcher
 	watchGroup *sync.WaitGroup   // Allow blocking watch terminate.
+	socketPath string
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
@@ -110,9 +115,24 @@ func (s *Server) killHandler() {
 // Bind will attempt to set up the listener on the unix socket
 // prior to serving.
 func (s *Server) Bind() error {
-	l, e := net.Listen("unix", UnixSocketPath)
-	if e != nil {
-		return e
+	var listener net.Listener
+
+	// Grab any systemd listeners, and unset var. We'll crack on fine without them
+	if listeners, err := activation.Listeners(true); err == nil {
+		if len(listeners) != 1 {
+			return errors.New("expected a single unix socket")
+		}
+		// listener will be sockets[0], now we'll need to follow systemd activation path
+		listener = listeners[0]
+		s.socketPath = SystemUnixSocketPath
+		systemdEnabled = true
+	} else {
+		s.socketPath = UnixSocketPath
+		l, e := net.Listen("unix", s.socketPath)
+		if e != nil {
+			return e
+		}
+		listener = l
 	}
 
 	baseDir := "./ferry"
@@ -144,14 +164,14 @@ func (s *Server) Bind() error {
 	uid := os.Geteuid()
 	gid := os.Getegid()
 	// Avoid umask issues
-	if e = os.Chown(UnixSocketPath, uid, gid); e != nil {
+	if e = os.Chown(s.socketPath, uid, gid); e != nil {
 		return e
 	}
 	// Fatal if we cannot chmod the socket to be ours only
-	if e = os.Chmod(UnixSocketPath, 0600); e != nil {
+	if e = os.Chmod(s.socketPath, 0600); e != nil {
 		return e
 	}
-	s.socket = l
+	s.socket = listener
 	return nil
 }
 
