@@ -293,7 +293,6 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	indexPath := filepath.Join(r.path, "eopkg-index.xml.new")
 	indexPathFinal := filepath.Join(r.path, "eopkg-index.xml")
 	outPaths = append(outPaths, indexPath)
-	finalPaths = append(finalPaths, indexPathFinal)
 
 	defer func() {
 		if errAbort != nil {
@@ -330,7 +329,6 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	indexPathSha := filepath.Join(r.path, "eopkg-index.xml.sha1sum.new")
 	indexPathShaFinal := filepath.Join(r.path, "eopkg-index.xml.sha1sum")
 	outPaths = append(outPaths, indexPathSha)
-	finalPaths = append(finalPaths, indexPathShaFinal)
 
 	// Star in it
 	if errAbort = WriteSha1sum(indexPath, indexPathSha); err != nil {
@@ -341,7 +339,6 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.new.xz")
 	indexPathXzFinal := filepath.Join(r.path, "eopkg-index.xml.xz")
 	outPaths = append(outPaths, indexPathXz)
-	finalPaths = append(finalPaths, indexPathXzFinal)
 
 	if errAbort = libeopkg.XzFile(indexPath, true); errAbort != nil {
 		return errAbort
@@ -351,12 +348,17 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	indexPathXzSha := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum.new")
 	indexPathXzShaFinal := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum")
 	outPaths = append(outPaths, indexPathXzSha)
-	finalPaths = append(finalPaths, indexPathXzShaFinal)
 
 	// xz sha1
 	if errAbort = WriteSha1sum(indexPathXz, indexPathXzSha); err != nil {
 		return errAbort
 	}
+
+	// Stack our order so hash files go *before* index files.
+	finalPaths = append(finalPaths, indexPathShaFinal)
+	finalPaths = append(finalPaths, indexPathFinal)
+	finalPaths = append(finalPaths, indexPathXzShaFinal)
+	finalPaths = append(finalPaths, indexPathXzFinal)
 
 	for i, sourcePath := range outPaths {
 		finalPath := finalPaths[i]
