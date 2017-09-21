@@ -55,7 +55,7 @@ TODO
  - [x] Replace all Fprintf/printf with logrus
  - [x] Redirect logrus to a log file within our directory structure
  - [x] Add global lockfile
- - [ ] Kick out all TODO comments
+ - [x] Kick out all TODO comments
  - [x] Throw another shedload of data and test upload cycle/bump upload/delta/index
  - [x] Stats UI? i.e. ongoing jobs, recently completed, etc.
  - [x] Restore binman parity, allow removing package (by release number), copying a single package, group of packages, etc.
