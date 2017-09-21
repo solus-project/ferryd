@@ -155,7 +155,7 @@ func (r *Repository) pushDeltaPackages(db libdb.Database, pool *Pool, entry *Poo
 		})
 	}
 
-	// TODO: Sort deltas
+	// Deltas implicitly sorted by sort.Strings on their IDs
 	if deltas != nil && len(deltas) > 0 {
 		entry.Meta.DeltaPackages = &deltas
 	}
