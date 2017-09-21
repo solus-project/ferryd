@@ -36,6 +36,11 @@ var (
 	socketPath = "/run/ferryd.sock"
 )
 
+const (
+	// LockFilePath is created within the baseDir to assert ferryd instance ownership
+	LockFilePath = "ferryd.lock"
+)
+
 func mainLoop() {
 	pflag.StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
 	pflag.StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
@@ -56,6 +61,15 @@ func mainLoop() {
 		os.Exit(1)
 	}
 
+	// Need to get a lock file before we can even grab the log file
+	srv, err := NewServer()
+	if err != nil {
+		lockPath := filepath.Join(baseDir, LockFilePath)
+		fmt.Fprintf(os.Stderr, "Failed to start ferryd: %v (lockfile: %v)\n", err, lockPath)
+		os.Exit(1)
+	}
+	defer srv.Close()
+
 	// We'll just keep logging for ever, don't expect rotation..
 	logPath := filepath.Join(baseDir, "ferryd.log")
 	logFile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 00644)
@@ -70,8 +84,6 @@ func mainLoop() {
 	// Now we can safely use logrus..
 	log.Info("Initialising server")
 
-	srv := NewServer()
-	defer srv.Close()
 	if err := srv.Bind(); err != nil {
 		log.WithFields(log.Fields{
 			"socket": srv.socketPath,

@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -40,6 +41,10 @@ type Server struct {
 	running bool
 	router  *httprouter.Router
 	socket  net.Listener
+
+	// We store a global lock file ..
+	lockFile *LockFile
+	lockPath string
 
 	// When we first started up.
 	timeStarted time.Time
@@ -54,7 +59,7 @@ type Server struct {
 }
 
 // NewServer will return a newly initialised Server which is currently unbound
-func NewServer() *Server {
+func NewServer() (*Server, error) {
 	router := httprouter.New()
 	s := &Server{
 		srv: &http.Server{
@@ -65,6 +70,21 @@ func NewServer() *Server {
 		timeStarted: time.Now().UTC(),
 		watchGroup:  &sync.WaitGroup{},
 	}
+
+	// Before we can actually bind the socket, we must lock the file
+	s.lockPath = filepath.Join(baseDir, LockFilePath)
+	lfile, err := NewLockFile(s.lockPath)
+	s.lockFile = lfile
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to lock our lockfile now
+	if err := s.lockFile.Lock(); err != nil {
+		return nil, err
+	}
+
 	// Set up the API bits
 	router.GET("/api/v1/status", s.GetStatus)
 
@@ -88,7 +108,7 @@ func NewServer() *Server {
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)
 	router.GET("/api/v1/list/pool", s.GetPoolItems)
-	return s
+	return s, nil
 }
 
 // killHandler will ensure we cleanly tear down on a ctrl+c/sigint
@@ -201,6 +221,11 @@ func (s *Server) Serve() error {
 func (s *Server) Close() {
 	if !s.running {
 		return
+	}
+	if s.lockFile != nil {
+		s.lockFile.Unlock()
+		s.lockFile.Clean()
+		s.lockFile = nil
 	}
 	s.StopWatching()
 	s.jproc.Close()
