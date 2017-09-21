@@ -6,6 +6,8 @@ After=network.target
 Type=notify
 WorkingDirectory=/var/lib/ferryd
 ExecStart=/usr/bin/ferryd -d /var/lib/ferryd -s /run/ferryd.sock
+User=ferryd
+Group=ferryd
 
 [Install]
 WantedBy=multi-user.target
