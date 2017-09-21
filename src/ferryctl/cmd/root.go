@@ -28,26 +28,32 @@ var RootCmd = &cobra.Command{
 
 // ListCmd is a parent for list type commands
 var ListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list [repos] [pool]",
+	Use:   "list  [repos] [pool]",
+	Short: "list",
 }
 
 // RemoveCmd is the parent for remove type commands
 var RemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "remove [repo] [source]",
+	Use:   "remove [repo] [source]",
+	Short: "remove",
+}
+
+// ResetCmd is the parent for reset type commands
+var ResetCmd = &cobra.Command{
+	Use:   "reset [failed] [completed]",
+	Short: "reset job logs",
 }
 
 // CopyCmd is the parent for copy type commands
 var CopyCmd = &cobra.Command{
-	Use:   "copy",
-	Short: "copy [source]",
+	Use:   "copy [source]",
+	Short: "copy",
 }
 
 // TrimCmd is the parent for trim type commands
 var TrimCmd = &cobra.Command{
-	Use:   "trim",
-	Short: "trim [packages] [obsoletes]",
+	Use:   "trim [packages] [obsoletes]",
+	Short: "trim",
 }
 
 var (
@@ -61,5 +67,6 @@ func init() {
 	RootCmd.AddCommand(CopyCmd)
 	RootCmd.AddCommand(ListCmd)
 	RootCmd.AddCommand(RemoveCmd)
+	RootCmd.AddCommand(ResetCmd)
 	RootCmd.AddCommand(TrimCmd)
 }

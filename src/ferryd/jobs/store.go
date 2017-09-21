@@ -409,3 +409,38 @@ func (s *JobStore) clonePastJobs(ret *[]*libferry.Job, bucketID []byte) error {
 		})
 	})
 }
+
+// resetInternal is a blocking call to nuke all records from a bucket, as well
+// as the special sub-bucket index key
+func (s *JobStore) resetInternal(bucketID []byte) error {
+	s.modMut.Lock()
+	defer s.modMut.Unlock()
+
+	bucket := s.db.Bucket(bucketID).Bucket(BucketRecord)
+	hasIndex, err := bucket.HasObject(IndexRecordKey)
+	if err != nil {
+		return err
+	}
+	if hasIndex {
+		if err := bucket.DeleteObject(IndexRecordKey); err != nil {
+			return err
+		}
+	}
+
+	// batch delete the jobs
+	return s.db.Bucket(bucketID).Update(func(db libdb.Database) error {
+		return db.ForEach(func(k, v []byte) error {
+			return db.DeleteObject(k)
+		})
+	})
+}
+
+// ResetCompleted will remove all completion records from our store and reset the pointer
+func (s *JobStore) ResetCompleted() error {
+	return s.resetInternal(BucketSuccessJobs)
+}
+
+// ResetFailed will remove all fail records from our store and reset the pointer
+func (s *JobStore) ResetFailed() error {
+	return s.resetInternal(BucketFailJobs)
+}

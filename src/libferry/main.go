@@ -238,3 +238,15 @@ func (c *Client) GetStatus() (*StatusRequest, error) {
 	}
 	return &sq, nil
 }
+
+// ResetFailed asks the daemon to reset failed jobs
+func (c *Client) ResetFailed() error {
+	uri := c.formURI("/api/v1/reset/failed")
+	return c.getBasicResponse(uri, &Response{})
+}
+
+// ResetCompleted asks the daemon to reset completed jobs
+func (c *Client) ResetCompleted() error {
+	uri := c.formURI("/api/v1/reset/completed")
+	return c.getBasicResponse(uri, &Response{})
+}

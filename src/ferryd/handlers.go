@@ -300,3 +300,17 @@ func (s *Server) TrimObsolete(w http.ResponseWriter, r *http.Request, p httprout
 	}).Info("Obsoletes trim requested")
 	s.jproc.PushJob(jobs.NewTrimObsoleteJob(id))
 }
+
+// ResetCompleted will ask the job store to remove completed jobs. This is blocking.
+func (s *Server) ResetCompleted(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	if err := s.store.ResetCompleted(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// ResetFailed will ask the job store to remove failed jobs. This is blocking.
+func (s *Server) ResetFailed(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	if err := s.store.ResetFailed(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}

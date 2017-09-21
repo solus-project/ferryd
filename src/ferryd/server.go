@@ -106,6 +106,11 @@ func NewServer() (*Server, error) {
 	router.POST("/api/v1/trim/packages/:id", s.TrimPackages)
 	router.GET("/api/v1/trim/obsoletes/:id", s.TrimObsolete)
 
+	// Reset jobs are special and go straight to the store
+	// We can't queue them as a job because we'd be in catch 22..
+	router.GET("/api/v1/reset/completed", s.ResetCompleted)
+	router.GET("/api/v1/reset/failed", s.ResetFailed)
+
 	// List commands
 	router.GET("/api/v1/list/repos", s.GetRepos)
 	router.GET("/api/v1/list/pool", s.GetPoolItems)
