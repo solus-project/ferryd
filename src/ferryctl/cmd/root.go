@@ -50,7 +50,14 @@ var TrimCmd = &cobra.Command{
 	Short: "trim [packages] [obsoletes]",
 }
 
+var (
+	// Default location for the unix socket
+	socketPath = "/run/ferryd.sock"
+)
+
 func init() {
+	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path to talk to ferryd")
+
 	RootCmd.AddCommand(CopyCmd)
 	RootCmd.AddCommand(ListCmd)
 	RootCmd.AddCommand(RemoveCmd)

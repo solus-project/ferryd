@@ -65,7 +65,7 @@ func removeSource(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	client := libferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient(socketPath)
 	defer client.Close()
 
 	if err := client.RemoveSource(repoID, sourceID, sourceRelease); err != nil {

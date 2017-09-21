@@ -40,7 +40,7 @@ func pullRepo(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	client := libferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient(socketPath)
 	defer client.Close()
 
 	if err := client.PullRepo(args[0], args[1]); err != nil {

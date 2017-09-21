@@ -45,7 +45,7 @@ func cloneRepo(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	client := libferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient(socketPath)
 	defer client.Close()
 
 	if err := client.CloneRepo(args[0], args[1], fullClone); err != nil {

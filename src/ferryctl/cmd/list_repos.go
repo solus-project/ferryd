@@ -41,7 +41,7 @@ func listRepos(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	client := libferry.NewClient("./ferryd.sock")
+	client := libferry.NewClient(socketPath)
 	defer client.Close()
 
 	repos, err := client.GetRepos()
