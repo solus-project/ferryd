@@ -205,6 +205,12 @@ func (r *RepositoryManager) CreateRepo(db libdb.Database, id string) (*Repositor
 		return nil, fmt.Errorf("The specified repository '%s' already exists", id)
 	}
 
+	// Make sure someone isn't intentionally fucking with us
+	rbase := filepath.Join(r.repoBase, id)
+	if PathExists(rbase) {
+		return nil, fmt.Errorf("The specified repository '%s' has artifacts on disk", id)
+	}
+
 	// Create the main sub-bucket for this repo
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo))
 	repo := Repository{
@@ -288,14 +294,17 @@ func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string)
 	}
 
 	// Clean up the repo paths.
-	// TODO: Make non fatal, just attempt what we can.
-
 	for _, p := range deletionPaths {
 		if !PathExists(p) {
 			continue
 		}
+		// Just continue, warn in the log - do what we can here
 		if err := os.RemoveAll(p); err != nil {
-			return err
+			log.WithFields(log.Fields{
+				"repo":  id,
+				"path":  p,
+				"error": err,
+			}).Warning("Failed to remove repository path")
 		}
 	}
 
