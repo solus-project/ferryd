@@ -177,15 +177,17 @@ func (s *Server) Bind() error {
 		return err
 	}
 
-	uid := os.Geteuid()
-	gid := os.Getegid()
-	// Avoid umask issues
-	if e = os.Chown(s.socketPath, uid, gid); e != nil {
-		return e
-	}
-	// Fatal if we cannot chmod the socket to be ours only
-	if e = os.Chmod(s.socketPath, 0600); e != nil {
-		return e
+	uid := os.Getuid()
+	gid := os.Getgid()
+	if !systemdEnabled {
+		// Avoid umask issues
+		if e = os.Chown(s.socketPath, uid, gid); e != nil {
+			return e
+		}
+		// Fatal if we cannot chmod the socket to be ours only
+		if e = os.Chmod(s.socketPath, 0660); e != nil {
+			return e
+		}
 	}
 	s.socket = listener
 	return nil

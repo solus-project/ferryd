@@ -5,7 +5,7 @@ Description=ferryd control socket
 ListenStream=/run/ferryd.sock
 SocketUser=ferryd
 SocketGroup=ferryd
-SocketMode=0600
+SocketMode=0660
 
 [Install]
 WantedBy=sockets.target
