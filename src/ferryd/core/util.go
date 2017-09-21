@@ -98,19 +98,6 @@ func RemovePackageParents(path string) error {
 	return nil
 }
 
-// AtomicRename will unlink the original path which will leave open file
-// descriptors intact, and now position the new file into the old name, so
-// that there is never a partial read on an index file.
-func AtomicRename(origPath, newPath string) error {
-	st, err := os.Stat(newPath)
-	if err == nil && st.Mode().IsRegular() {
-		if err = os.Remove(newPath); err != nil {
-			return err
-		}
-	}
-	return os.Rename(origPath, newPath)
-}
-
 // FileSha1sum is a quick wrapper to grab the sha1sum for the given file
 func FileSha1sum(path string) (string, error) {
 	mfile, err := MapFile(path)

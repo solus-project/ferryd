@@ -361,7 +361,7 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	for i, sourcePath := range outPaths {
 		finalPath := finalPaths[i]
 
-		if errAbort = AtomicRename(sourcePath, finalPath); errAbort != nil {
+		if errAbort = os.Rename(sourcePath, finalPath); errAbort != nil {
 			return errAbort
 		}
 	}
