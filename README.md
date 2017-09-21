@@ -71,7 +71,7 @@ Deployment Plan
  - [x] Set up ring0 vhost
  - [x] Ensure deltas work
  - [x] Ensure simple pull operation works as expected
- - [ ] Test indexes in cli + SC to verify languages show as expected
+ - [x] Test indexes in cli + SC to verify languages show as expected
  - [x] Build ISOs from the repos to ensure they're identical (all deps accounted for)
 
 Usage (basic)
