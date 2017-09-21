@@ -1,0 +1,10 @@
+[Socket]
+Description=ferryd control socket
+
+[Socket]
+ListenStream=/run/ferryd.sock
+SocketUser=ferryd
+SocketGroup=ferryd
+
+[Install]
+WantedBy=sockets.target

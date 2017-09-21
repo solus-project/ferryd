@@ -1,0 +1,11 @@
+[Unit]
+Description=ferryd repository management
+After=network.target
+
+[Service]
+Type=notify
+WorkingDirectory=/var/lib/ferryd
+ExecStart=/usr/bin/ferryd -d /var/lib/ferryd -s /run/ferryd.sock
+
+[Install]
+WantedBy=multi-user.target
