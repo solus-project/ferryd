@@ -460,14 +460,18 @@ func (r *Repository) removePackageInternal(db libdb.Database, pool *Pool, id str
 	pkgDir := filepath.Join(r.path, poolEntry.Meta.GetPathComponent())
 	pkgTarget := filepath.Join(pkgDir, poolEntry.Name)
 
-	// TODO: Consider making non-fatal..
+	// If we cant unlink the file it aint getting out of the DB either...
 	if err = os.Remove(pkgTarget); err != nil {
 		return err
 	}
 
-	// TODO: This likely shouldn't be fatal either
+	// This is a "we tried but oh noes, not fatal.
 	if err = RemovePackageParents(pkgTarget); err != nil {
-		return err
+		log.WithFields(log.Fields{
+			"repo":  r.ID,
+			"id":    id,
+			"error": err,
+		}).Warning("Failed to remove parent structure for package")
 	}
 
 	// Tell the pool we no longer need this guy
