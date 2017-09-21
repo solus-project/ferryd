@@ -66,7 +66,7 @@ Deployment Plan
 ---------------
 
  - [x] Add `.tram` support to solbuild
- - [ ] Make sure builder script uploads `.tram` file last if it exists
+ - [x] Make sure builder script uploads `.tram` file last if it exists
  - [ ] Set up ferryd on the Solus package server
  - [ ] Import existing repos "as is" but without any old delta packages
  - [x] Set up new ring0 A Record
