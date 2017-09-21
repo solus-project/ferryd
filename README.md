@@ -85,11 +85,11 @@ Start ferryd to monitor `ferryd.sock`:
 
 Create a repo:
 
-    ./bin/ferryctl create-repo testing
+    ./bin/ferryctl -s ./ferryd.sock create-repo testing
 
 Add packages:
 
-    ./bin/ferryctl import testing path/to/eopkgs
+    ./bin/ferryctl -s ./ferryd.sock import testing path/to/eopkgs
 
 License
 -------
