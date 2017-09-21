@@ -20,7 +20,7 @@ import (
 	"ferryd/core"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"os"
 	"path/filepath"
 )
@@ -36,19 +36,10 @@ var (
 	socketPath = "/run/ferryd.sock"
 )
 
-// RootCmd is the main entry point into ferry
-var RootCmd = &cobra.Command{
-	Use:   "ferryd",
-	Short: "ferry is the Solus package repository daemon",
-}
-
 func mainLoop() {
-	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
-	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
-
-	if err := RootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	pflag.StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
+	pflag.StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
+	pflag.Parse()
 
 	// We write to a logfile..
 	form := &log.TextFormatter{
