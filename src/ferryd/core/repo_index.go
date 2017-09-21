@@ -19,6 +19,7 @@ package core
 import (
 	"encoding/xml"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"libdb"
 	"libeopkg"
 	"os"
@@ -34,7 +35,9 @@ func (r *Repository) initDistribution() error {
 
 	dpath := filepath.Join(r.assetPath, "distribution.xml")
 	if !PathExists(dpath) {
-		fmt.Fprintf(os.Stderr, "WARNING: no distribution.xml defined\n")
+		log.WithFields(log.Fields{
+			"repo": r.ID,
+		}).Warning("No distribution.xml defined")
 		return nil
 	}
 	dist, err := libeopkg.NewDistribution(dpath)
@@ -61,7 +64,9 @@ func (r *Repository) emitDistribution(encoder *xml.Encoder) error {
 func (r *Repository) emitComponents(encoder *xml.Encoder) error {
 	dpath := filepath.Join(r.assetPath, "components.xml")
 	if !PathExists(dpath) {
-		fmt.Fprintf(os.Stderr, "WARNING: no components.xml defined\n")
+		log.WithFields(log.Fields{
+			"repo": r.ID,
+		}).Warning("No components.xml defined")
 		return nil
 	}
 	comp, err := libeopkg.NewComponents(dpath)
@@ -90,7 +95,9 @@ func (r *Repository) emitComponents(encoder *xml.Encoder) error {
 func (r *Repository) emitGroups(encoder *xml.Encoder) error {
 	dpath := filepath.Join(r.assetPath, "groups.xml")
 	if !PathExists(dpath) {
-		fmt.Fprintf(os.Stderr, "WARNING: no groups.xml defined\n")
+		log.WithFields(log.Fields{
+			"repo": r.ID,
+		}).Warning("No groups.xml defined")
 		return nil
 	}
 	grp, err := libeopkg.NewGroups(dpath)
@@ -174,7 +181,10 @@ func (r *Repository) emitIndexPackage(db libdb.Database, pool *Pool, pkg string,
 	// dbginfo trick, warn in the console
 	if r.dist != nil && r.dist.IsObsolete(nom) {
 		if nom != entry.Name {
-			fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", pkg)
+			log.WithFields(log.Fields{
+				"repo": r.ID,
+				"id":   pkg,
+			}).Error("Abandoned obsolete package, please run 'trim obsolete'")
 		}
 		return nil
 	}
@@ -184,7 +194,11 @@ func (r *Repository) emitIndexPackage(db libdb.Database, pool *Pool, pkg string,
 	if entry.Meta.RuntimeDependencies != nil && r.dist != nil {
 		for _, p := range *entry.Meta.RuntimeDependencies {
 			if r.dist.IsObsolete(p.Name) {
-				fmt.Fprintf(os.Stderr, " **** UNINSTALLABLE PACKAGE:  %s depends on obsolete package %s ****\n", entry.Name, p.Name)
+				log.WithFields(log.Fields{
+					"repo":       r.ID,
+					"package":    entry.Name,
+					"dependency": p.Name,
+				}).Warning("Encountered uninstallable package depending on obsolete package. Please address")
 			}
 		}
 	}
@@ -284,7 +298,11 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	defer func() {
 		if errAbort != nil {
 			for _, p := range outPaths {
-				fmt.Fprintf(os.Stdout, "Removing potentially corrupt file %s: %v\n", p, errAbort)
+				log.WithFields(log.Fields{
+					"id":    r.ID,
+					"path":  p,
+					"error": errAbort,
+				}).Error("Removing potentially corrupt index file")
 				os.Remove(p)
 			}
 		}

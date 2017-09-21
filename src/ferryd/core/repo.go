@@ -18,6 +18,7 @@ package core
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"libdb"
 	"libeopkg"
 	"os"
@@ -344,7 +345,10 @@ func (r *Repository) RefDelta(db libdb.Database, pool *Pool, deltaID string) err
 	// Check we don't know about this delta already
 	for _, id := range entry.Deltas {
 		if id == deltaID {
-			fmt.Printf("Skipping already included delta %s\n", id)
+			log.WithFields(log.Fields{
+				"id":   id,
+				"repo": r.ID,
+			}).Info("Skipping already included delta")
 			return nil
 		}
 	}
@@ -405,7 +409,10 @@ func (r *Repository) AddLocalDelta(db libdb.Database, pool *Pool, pkg *libeopkg.
 	// Check we don't know about this delta already
 	for _, id := range entry.Deltas {
 		if id == pkg.ID {
-			fmt.Printf("Skipping already included delta %s\n", id)
+			log.WithFields(log.Fields{
+				"id":   id,
+				"repo": r.ID,
+			}).Info("Skipping already included delta")
 			return nil
 		}
 	}
@@ -613,7 +620,11 @@ func (r *Repository) buildSaneEntry(db libdb.Database, pool *Pool, newPkg *libeo
 			if newPkg.GetRelease() > pkgAvail.Meta.GetRelease() {
 				repoEntry.Published = newID
 			} else if newPkg.GetRelease() == pkgAvail.Meta.GetRelease() && pkgAvail.Name != newID {
-				fmt.Printf(" **** DUPLICATE RELEASE NUMBER DETECTED. FAK: %s %s **** \n", newID, pkgAvail.Name)
+				log.WithFields(log.Fields{
+					"existing":   pkgAvail.Name,
+					"newPackage": newID,
+					"repo":       r.ID,
+				}).Error("Duplicate release number detected. Fix immediately!")
 			}
 		} else {
 			repoEntry.Published = newID
@@ -623,7 +634,10 @@ func (r *Repository) buildSaneEntry(db libdb.Database, pool *Pool, newPkg *libeo
 	// Check if we've already indexed it, non-fatal
 	for _, id := range repoEntry.Available {
 		if id == newID {
-			fmt.Printf("Skipping already included %s\n", id)
+			log.WithFields(log.Fields{
+				"id":   id,
+				"repo": r.ID,
+			}).Info("Skipping already included package")
 			return nil
 		}
 	}
@@ -1136,7 +1150,10 @@ func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
 			if r.dist != nil && r.dist.IsObsolete(nom) {
 				if nom != entry.Name {
 					// Scream really loudly, but remove it because its "just" dbginfo.
-					fmt.Fprintf(os.Stderr, " **** ABANDONED OBSOLETE PACKAGE: %s ****\n", poolEntry.Meta.Name)
+					log.WithFields(log.Fields{
+						"repo": r.ID,
+						"name": poolEntry.Meta.Name,
+					}).Error("Abandoned obsolete package. Removing!")
 					removalIDs = append(removalIDs, id)
 				}
 				return nil
@@ -1152,7 +1169,10 @@ func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
 
 	// Now attempt to unref every one of the packages marked as obsolete
 	for _, id := range removalIDs {
-		fmt.Fprintf(os.Stderr, "Removing obsolete package: %v\n", id)
+		log.WithFields(log.Fields{
+			"repo": r.ID,
+			"id":   id,
+		}).Info("Removing obsolete package")
 		if err := r.UnrefPackage(db, pool, id); err != nil {
 			return err
 		}
@@ -1212,7 +1232,10 @@ func (r *Repository) TrimPackages(db libdb.Database, pool *Pool, maxKeep int) er
 
 	// Now attempt to unref every one of the packages marked as obsolete
 	for _, id := range removalIDs {
-		fmt.Fprintf(os.Stderr, "Trimming old package: %v\n", id)
+		log.WithFields(log.Fields{
+			"repo": r.ID,
+			"id":   id,
+		}).Info("Trimming old package")
 		if err := r.UnrefPackage(db, pool, id); err != nil {
 			return err
 		}

@@ -18,8 +18,7 @@ package jobs
 
 import (
 	"ferryd/core"
-	"fmt"
-	"os"
+	log "github.com/sirupsen/logrus"
 	"runtime"
 	"sync"
 )
@@ -49,7 +48,11 @@ func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 
 	oldJobs := runtime.GOMAXPROCS(njobs + 5)
 
-	fmt.Fprintf(os.Stderr, "Capped backgroundJobs to %d, maxprocs(%d) = %d\n", njobs, oldJobs, njobs+5)
+	log.WithFields(log.Fields{
+		"jobs":        njobs,
+		"oldMaxProcs": oldJobs,
+		"maxProcs":    njobs + 5,
+	}).Info("Set runtime job limits")
 
 	ret := &Processor{
 		manager: m,
