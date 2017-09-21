@@ -1050,6 +1050,11 @@ func (r *Repository) RemoveSource(db libdb.Database, pool *Pool, sourceID string
 		return err
 	}
 
+	// Did we *actually* remove anything?
+	if len(deleteIDs) == 0 {
+		return errors.New("no matching sources found")
+	}
+
 	// Now we'll remove all the defunct IDs. We can't really transaction this as
 	// we're going to rely on on the refcount cycle.
 	for _, id := range deleteIDs {
@@ -1102,12 +1107,18 @@ func (r *Repository) CopySourceFrom(db libdb.Database, pool *Pool, sourceRepo *R
 		return err
 	}
 
+	// Did we *actually* copy anything?
+	if len(copyIDs) == 0 {
+		return errors.New("no matching sources found")
+	}
+
 	// Now to insert all of those IDs
 	for _, id := range copyIDs {
 		if err = r.RefPackage(db, pool, id); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
