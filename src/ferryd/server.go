@@ -31,6 +31,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -114,10 +115,10 @@ func NewServer() (*Server, error) {
 // killHandler will ensure we cleanly tear down on a ctrl+c/sigint
 func (s *Server) killHandler() {
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-ch
-		log.Warning("Shutting down due to CTRL+C")
+		log.Warning("ferryd shutting down")
 		s.Close()
 		// Stop any mainLoop defers here
 		os.Exit(1)
