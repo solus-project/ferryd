@@ -58,7 +58,7 @@ func mainLoop() {
 
 	// We'll just keep logging for ever, don't expect rotation..
 	logPath := filepath.Join(baseDir, "ferryd.log")
-	logFile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 00755)
+	logFile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 00644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to open log file: %s %v\n", logPath, err)
 		os.Exit(1)
