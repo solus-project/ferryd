@@ -195,7 +195,7 @@ func (j *DeltaJobHandler) Execute(_ *Processor, manager *core.Manager) error {
 	}
 	// Ask that our repository now be reindexed because we've added deltas but
 	// only if we've successfully produced some delta packages
-	if j.nDeltas < 0 {
+	if j.nDeltas < 1 {
 		return nil
 	}
 
