@@ -71,8 +71,8 @@ Deployment Plan
  - [ ] Import existing repos "as is" but without any old delta packages
  - [x] Set up new ring0 A Record
  - [ ] Set up ring0 vhost
- - [ ] Ensure deltas work
- - [ ] Ensure simple pull operation works as expected
+ - [x] Ensure deltas work
+ - [x] Ensure simple pull operation works as expected
  - [ ] Test indexes in cli + SC to verify languages show as expected
  - [ ] Build ISOs from the repos to ensure they're identical (all deps accounted for)
 
