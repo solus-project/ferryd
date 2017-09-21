@@ -87,9 +87,7 @@ func (j *DeltaJobHandler) executeInternal(manager *core.Manager) error {
 	sort.Sort(libeopkg.PackageSet(pkgs))
 	tip := pkgs[len(pkgs)-1]
 
-	// TODO: Invalidate old deltas
-	// TODO: Consider spawning an async for *each* individual delta eopkg which
-	// could speed things up considerably.
+	// Process all potential deltas
 	for i := 0; i < len(pkgs)-1; i++ {
 		old := pkgs[i]
 		fields := log.Fields{

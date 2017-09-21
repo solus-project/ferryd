@@ -145,7 +145,7 @@ type MetaPackage struct {
 
 	PackageFormat string // Locked to 1.2 for eopkg
 
-	// TODO: Investigate why this is present in the metadata.xml!
+	// Index needs this, so do we for source==release matching
 	Source Source // Duplicate source to satisfy indexing
 }
 

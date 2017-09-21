@@ -47,7 +47,6 @@ type levelDb struct {
 }
 
 func newLevelDBHandle(storagePath string) (*levelDb, error) {
-	// TODO: Set up options, support read-only, etc.
 	ldb, err := leveldb.OpenFile(storagePath, nil)
 	if err != nil {
 		return nil, err

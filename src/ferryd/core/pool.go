@@ -18,6 +18,7 @@ package core
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"libdb"
 	"libeopkg"
 	"os"
@@ -116,8 +117,6 @@ func (p *Pool) GetEntry(db libdb.Database, id string) (*PoolEntry, error) {
 }
 
 // Private method to re-put the entry into the DB
-//
-// TODO: Evaluate write transaction!
 func (p *Pool) putEntry(db libdb.Database, entry *PoolEntry) error {
 	return db.Bucket([]byte(DatabaseBucketPool)).PutObject([]byte(entry.Name), entry)
 }
@@ -134,8 +133,6 @@ func (p *Pool) GetSkipEntry(db libdb.Database, id string) (*DeltaSkipEntry, erro
 }
 
 // Private method to re-put the entry into the DB
-//
-// TODO: Evaluate write transaction!
 func (p *Pool) putSkipEntry(db libdb.Database, entry *DeltaSkipEntry) error {
 	return db.Bucket([]byte(DatabaseBucketDeltaSkip)).PutObject([]byte(entry.Name), entry)
 }
@@ -273,8 +270,13 @@ func (p *Pool) UnrefEntry(db libdb.Database, id string) error {
 		return err
 	}
 
-	// TODO: Warn if unable to delete parents
-	RemovePackageParents(pkgPath)
+	// Warn if unable to delete parents
+	if err := RemovePackageParents(pkgPath); err != nil {
+		log.WithFields(log.Fields{
+			"path":  pkgPath,
+			"error": err,
+		}).Warning("Failed to remove package parents")
+	}
 
 	// Now remove from DB
 	b := db.Bucket([]byte(DatabaseBucketPool))

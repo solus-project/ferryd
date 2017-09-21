@@ -89,7 +89,6 @@ func (s *Server) GetStatus(w http.ResponseWriter, r *http.Request, _ httprouter.
 	}
 	ret.CompletedJobs = cj
 
-	// TODO: Insert failed jobs from the job store
 	buf := bytes.Buffer{}
 	if err := json.NewEncoder(&buf).Encode(&ret); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

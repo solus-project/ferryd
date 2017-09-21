@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"libdb"
@@ -235,7 +236,6 @@ func (r *RepositoryManager) DeleteRepo(db libdb.Database, pool *Pool, id string)
 		return fmt.Errorf("The specified repository '%s' does not exist", id)
 	}
 
-	// TODO: lock this repository from accepting inclusions ..
 	delete(r.repos, id)
 
 	// Let's iterate over every one of our packages here and start up an unref
@@ -313,8 +313,6 @@ func (r *Repository) GetEntry(db libdb.Database, id string) (*RepoEntry, error) 
 }
 
 // Private method to re-put the entry into the DB
-//
-// TODO: Consider write protection
 func (r *Repository) putEntry(db libdb.Database, entry *RepoEntry) error {
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))
 	return rootBucket.PutObject([]byte(entry.Name), entry)
@@ -1118,10 +1116,10 @@ func (r *Repository) TrimObsolete(db libdb.Database, pool *Pool) error {
 	// All the guys who we're sending to the big bitsink in the sky
 	var removalIDs []string
 
-	// TODO: Scream loudly that someones being an eejit and trying to obsolete
+	// Scream loudly that someones being an eejit and trying to obsolete
 	// packages without a distribution.xml defined.
 	if r.dist == nil {
-		return nil
+		return errors.New("cannot mark obsoletes without distribution.xml")
 	}
 
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(r.ID)).Bucket([]byte(DatabaseBucketPackage))

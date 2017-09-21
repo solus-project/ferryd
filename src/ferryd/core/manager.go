@@ -41,7 +41,6 @@ func NewManager(path string) (*Manager, error) {
 	}
 
 	// Open the database if we can
-	// TODO: Add a timeout for locks
 	db, err := libdb.Open(ctx.DbPath)
 	if err != nil {
 		return nil, err

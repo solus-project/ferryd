@@ -36,7 +36,6 @@ func init() {
 }
 
 func trimPackages(cmd *cobra.Command, args []string) {
-	// TODO: Support -1 implicitly set
 	if len(args) != 2 {
 		fmt.Fprintf(os.Stderr, "trim packages takes exactly 2 arguments\n")
 		return
