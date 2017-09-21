@@ -18,9 +18,11 @@ package main
 
 import (
 	"ferryd/core"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -40,49 +42,63 @@ var RootCmd = &cobra.Command{
 	Short: "ferry is the Solus package repository daemon",
 }
 
-// Set up the main logger formatting used in USpin
-func init() {
-	form := &log.TextFormatter{}
+func mainLoop() {
+	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
+	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
+
+	if err := RootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+
+	// We write to a logfile..
+	form := &log.TextFormatter{
+		DisableColors: true,
+	}
+
 	form.FullTimestamp = true
 	form.TimestampFormat = "15:04:05"
 	log.SetFormatter(form)
-	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
-	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
-}
 
-func mainLoop() {
+	// Must have a valid baseDir
+	if !core.PathExists(baseDir) {
+		fmt.Fprintf(os.Stderr, "Base directory does not exist: %s\n", baseDir)
+		os.Exit(1)
+	}
+
+	// We'll just keep logging for ever, don't expect rotation..
+	logPath := filepath.Join(baseDir, "ferryd.log")
+	logFile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 00755)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to open log file: %s %v\n", logPath, err)
+		os.Exit(1)
+	}
+	defer logFile.Close()
+
+	log.SetOutput(logFile)
+
+	// Now we can safely use logrus..
 	log.Info("Initialising server")
 
 	srv := NewServer()
 	defer srv.Close()
-	if e := srv.Bind(); e != nil {
+	if err := srv.Bind(); err != nil {
 		log.WithFields(log.Fields{
 			"socket": srv.socketPath,
-			"error":  e,
+			"error":  err,
 		}).Error("Error in binding server socket")
+		fmt.Fprintf(os.Stderr, "Fatal error in socket bind, check logs: %v\n", err)
 		return
 	}
-	if e := srv.Serve(); e != nil {
+	if err := srv.Serve(); err != nil {
 		log.WithFields(log.Fields{
 			"socket": srv.socketPath,
-			"error":  e,
+			"error":  err,
 		}).Error("Error in serving on socket")
+		fmt.Fprintf(os.Stderr, "Fatal error in runtime execution, check logs: %v\n", err)
 		return
 	}
 }
 
 func main() {
-	if err := RootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-
-	// Must have a valid baseDir
-	if !core.PathExists(baseDir) {
-		log.WithFields(log.Fields{
-			"directory": baseDir,
-		}).Error("Base directory does not exist")
-		os.Exit(1)
-	}
-
 	mainLoop()
 }
