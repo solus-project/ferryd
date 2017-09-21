@@ -34,6 +34,9 @@ var (
 
 	// Default socket path we expect to use
 	socketPath = "/run/ferryd.sock"
+
+	// How many jobs we're allowed to use. By default, half of the system cores (xz -T 2)
+	backgroundJobCount = -1
 )
 
 const (
@@ -44,6 +47,7 @@ const (
 func mainLoop() {
 	pflag.StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
 	pflag.StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
+	pflag.IntVarP(&backgroundJobCount, "jobs", "j", -1, "Number of jobs to use (-1 is 50% of cores)")
 	pflag.Parse()
 
 	// We write to a logfile..

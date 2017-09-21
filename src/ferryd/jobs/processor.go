@@ -38,8 +38,10 @@ type Processor struct {
 // of jobs. Note that "njobs" only refers to the number of *background jobs*,
 // the majority of operations will run sequentially
 func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
+	// If we set to -1, we'll automatically set to half of the system core count
+	// because we use xz -T 2 (so twice the number of threads ..)
 	if njobs < 0 {
-		njobs = runtime.NumCPU()
+		njobs = runtime.NumCPU() / 2
 	}
 
 	if njobs < 2 {
@@ -47,6 +49,10 @@ func NewProcessor(m *core.Manager, store *JobStore, njobs int) *Processor {
 	}
 
 	oldJobs := runtime.GOMAXPROCS(njobs + 5)
+	// Don't intentionally break things.
+	if oldJobs < njobs+5 {
+		oldJobs = runtime.GOMAXPROCS(oldJobs)
+	}
 
 	log.WithFields(log.Fields{
 		"jobs":        njobs,

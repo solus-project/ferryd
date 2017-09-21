@@ -170,8 +170,7 @@ func (s *Server) Bind() error {
 	}
 	s.store = st
 
-	// TODO: Expose setting for background job count
-	s.jproc = jobs.NewProcessor(s.manager, s.store, -1)
+	s.jproc = jobs.NewProcessor(s.manager, s.store, backgroundJobCount)
 
 	// Set up watching the manager's incoming directory
 	if err := s.InitWatcher(); err != nil {
