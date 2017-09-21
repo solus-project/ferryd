@@ -284,25 +284,22 @@ func (r *Repository) emitIndex(db libdb.Database, pool *Pool, file *os.File) err
 func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	r.indexMut.Lock()
 	defer r.indexMut.Unlock()
-
-	// If something goes wrong we need to remove our broken files
-	var outPaths []string
-	var finalPaths []string
 	var errAbort error
 
 	indexPath := filepath.Join(r.path, "eopkg-index.xml.new")
 	indexPathFinal := filepath.Join(r.path, "eopkg-index.xml")
-	outPaths = append(outPaths, indexPath)
+	mapping := make(map[string]string)
+	mapping[indexPath] = indexPathFinal
 
 	defer func() {
 		if errAbort != nil {
-			for _, p := range outPaths {
+			for _, v := range mapping {
 				log.WithFields(log.Fields{
 					"id":    r.ID,
-					"path":  p,
+					"path":  v,
 					"error": errAbort,
 				}).Error("Removing potentially corrupt index file")
-				os.Remove(p)
+				os.Remove(v)
 			}
 		}
 	}()
@@ -328,7 +325,7 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	// Sing the theme tune
 	indexPathSha := filepath.Join(r.path, "eopkg-index.xml.sha1sum.new")
 	indexPathShaFinal := filepath.Join(r.path, "eopkg-index.xml.sha1sum")
-	outPaths = append(outPaths, indexPathSha)
+	mapping[indexPathSha] = indexPathShaFinal
 
 	// Star in it
 	if errAbort = WriteSha1sum(indexPath, indexPathSha); err != nil {
@@ -338,7 +335,7 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	// Write our XZ index out
 	indexPathXz := filepath.Join(r.path, "eopkg-index.xml.new.xz")
 	indexPathXzFinal := filepath.Join(r.path, "eopkg-index.xml.xz")
-	outPaths = append(outPaths, indexPathXz)
+	mapping[indexPathXz] = indexPathXzFinal
 
 	if errAbort = libeopkg.XzFile(indexPath, true); errAbort != nil {
 		return errAbort
@@ -347,23 +344,15 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 	// Write sha1sum for our xz file
 	indexPathXzSha := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum.new")
 	indexPathXzShaFinal := filepath.Join(r.path, "eopkg-index.xml.xz.sha1sum")
-	outPaths = append(outPaths, indexPathXzSha)
+	mapping[indexPathXzSha] = indexPathXzShaFinal
 
 	// xz sha1
 	if errAbort = WriteSha1sum(indexPathXz, indexPathXzSha); err != nil {
 		return errAbort
 	}
 
-	// Stack our order so hash files go *before* index files.
-	finalPaths = append(finalPaths, indexPathShaFinal)
-	finalPaths = append(finalPaths, indexPathFinal)
-	finalPaths = append(finalPaths, indexPathXzShaFinal)
-	finalPaths = append(finalPaths, indexPathXzFinal)
-
-	for i, sourcePath := range outPaths {
-		finalPath := finalPaths[i]
-
-		if errAbort = os.Rename(sourcePath, finalPath); errAbort != nil {
+	for k, v := range mapping {
+		if errAbort = os.Rename(k, v); errAbort != nil {
 			return errAbort
 		}
 	}
