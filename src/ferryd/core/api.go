@@ -62,26 +62,32 @@ func (m *Manager) CloneRepo(repoID, newClone string, fullClone bool) error {
 }
 
 // PullRepo will pull from one repo, the source ID, into the target repository
-func (m *Manager) PullRepo(sourceID, targetID string) error {
+func (m *Manager) PullRepo(sourceID, targetID string) ([]string, error) {
 	// Try to get the source repo
 	sourceRepo, err := m.repo.GetRepo(m.db, sourceID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Try to get the target repo
 	targetRepo, err := m.repo.GetRepo(m.db, targetID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now ask it to pull..
-	if err = targetRepo.PullFrom(m.db, m.pool, sourceRepo); err != nil {
-		return err
+	changed, err := targetRepo.PullFrom(m.db, m.pool, sourceRepo)
+	if err != nil {
+		return nil, err
 	}
 
 	// Success, index the target
-	return m.Index(targetID)
+	if err = m.Index(targetID); err != nil {
+		return nil, err
+	}
+
+	// Tell caller which ones changed
+	return changed, nil
 }
 
 // RemoveSource will ask the repo to remove all matching source==release

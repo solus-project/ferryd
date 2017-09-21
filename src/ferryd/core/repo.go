@@ -938,18 +938,19 @@ func (r *Repository) CloneFrom(db libdb.Database, pool *Pool, sourceRepo *Reposi
 // Drift can be corrected by nuking a repository and performing a full clone from the
 // source to have identical mirrors again. This should be performed rarely and only
 // during periods of maintenance due to this method violating atomic indexes.
-func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) error {
+func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Repository) ([]string, error) {
 	// First things first, instigate a write lock on the source
 	sourceRepo.insertMut.Lock()
 	defer sourceRepo.insertMut.Unlock()
 
 	var copyIDs []string
+	var changedNames []string
 
 	rootBucket := db.Bucket([]byte(DatabaseBucketRepo)).Bucket([]byte(sourceRepo.ID)).Bucket([]byte(DatabaseBucketPackage))
 
 	// Before doing anything, sync the assets
 	if err := r.pullAssets(sourceRepo); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Grab every package
@@ -964,6 +965,7 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 		// We haven't got this, copy the published version
 		if localEntry == nil {
 			copyIDs = append(copyIDs, entry.Published)
+			changedNames = append(changedNames, entry.Name)
 			return nil
 		}
 
@@ -980,6 +982,7 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 		// Their tip is newer than ours, copy it
 		if tipVer.Meta.GetRelease() > ourTip.Meta.GetRelease() {
 			copyIDs = append(copyIDs, entry.Published)
+			changedNames = append(changedNames, entry.Name)
 		}
 
 		// Is something completely bork?
@@ -990,7 +993,7 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Now we'll insert all the new IDs. We can't really transaction this as
@@ -998,11 +1001,11 @@ func (r *Repository) PullFrom(db libdb.Database, pool *Pool, sourceRepo *Reposit
 	// depending on tip or ALL
 	for _, id := range copyIDs {
 		if err := r.RefPackage(db, pool, id); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return changedNames, nil
 }
 
 // RemoveSource will remove all packages that have a matching source name and
