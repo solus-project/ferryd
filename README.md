@@ -77,7 +77,7 @@ Usage (basic)
 
 Start ferryd to monitor `ferryd.sock`:
 
-    ./bin/ferryd
+    ./bin/ferryd -d myRepoBase -s ./ferryd.sock
 
 Create a repo:
 
