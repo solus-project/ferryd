@@ -29,6 +29,9 @@ var (
 
 	// baseDir is where we expect to operate
 	baseDir = "/var/lib/ferryd"
+
+	// Default socket path we expect to use
+	socketPath = "/run/ferryd.sock"
 )
 
 // RootCmd is the main entry point into ferry
@@ -48,6 +51,7 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 
 	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
+	RootCmd.PersistentFlags().StringVarP(&socketPath, "socket", "s", "/run/ferryd.sock", "Set the socket path for ferryd")
 }
 
 func mainLoop() {

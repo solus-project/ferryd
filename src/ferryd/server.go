@@ -33,14 +33,6 @@ import (
 	"time"
 )
 
-const (
-	// UnixSocketPath is the unique socket path on the system for the ferry daemon
-	UnixSocketPath = "./ferryd.sock"
-
-	// SystemUnixSocketPath is the path used when we're properly installed.
-	SystemUnixSocketPath = "/run/ferryd.sock"
-)
-
 // Server sits on a unix socket accepting connections from authenticated
 // client, i.e. root or those in the "ferry" group
 type Server struct {
@@ -117,9 +109,11 @@ func (s *Server) killHandler() {
 func (s *Server) Bind() error {
 	var listener net.Listener
 
+	// Set from global CLI flag
+	s.socketPath = socketPath
+
 	// Check if we're systemd activated.
 	if _, b := os.LookupEnv("LISTEN_FDS"); b {
-		s.socketPath = SystemUnixSocketPath
 		listeners, err := activation.Listeners(true)
 		if err != nil {
 			return err
@@ -131,7 +125,6 @@ func (s *Server) Bind() error {
 		listener = listeners[0]
 		systemdEnabled = true
 	} else {
-		s.socketPath = UnixSocketPath
 		l, e := net.Listen("unix", s.socketPath)
 		if e != nil {
 			return e
@@ -209,5 +202,9 @@ func (s *Server) Close() {
 	s.manager.Close()
 	s.running = false
 	s.srv.Shutdown(nil)
-	os.Remove(UnixSocketPath)
+
+	// We don't technically fully own it if systemd created it
+	if !systemdEnabled {
+		os.Remove(s.socketPath)
+	}
 }
