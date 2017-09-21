@@ -55,6 +55,14 @@ func mainLoop() {
 	form.TimestampFormat = "15:04:05"
 	log.SetFormatter(form)
 
+	// Ensure all joined directories are correct
+	b, err := filepath.Abs(baseDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot resolve directory %v: %v\n", baseDir, err)
+		os.Exit(1)
+	}
+	baseDir = b
+
 	// Must have a valid baseDir
 	if !core.PathExists(baseDir) {
 		fmt.Fprintf(os.Stderr, "Base directory does not exist: %s\n", baseDir)
