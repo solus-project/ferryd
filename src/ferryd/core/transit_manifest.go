@@ -47,6 +47,16 @@ var (
 	ErrIllegalUpload = errors.New("The manifest file is NOT an eopkg")
 )
 
+// A TransitManifestHeader is required in all .tram uploads to ensure that both
+// the sender and recipient are talking in the same fashion.
+type TransitManifestHeader struct {
+	// Versioning to protect against future format changes
+	Version string `toml:"version"`
+
+	// The repo that the uploader is intending to upload *to*
+	Target string `toml:"target"`
+}
+
 // A TransitManifest is provided by build servers to validate the upload of
 // packages into the incoming directory.
 //
@@ -55,14 +65,7 @@ type TransitManifest struct {
 
 	// Every .tram file has a [manifest] header - this will never change and is
 	// version agnostic.
-	Manifest struct {
-
-		// Versioning to protect against future format changes
-		Version string `toml:"version"`
-
-		// The repo that the uploader is intending to upload *to*
-		Target string `toml:"target"`
-	}
+	Manifest TransitManifestHeader `toml:"manifest"`
 
 	// A list of files that accompanied this .tram upload
 	File []TransitManifestFile `toml:"file"`
