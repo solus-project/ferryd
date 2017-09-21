@@ -54,7 +54,7 @@ func (s *Server) WatchIncoming() {
 				if filepath.Dir(event.Name) != s.manager.IncomingPath {
 					continue
 				}
-				if event.Op&fsnotify.Write|fsnotify.Close == fsnotify.Write|fsnotify.Close {
+				if event.Op&fsnotify.Update == fsnotify.Update {
 					if strings.HasSuffix(event.Name, core.TransitManifestSuffix) {
 						s.processTransitManifest(filepath.Base(event.Name))
 					}
