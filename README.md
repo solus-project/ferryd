@@ -51,7 +51,7 @@ TODO
  - [x] Ensure job claim status is cleared on startup.
  - [x] Add `trim` commands
  - [x] Maybe add `trim` subcommand to nuke obsoletes ?
- - [ ] Ensure systemd unix socket isnt unlinked on exit
+ - [x] Ensure systemd unix socket isnt unlinked on exit
  - [ ] Replace all Fprintf/printf with logrus
  - [ ] Redirect logrus to a log file within our directory structure
  - [ ] Add global lockfile

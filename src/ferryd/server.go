@@ -123,6 +123,12 @@ func (s *Server) Bind() error {
 		}
 		// listener will be sockets[0], now we'll need to follow systemd activation path
 		listener = listeners[0]
+		// Mustn't delete!
+		if unix, ok := listener.(*net.UnixListener); ok {
+			unix.SetUnlinkOnClose(false)
+		} else {
+			return errors.New("expected unix socket")
+		}
 		systemdEnabled = true
 	} else {
 		l, e := net.Listen("unix", s.socketPath)
