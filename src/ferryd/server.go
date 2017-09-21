@@ -117,14 +117,18 @@ func (s *Server) killHandler() {
 func (s *Server) Bind() error {
 	var listener net.Listener
 
-	// Grab any systemd listeners, and unset var. We'll crack on fine without them
-	if listeners, err := activation.Listeners(true); err == nil {
+	// Check if we're systemd activated.
+	if _, b := os.LookupEnv("LISTEN_FDS"); b {
+		s.socketPath = SystemUnixSocketPath
+		listeners, err := activation.Listeners(true)
+		if err != nil {
+			return err
+		}
 		if len(listeners) != 1 {
 			return errors.New("expected a single unix socket")
 		}
 		// listener will be sockets[0], now we'll need to follow systemd activation path
 		listener = listeners[0]
-		s.socketPath = SystemUnixSocketPath
 		systemdEnabled = true
 	} else {
 		s.socketPath = UnixSocketPath
@@ -135,12 +139,6 @@ func (s *Server) Bind() error {
 		listener = l
 	}
 
-	baseDir := "./ferry"
-
-	// Create new Slip Manager for the "./ferry" repo
-	if err := os.MkdirAll(baseDir, 00755); err != nil {
-		return err
-	}
 	m, e := core.NewManager(baseDir)
 	if e != nil {
 		return e

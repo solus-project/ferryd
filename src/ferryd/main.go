@@ -17,13 +17,25 @@
 package main
 
 import (
+	"ferryd/core"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"os"
 )
 
 var (
 	// If systemd is enabled, we'll talk to it.
 	systemdEnabled = false
+
+	// baseDir is where we expect to operate
+	baseDir = "/var/lib/ferryd"
 )
+
+// RootCmd is the main entry point into ferry
+var RootCmd = &cobra.Command{
+	Use:   "ferryd",
+	Short: "ferry is the Solus package repository daemon",
+}
 
 // Set up the main logger formatting used in USpin
 func init() {
@@ -34,9 +46,13 @@ func init() {
 
 	// Temp
 	log.SetLevel(log.DebugLevel)
+
+	RootCmd.PersistentFlags().StringVarP(&baseDir, "base", "d", "/var/lib/ferryd", "Set the base directory for ferryd")
 }
 
 func mainLoop() {
+	log.Info("Initialising server")
+
 	srv := NewServer()
 	defer srv.Close()
 	if e := srv.Bind(); e != nil {
@@ -56,6 +72,17 @@ func mainLoop() {
 }
 
 func main() {
-	log.Info("Initialising server")
+	if err := RootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+
+	// Must have a valid baseDir
+	if !core.PathExists(baseDir) {
+		log.WithFields(log.Fields{
+			"directory": baseDir,
+		}).Error("Base directory does not exist")
+		os.Exit(1)
+	}
+
 	mainLoop()
 }
