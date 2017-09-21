@@ -36,7 +36,7 @@ func init() {
 
 func delta(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "delta takes exactly 1 argument")
+		fmt.Fprintf(os.Stderr, "delta takes exactly 1 argument\n")
 		return
 	}
 

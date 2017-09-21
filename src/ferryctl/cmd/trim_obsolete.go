@@ -36,7 +36,7 @@ func init() {
 
 func trimObsolete(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "trim obsolete takes exactly 1 argument")
+		fmt.Fprintf(os.Stderr, "trim obsolete takes exactly 1 argument\n")
 		return
 	}
 

@@ -36,9 +36,8 @@ func init() {
 }
 
 func importEx(cmd *cobra.Command, args []string) {
-	// Attempt to grab the local daemon version
 	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "import takes exactly at least 1 argument")
+		fmt.Fprintf(os.Stderr, "import takes exactly at least 1 argument\n")
 		return
 	}
 

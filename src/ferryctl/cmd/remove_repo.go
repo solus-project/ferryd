@@ -35,7 +35,6 @@ func init() {
 }
 
 func removeRepo(cmd *cobra.Command, args []string) {
-	// Attempt to grab the local daemon version
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "remove repo takes exactly 1 argument\n")
 		return

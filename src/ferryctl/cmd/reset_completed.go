@@ -36,7 +36,7 @@ func init() {
 
 func resetCompleted(cmd *cobra.Command, args []string) {
 	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "reset completed takes no arguments")
+		fmt.Fprintf(os.Stderr, "reset completed takes no arguments\n")
 		return
 	}
 

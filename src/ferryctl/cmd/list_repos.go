@@ -37,7 +37,7 @@ func init() {
 
 func listRepos(cmd *cobra.Command, args []string) {
 	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "list-repos takes no arguments")
+		fmt.Fprintf(os.Stderr, "list-repos takes no arguments\n")
 		return
 	}
 

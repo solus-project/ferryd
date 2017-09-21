@@ -141,7 +141,7 @@ func printCompletedJobs(js []*libferry.Job) {
 
 func getStatus(cmd *cobra.Command, args []string) {
 	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "status takes no arguments")
+		fmt.Fprintf(os.Stderr, "status takes no arguments\n")
 		return
 	}
 

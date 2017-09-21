@@ -36,7 +36,7 @@ func init() {
 
 func listPool(cmd *cobra.Command, args []string) {
 	if len(args) != 0 {
-		fmt.Fprintf(os.Stderr, "list pool takes no arguments")
+		fmt.Fprintf(os.Stderr, "list pool takes no arguments\n")
 		return
 	}
 

@@ -35,9 +35,8 @@ func init() {
 }
 
 func index(cmd *cobra.Command, args []string) {
-	// Attempt to grab the local daemon version
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "index takes exactly 1 argument")
+		fmt.Fprintf(os.Stderr, "index takes exactly 1 argument\n")
 		return
 	}
 
