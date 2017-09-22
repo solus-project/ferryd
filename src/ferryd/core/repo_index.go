@@ -293,13 +293,13 @@ func (r *Repository) Index(db libdb.Database, pool *Pool) error {
 
 	defer func() {
 		if errAbort != nil {
-			for _, v := range mapping {
+			for k := range mapping {
 				log.WithFields(log.Fields{
 					"id":    r.ID,
-					"path":  v,
+					"path":  k,
 					"error": errAbort,
 				}).Error("Removing potentially corrupt index file")
-				os.Remove(v)
+				os.Remove(k)
 			}
 		}
 	}()
