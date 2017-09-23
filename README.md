@@ -30,7 +30,7 @@ and having packages immediately and permanently available. Less delays for devel
 Lastly, `ferryd` aims to provide very simple sync abilities to help control deployment of packages to other repositories. An explicit design goal is to enable "Pulling" a repository into an
 existing repository, which in turn publishes one channel to another. This is used in Solus to control sync-windows from unstable to stable, and is done as a single atomic operation.
 
-_Disclaimer regarding the name: Solus has this weird obsession with all things nautilic. Oh and birds._
+_Disclaimer regarding the name: Solus has this weird obsession with all things nautical. Oh and birds._
 
 
 Usage (basic)
