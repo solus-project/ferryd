@@ -6,9 +6,9 @@ ferryd
 
 [![Report](https://goreportcard.com/badge/github.com/solus-project/binman)](https://goreportcard.com/report/github.com/solus-project/ferryd) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-ferryd is a [Solus project](https://solus-project.com/).
+ferryd is a [Solus project](https://getsol.us/).
 
-![logo](https://build.solus-project.com/logo.png)
+![logo](https://build.getsol.us/logo.png)
 
 `ferryd` is the binary repository manager for Solus. In addition to providing basic management for repositories, it is also an asynchronous job-based daemon, processing incoming package
 uploads from authorised builder machines. `ferryd` attempts to optimise all operations ahead of time, by caching all metadata required for repository indexes.
